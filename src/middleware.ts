@@ -6,7 +6,7 @@ export async function middleware(request: NextRequest) {
   if (path.startsWith("/api/agent/") || path === "/api/agent")
     return NextResponse.next();
   let response = NextResponse.next({ request });
-  const publicPage = ["/login", "/join", "/auth/callback", "/auth/bootstrap", "/not-invited"].includes(
+  const publicPage = ["/login", "/join", "/auth/callback", "/auth/bootstrap", "/not-invited", "/privacy"].includes(
     path,
   );
   if (
