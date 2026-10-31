@@ -16,3 +16,6 @@ yarn-error.log*
 !.env.example
 .vercel
 .schedule-logs/
+
+tts/.venv/
+tts/cache/
