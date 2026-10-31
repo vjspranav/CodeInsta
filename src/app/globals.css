@@ -998,3 +998,11 @@ input {
     scroll-behavior: auto !important;
   }
 }
+
+.invite-panel { display: grid; gap: 1rem; }
+.invite-panel form { display: grid; gap: .8rem; max-width: 24rem; }
+.invite-panel label { display: grid; gap: .5rem; }
+.invite-panel input { padding: .8rem; border: 1px solid #454957; border-radius: .6rem; background: #14171f; color: #f6f6fa; }
+.invite-card { display: grid; gap: .7rem; padding: 1rem; border: 1px solid #454957; border-radius: .8rem; }
+.invite-card a, .invite-card code { overflow-wrap: anywhere; }
+.invite-card button { justify-self: start; padding: .6rem; }

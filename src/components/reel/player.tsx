@@ -38,7 +38,7 @@ export function Player({
   finish,
   audioBlocked,
 }: Props) {
-  const { creators, liked, like, view } = useData();
+  const { creators, liked, like, view, isOwner } = useData();
   const frames = useMemo(
     () => timeline(reel.script, reel.audio, next?.series_index ?? undefined),
     [reel, next],
@@ -281,12 +281,12 @@ export function Player({
           />
           <span>Like</span>
         </button>
-        <button aria-label="Note or ask" onClick={() => setSheet(true)}>
+        {isOwner && <button aria-label="Note or ask" onClick={() => setSheet(true)}>
           <MessageCircle size={28} />
           <span>Ask</span>
-        </button>
+        </button>}
       </div>
-      {sheet && <Feedback reel={reel} close={() => setSheet(false)} />}
+      {isOwner && sheet && <Feedback reel={reel} close={() => setSheet(false)} />}
     </article>
   );
 }

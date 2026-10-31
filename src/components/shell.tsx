@@ -5,16 +5,16 @@ import { Compass, House, MessageCircle, Users } from "lucide-react";
 import { useEffect } from "react";
 import { MotionConfig } from "framer-motion";
 import { DataProvider } from "./data";
-export function Shell({ children }: { children: React.ReactNode }) {
+export function Shell({ children, isOwner }: { children: React.ReactNode; isOwner: boolean }) {
   const path = usePathname();
   useEffect(() => {
     if ("serviceWorker" in navigator)
       navigator.serviceWorker.register("/sw.js").catch(() => {});
   }, []);
-  const publicPage = ["/login", "/not-invited"].includes(path);
+  const publicPage = ["/login", "/join", "/not-invited", "/auth/callback"].includes(path);
   return (
     <MotionConfig reducedMotion="user">
-      <DataProvider>
+      <DataProvider isOwner={isOwner}>
         <div className={publicPage ? "" : "app-shell"}>
           {children}
           {!publicPage && (
@@ -24,7 +24,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 { href: "/explore", label: "Explore", Icon: Compass },
                 { href: "/inbox", label: "Inbox", Icon: MessageCircle },
                 { href: "/profiles", label: "Profiles", Icon: Users },
-              ].map(({ href, label, Icon }) => (
+              ].filter(({ href }) => href !== "/inbox" || isOwner).map(({ href, label, Icon }) => (
                 <Link
                   key={href}
                   href={href}

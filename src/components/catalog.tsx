@@ -98,7 +98,7 @@ export function Explore() {
   );
 }
 export function Profiles({ creatorId }: { creatorId?: string }) {
-  const { creators, reels, loading, error } = useData();
+  const { creators, reels, loading, error, isOwner } = useData();
   if (loading || error) return <LoadState />;
   if (!creatorId)
     return (
@@ -118,6 +118,7 @@ export function Profiles({ creatorId }: { creatorId?: string }) {
             <ArrowUpRight />
           </Link>
         ))}
+        {isOwner && <Link className="primary" href="/invites">Invite friends</Link>}
         <form action={signOut}>
           <button className="signout">Sign out</button>
         </form>
@@ -134,9 +135,9 @@ export function Profiles({ creatorId }: { creatorId?: string }) {
         <p>{creator.handle}</p>
         <p className="muted">{creator.bio}</p>
         <strong>{owned.length} reels</strong>
-        <Link className="primary" href={`/inbox?creator=${creator.id}`}>
+        {isOwner && <Link className="primary" href={`/inbox?creator=${creator.id}`}>
           Message {creator.display_name}
-        </Link>
+        </Link>}
       </header>
       <ReelGrid reels={owned} />
     </main>

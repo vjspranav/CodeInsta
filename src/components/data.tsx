@@ -31,6 +31,7 @@ export type ReelRow = {
   audio: AudioJson | null;
 };
 type Data = {
+  isOwner: boolean;
   reels: ReelRow[];
   creators: Creator[];
   liked: Set<string>;
@@ -43,9 +44,9 @@ type Data = {
   view: (id: string) => Promise<void>;
 };
 const Context = createContext<Data | null>(null);
-export function DataProvider({ children }: { children: React.ReactNode }) {
+export function DataProvider({ children, isOwner }: { children: React.ReactNode; isOwner: boolean }) {
   const path = usePathname();
-  const isPublic = ["/login", "/not-invited", "/auth/callback"].includes(path);
+  const isPublic = ["/login", "/join", "/not-invited", "/auth/callback"].includes(path);
   const [reels, setReels] = useState<ReelRow[]>([]),
     [creators, setCreators] = useState<Creator[]>([]);
   const [liked, setLiked] = useState(new Set<string>()),
@@ -130,6 +131,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   return (
     <Context.Provider
       value={{
+        isOwner,
         reels,
         creators,
         liked,

@@ -76,3 +76,16 @@ Final verification:
 - Supplemental content audit: exact topics/hooks, five series with indexes 1–3, four scenes each, timing, caption limits, narration pace, element bounds, rectangle separation, distinct entrance times, and all requested visual types pass.
 
 This dispatch wrote only `content/seed/gpt/**` and this status file. No publishing, database writes, audio generation, staging, or git commit was attempted. Ready for the orchestrator to review and commit.
+
+## Invite membership frontend — 2026-10-31
+
+Completed the “Others can join; questions stay owner-only” dispatch. This supersedes the earlier allowlist-only authentication behavior above.
+
+- Added `npm run invite` → `tsx scripts/invite.ts`; no dependency or lockfile changes.
+- Middleware refreshes the authenticated session and checks the caller's membership. Nonmembers go to `/join`; nonallowlisted users are no longer signed out. Public auth/join pages, existing static assets and agent APIs remain accessible. Allowlisted users missing an owner row go through `/auth/bootstrap` once, preserving a validated local destination. The route and successful login/OAuth flows bootstrap owners through a server-only wrapper around the existing service-role client. Middleware contains no service-role writes or imports.
+- Email signup validates invite capacity and expiration server-side before signUp, except for server-verified owner emails. Authenticated signup redeems through `redeem_invite`; redemption races lead to `/join` with recovery guidance. `/join` provides RPC redemption, error handling and sign-out. Existing email sign-in accepts members without an invite. Google is enabled unless `NEXT_PUBLIC_ENABLE_GOOGLE=false`; callback exchanges the session and returns to `/` for membership gating.
+- `/login?invite=CODE` selects Create account and prefills the invite field. `/profiles` links owners to `/invites`, which lists codes, usage and expiry and allows creating a code for a validated positive integer number of uses. Copy buttons and absolute share links are included. Both the page and creation action independently verify the authenticated email against ALLOWED_EMAILS before service-role access.
+- Server-derived owner status controls the Inbox tab, creator Message links and reel note/ask controls. `/inbox` independently verifies owner authorization and redirects other users. Existing database RLS remains the write authorization boundary.
+- Added 17 regression tests covering invite validity/expiry, safe bootstrap destinations, signup rejection before account creation, owner exemption, nonowner sign-in, redemption races, membership gating, public routes and agent API exemption.
+
+Final verification: `npm run lint` passes without warnings; `npm test` passes **73 tests across 8 files**; `npm run build` passes on Next 15.5.28; `git diff --check` passes. No production account creation, invite writes, OAuth end-to-end test, visual browser verification, deployment, staging or commit was attempted. Production migration and `scripts/invite.ts` were read but left unchanged. Only Codex-owned frontend/helper/test/status paths and package.json were edited; the existing untracked `.claude/` was left untouched.

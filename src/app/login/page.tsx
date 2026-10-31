@@ -1,9 +1,14 @@
 "use client";
-import { useActionState, useState } from "react";
+import { useActionState, useState, useEffect } from "react";
 import { ArrowRight, Code2 } from "lucide-react";
 import { authenticate } from "./actions";
 import { browserDb } from "@/lib/supabase/browser";
 export default function Login() {
+  const [invite, setInvite] = useState("");
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get("invite");
+    if (code) { setInvite(code); setMode("signup"); }
+  }, []);
   const [mode, setMode] = useState("signin");
   const [state, action, pending] = useActionState(authenticate, { error: "" });
   const [oauthError, setOauthError] = useState("");
@@ -64,6 +69,10 @@ export default function Login() {
               placeholder="At least 8 characters"
             />
           </label>
+          {mode === "signup" && <label>Invite code
+            <input name="invite" value={invite} onChange={(event) => setInvite(event.target.value)} autoComplete="off" />
+            <small className="muted">Required unless you are an owner.</small>
+          </label>}
           <p role="alert" className="error">
             {state.error || oauthError}
           </p>
@@ -76,7 +85,7 @@ export default function Login() {
             <ArrowRight size={18} />
           </button>
         </form>
-        {process.env.NEXT_PUBLIC_ENABLE_GOOGLE === "true" && (
+        {process.env.NEXT_PUBLIC_ENABLE_GOOGLE !== "false" && (
           <button
             className="google"
             onClick={async () => {
