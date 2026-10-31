@@ -944,8 +944,11 @@ input {
 }
 .google {
   width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  min-height: 44px;
+  display: flex;
+  justify-content: center;
+  /* GIS iframe paints an opaque white box under a dark color-scheme */
+  color-scheme: light;
 }
 .login .error:empty {
   display: none;
