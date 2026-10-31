@@ -46,7 +46,7 @@ type Data = {
 const Context = createContext<Data | null>(null);
 export function DataProvider({ children, isOwner }: { children: React.ReactNode; isOwner: boolean }) {
   const path = usePathname();
-  const isPublic = ["/login", "/join", "/not-invited", "/auth/callback", "/privacy"].includes(path);
+  const isPublic = ["/login", "/join", "/not-invited", "/auth/callback", "/auth/google", "/auth/google/nonce", "/privacy"].includes(path);
   const [reels, setReels] = useState<ReelRow[]>([]),
     [creators, setCreators] = useState<Creator[]>([]);
   const [liked, setLiked] = useState(new Set<string>()),

@@ -11,7 +11,7 @@ export function Shell({ children, isOwner }: { children: React.ReactNode; isOwne
     if ("serviceWorker" in navigator)
       navigator.serviceWorker.register("/sw.js").catch(() => {});
   }, []);
-  const publicPage = ["/login", "/join", "/not-invited", "/auth/callback", "/privacy"].includes(path);
+  const publicPage = ["/login", "/join", "/not-invited", "/auth/callback", "/auth/google", "/auth/google/nonce", "/privacy"].includes(path);
   return (
     <MotionConfig reducedMotion="user">
       <DataProvider isOwner={isOwner}>

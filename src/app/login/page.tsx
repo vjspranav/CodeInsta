@@ -1,17 +1,55 @@
 "use client";
-import { useActionState, useState, useEffect } from "react";
+import { useActionState, useState, useEffect, useRef } from "react";
 import { ArrowRight, Code2 } from "lucide-react";
 import { authenticate } from "./actions";
-import { browserDb } from "@/lib/supabase/browser";
+import Script from "next/script";
+
+type GoogleIdentity = {
+  initialize: (options: { client_id: string; ux_mode: "redirect"; login_uri: string; nonce: string }) => void;
+  renderButton: (element: HTMLElement, options: { theme: "filled_black"; size: "large"; shape: "pill"; text: "continue_with"; width: number }) => void;
+};
+declare global {
+  interface Window { google?: { accounts: { id: GoogleIdentity } } }
+}
 export default function Login() {
+  const googleButton = useRef<HTMLDivElement>(null);
+  const [googleReady, setGoogleReady] = useState(false);
   const [invite, setInvite] = useState("");
   useEffect(() => {
-    const code = new URLSearchParams(window.location.search).get("invite");
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("error") === "google") setOauthError("Google sign-in failed or expired. Please try again.");
+    const code = params.get("invite");
     if (code) { setInvite(code); setMode("signup"); }
   }, []);
   const [mode, setMode] = useState("signin");
   const [state, action, pending] = useActionState(authenticate, { error: "" });
   const [oauthError, setOauthError] = useState("");
+  useEffect(() => {
+    if (!googleReady) return;
+    const controller = new AbortController();
+    async function initializeGoogle() {
+      try {
+        const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+        if (!clientId) throw new Error("Missing Google client ID");
+        const response = await fetch("/auth/google/nonce", { cache: "no-store", signal: controller.signal });
+        if (!response.ok) throw new Error("Nonce request failed");
+        const { nonce } = await response.json();
+        const element = googleButton.current;
+        const identity = window.google?.accounts.id;
+        if (controller.signal.aborted || !element) return;
+        if (!identity || typeof nonce !== "string") throw new Error("Google unavailable");
+        identity.initialize({ client_id: clientId, ux_mode: "redirect", login_uri: `${location.origin}/auth/google`, nonce });
+        element.replaceChildren();
+        identity.renderButton(element, { theme: "filled_black", size: "large", shape: "pill", text: "continue_with", width: Math.min(400, Math.floor(element.getBoundingClientRect().width)) });
+      } catch {
+        if (!controller.signal.aborted) setOauthError("Google sign-in is unavailable. Please reload and try again.");
+      }
+    }
+    void initializeGoogle();
+    // Refresh before the ten-minute nonce cookie expires while the login page stays open.
+    const timer = window.setInterval(() => void initializeGoogle(), 9 * 60 * 1000);
+    return () => { controller.abort(); window.clearInterval(timer); };
+  }, [googleReady]);
   return (
     <main className="login">
       <div className="login-brand">
@@ -86,18 +124,11 @@ export default function Login() {
           </button>
         </form>
         {process.env.NEXT_PUBLIC_ENABLE_GOOGLE !== "false" && (
-          <button
-            className="google"
-            onClick={async () => {
-              const { error } = await browserDb().auth.signInWithOAuth({
-                provider: "google",
-                options: { redirectTo: `${location.origin}/auth/callback` },
-              });
-              if (error) setOauthError(error.message);
-            }}
-          >
-            Continue with Google
-          </button>
+          <>
+            <Script src="https://accounts.google.com/gsi/client" onReady={() => setGoogleReady(true)} onError={() => setOauthError("Google sign-in could not load. Please reload and try again.")} />
+            <div ref={googleButton} className="google" />
+            {mode === "signup" && <small className="muted">New Google users need an invite code after signing in.</small>}
+          </>
         )}
         <small className="muted">A private space for curious engineers.</small>
       </div>

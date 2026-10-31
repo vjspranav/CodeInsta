@@ -49,8 +49,16 @@ describe("membership gate", () => {
     expect((await middleware(request("/"))).headers.get("location")).toBe("https://codeinsta.test/join");
   });
   it("allows public auth and join pages", async () => {
-    for (const path of ["/join", "/login", "/auth/callback", "/not-invited", "/auth/bootstrap"])
+    for (const path of ["/join", "/login", "/auth/callback", "/auth/google", "/auth/google/nonce", "/not-invited", "/auth/bootstrap"])
       expect((await middleware(request(path))).headers.get("location")).toBeNull();
+  });
+  it("allows Google endpoints for signed-out users and owners awaiting bootstrap", async () => {
+    for (const user of [null, googleOwner]) {
+      mocks.getUser.mockResolvedValue({ data: { user } });
+      for (const path of ["/auth/google", "/auth/google/nonce"])
+        expect((await middleware(request(path))).headers.get("location")).toBeNull();
+    }
+    expect(mocks.maybeSingle).not.toHaveBeenCalled();
   });
   it("does not touch agent API authentication", async () => {
     expect((await middleware(request("/api/agent/reels"))).headers.get("location")).toBeNull();

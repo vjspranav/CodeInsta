@@ -6,7 +6,7 @@ export async function middleware(request: NextRequest) {
   if (path.startsWith("/api/agent/") || path === "/api/agent")
     return NextResponse.next();
   let response = NextResponse.next({ request });
-  const publicPage = ["/login", "/join", "/auth/callback", "/auth/bootstrap", "/not-invited", "/privacy"].includes(
+  const publicPage = ["/login", "/join", "/auth/callback", "/auth/google", "/auth/google/nonce", "/auth/bootstrap", "/not-invited", "/privacy"].includes(
     path,
   );
   if (
@@ -41,7 +41,7 @@ export async function middleware(request: NextRequest) {
     response.cookies.getAll().forEach((cookie) => result.cookies.set(cookie));
     return result;
   };
-  if (user && path !== "/auth/bootstrap" && path !== "/auth/callback") {
+  if (user && path !== "/auth/bootstrap" && path !== "/auth/callback" && path !== "/auth/google" && path !== "/auth/google/nonce") {
     const { data: member, error } = await db.from("members").select("role").eq("user_id", user.id).maybeSingle();
     if (error) return new NextResponse("Unable to check membership. Please retry.", { status: 503 });
     if (isOwnerUser(user) && member?.role !== "owner")
