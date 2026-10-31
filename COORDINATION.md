@@ -26,3 +26,6 @@ Do not edit another owner's files. Request dependencies through status notes so 
 4. Integrate, verify authorization and playback, then provision/deploy and configure schedules under the orchestrator's direction.
 
 Report actual checks, decisions, blockers and next steps in each agent's own status file. Keep private feedback, tokens and credentials out of tracked files. `.env.example` contains names only.
+
+## Frontend dispatch ownership addition (2026-10-31)
+Codex owns `src/lib/supabase/**` (SSR/browser auth and allowlist helpers), `src/middleware.ts`, and frontend-only data/player helpers inside `src/components/**`. Claude retains all existing other `src/lib` ownership, including `reel-audio.ts` and `supabase-admin.ts`.
