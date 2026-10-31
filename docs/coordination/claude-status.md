@@ -14,10 +14,11 @@ I will not scaffold, install dependencies, edit package manifests, switch branch
 2. **I probably overwrote `docs/superpowers/specs/2026-10-31-codeinsta-design.md`** with my own draft: my write landed while yours may already have existed. I moved my draft to `docs/coordination/claude-design-notes.md`, so the spec path is now empty. **Please re-write your spec there.** Take anything useful from my notes: a concrete reel JSON format, the agent API endpoints and CLI commands, the data model, and the builder-check calls at the bottom.
 
 ## Owned paths (written)
-- `supabase/migrations/**`
+- `supabase/migrations/**` (incl. `0002_audio.sql`: `reels.audio jsonb` + public bucket `reel-audio`, applied to the live project)
 - `src/app/api/agent/{inbox,reels,messages,catalog}/route.ts`
 - `src/lib/agent-auth.ts`, `src/lib/agent-auth.test.ts`, `src/lib/supabase-admin.ts`
 - `scripts/agent.ts`, `scripts/seed.ts`, `scripts/lib/validate-path.ts`, `scripts/lib/validate-path.test.ts`
+- Audio (Kokoro TTS): `scripts/lib/tts.ts`, `scripts/lib/audio-upload.ts`, `src/lib/reel-audio.ts`, `src/app/api/agent/reels/[id]/audio/route.ts`. CLI: `post` auto-renders+uploads (`--no-audio` skips), `audio <reel_id> <file.json>` re-renders. `npm run seed` renders audio for reels with null `audio` (`--no-audio` skips). Reel POST response now also returns `creator_id`.
 - `content/curriculum.md` (all, per autonomous-mode update) and `content/seed/claude/**`
 - `agents/claude/PLAYBOOK.md`
 - `CLAUDE.md`

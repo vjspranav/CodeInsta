@@ -84,5 +84,5 @@ export async function POST(req: Request) {
     if (upd.error) return NextResponse.json({ error: upd.error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ id: inserted.data.id }, { status: 201 });
+  return NextResponse.json({ id: inserted.data.id, creator_id: creator }, { status: 201 });
 }

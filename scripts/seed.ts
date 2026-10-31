@@ -1,4 +1,5 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { validatePath } from "./lib/validate-path";
 import { validateReel, type Reel } from "../src/lib/reel-schema";
@@ -6,6 +7,7 @@ import { validateReel, type Reel } from "../src/lib/reel-schema";
 const CREATORS = ["claude", "gpt"] as const;
 const root = resolve(__dirname, "..");
 const dryRun = process.argv.includes("--dry-run");
+const noAudio = process.argv.includes("--no-audio");
 
 function loadEnv() {
   const envFile = join(root, ".env.local");
@@ -68,7 +70,42 @@ async function main() {
     if (error) throw new Error(`upsert failed: ${error.message}`);
     upserted += chunk.length;
   }
-  console.log(JSON.stringify({ dryRun: false, upserted, counts }, null, 2));
+
+  const audio = { rendered: 0, skipped: 0, failed: [] as string[] };
+  if (!noAudio) {
+    const { renderReelAudio } = await import("./lib/tts");
+    const { uploadReelAudio } = await import("./lib/audio-upload");
+    for (const row of rows) {
+      const creator = row.creator_id as "claude" | "gpt";
+      const topic = row.topic as string;
+      const found = await db
+        .from("reels")
+        .select("id, audio")
+        .eq("creator_id", creator)
+        .eq("topic", topic)
+        .single();
+      if (found.error) throw new Error(`lookup ${creator}/${topic} failed: ${found.error.message}`);
+      if (found.data.audio) {
+        audio.skipped++;
+        continue;
+      }
+      const dir = mkdtempSync(join(tmpdir(), "codeinsta-seed-audio-"));
+      const started = Date.now();
+      try {
+        const manifest = await renderReelAudio(row.script as Reel, creator, dir);
+        await uploadReelAudio(found.data.id as string, manifest);
+        audio.rendered++;
+        console.log(`audio ok ${creator}/${topic} (${((Date.now() - started) / 1000).toFixed(1)}s)`);
+      } catch (e) {
+        audio.failed.push(`${creator}/${topic}: ${e instanceof Error ? e.message : String(e)}`);
+        console.warn(`WARN audio failed ${creator}/${topic}: ${audio.failed[audio.failed.length - 1]}`);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    }
+  }
+  console.log(JSON.stringify({ dryRun: false, upserted, counts, audio: noAudio ? "skipped (--no-audio)" : audio }, null, 2));
+  if (audio.failed.length) process.exitCode = 1;
 }
 
 main().catch((e) => {
