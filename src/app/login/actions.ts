@@ -22,8 +22,9 @@ export async function authenticate(
   if (password.length < 8)
     return { error: "Use a password with at least 8 characters." };
   const db = await serverDb();
-  // Public email sign-up is disabled in Supabase; invited accounts are created
-  // server-side so nobody can bypass the invite check via the public auth API.
+  // Invited accounts are created server-side (pre-confirmed). Anything signed up
+  // through the public auth API must confirm its email, so it can't claim the
+  // owner's address or get auto-linked to the owner's Google identity.
   if (signup) {
     const { error: createError } = await getMembershipAdmin().auth.admin.createUser({ email, password, email_confirm: true });
     if (createError) return { error: createError.message };

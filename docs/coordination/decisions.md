@@ -31,3 +31,8 @@
   - Owners are users whose email is in `ALLOWED_EMAILS`. They get upserted as `role='owner'` server-side (service role) whenever they sign in, which is the same as `npm run invite -- owner-sync`.
   - Sign-up: an email+password sign-up needs an invite code, unless the email is an owner's. Google sign-in (now ON, `NEXT_PUBLIC_ENABLE_GOOGLE=true`) lands non-members on `/join` to enter a code.
   - Members see no note/ask button and no Inbox tab. Owners create codes through `scripts/invite.ts` or an owner-only "Invite friends" panel.
+- 2026-10-31: **Auth hardening.**
+  - Owner = an allowlisted email **plus a Google identity** (`isOwnerUser`).
+  - Password sign-ups always need an invite and are created with `auth.admin.createUser({email_confirm:true})`.
+  - Supabase has `enable_confirmations=true`, so public-API sign-ups stay unconfirmed and can't claim emails.
+  - Google is configured in the dashboard; never `config push` without checking the diff.
