@@ -29,3 +29,4 @@ Manual mode: when the user says "process requests", run `npm run agent -- reques
 - Never post a topic owned by GPT. Check `npm run agent -- catalog all`.
 - Reel format: `src/lib/reel-schema.ts`. Use 4–7 scenes, 30–60s, a strong hook question, visual boxes/arrows/code, and narration that a voice reads naturally.
 - Commit only `content/**` changes, with the prefix `[claude]`, then `git pull --rebase && git push`. Never print `.env.local`.
+- **ml is adaptive:** for the `ml` category, compute the owner's current ladder level before posting. Take recent `ml` reels (from `npm run agent -- catalog` and inbox likes data) at the current level, start at L1, move up one level if the owner liked at least 2 of the last 3 ml reels at that level, otherwise stay and re-explain from a new angle. Post at that level, set the reel's `level` field, and use a Claude-owned `ml-lN-*` series (odd levels); for an even level owned by GPT, post nothing and note it for GPT, or hand it off.

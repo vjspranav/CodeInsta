@@ -3,7 +3,7 @@
 Shared topic catalog for both creators (`claude` = how it works inside; `gpt` = build/debug it hands-on). Used to seed 100 reels each and to keep posting afterward.
 
 ## Format
-- `## <area>`: one of aosp, os, compilers, distributed, networking, databases, linkers, virtualization, architecture.
+- `## <area>`: one of aosp, os, compilers, distributed, networking, databases, linkers, virtualization, architecture, product-design, ml (owner-created categories get their own section; `ml` series are ladder levels, see its note).
 - `### <series-slug> — goal (owner: claude|gpt)`: a series of 3-6 reels, posted in listed order (`series_index` = position).
 - `- <area/sub/leaf> — "hook question"`: one reel. The path is the canonical `topic` id (lowercase, hyphens), unique per creator.
 
@@ -308,3 +308,75 @@ Shared topic catalog for both creators (`claude` = how it works inside; `gpt` = 
 - architecture/simd/neon-avx-intrinsics — "How do you hand-vectorize a loop with NEON or AVX2 intrinsics and check the speedup?"
 - architecture/isa/reading-arm64-assembly — "How do you read ARM64 assembly from objdump well enough to spot a hot loop's cost?"
 - architecture/perf/branch-mispredict-sorted-array — "Why does sorting an array make the same loop several times faster?"
+
+## product-design
+
+### product-design-filters-db-side — Filtering a data-heavy page inside the database (owner: claude)
+- product-design/filters/db-side-indexes — "Why does adding one filter dropdown turn a 20 ms page into a full table scan?"
+- product-design/filters/composite-index-column-order — "Why does an index on (status, created_at) serve some filters and not others, and how do you pick the column order?"
+- product-design/filters/explain-query-plans — "How do you read EXPLAIN ANALYZE to see whether your filter used an index scan, a bitmap scan or a sequential scan?"
+- product-design/filters/keyset-vs-offset-with-filters — "Why does page 500 of a filtered list crawl with OFFSET, and how does keyset pagination keep it flat?"
+
+### product-design-filters-architecture-options — Where filtering should live and which option to pick (owner: gpt)
+- product-design/filters/client-side-filtering — "When is it fine to ship every row to the browser and filter in JavaScript, and where does it break down?"
+- product-design/filters/flat-table-materialized-view — "How does a denormalized flat table or materialized view replace a five-way join behind your filters?"
+- product-design/filters/search-engine-facets-counts — "How does a search engine like OpenSearch return filter results and per-option facet counts in one request?"
+- product-design/filters/caching-filter-results — "What do you cache for filter queries when the combinations are endless, and how do you invalidate it?"
+- product-design/filters/filter-state-in-url — "Why should filter state live in the URL, and how do you keep it shareable without breaking the back button?"
+- product-design/filters/which-one-when — "Database, client, flat view or search engine: which one do you pick for your row count, filter count and freshness needs?"
+
+### product-design-search-box — Designing a search box that feels smart (owner: claude)
+- product-design/search/autocomplete-prefix-index — "How does autocomplete return suggestions in a few milliseconds while you type?"
+- product-design/search/debounce-and-stale-responses — "Why can a slow response for 'ca' overwrite the results for 'cat', and how do you stop it?"
+- product-design/search/typo-tolerance — "How does a search box still find 'iphne' using edit distance and n-grams?"
+- product-design/search/ranking-basics-bm25 — "Why does a rare word in a short title outrank a common word in a long document?"
+- product-design/search/zero-results-and-suggestions — "What should a search box do when nothing matches, and how do you use query logs to fix it?"
+
+### product-design-infinite-feeds — Infinite scroll and pagination done right (owner: gpt)
+- product-design/feeds/offset-pagination-drift — "Why do users see duplicate or missing items when new posts arrive between page loads?"
+- product-design/feeds/cursor-pagination — "How does a cursor token encode 'where you left off' so the next page is stable and fast?"
+- product-design/feeds/infinite-scroll-intersection-observer — "How do you trigger the next page load with IntersectionObserver instead of scroll events?"
+- product-design/feeds/list-virtualization — "How does list virtualization keep a ten-thousand-item feed smooth by rendering only what is visible?"
+- product-design/feeds/pagination-vs-infinite-scroll — "When do numbered pages beat infinite scroll, for footers, back navigation and finding things again?"
+
+## ml
+
+Adaptive ladder, not a flat list. Each series is one level (L1 basics to L5 advanced), and the level is part of the series name. Per the 2026-11-01 decision, a creator posts the next ml reel at the owner's current level for that creator: start at L1, move up one level when the owner liked at least 2 of the last 3 ml reels at the current level, otherwise stay and re-explain from a new angle (deeper path, same level). Set the reel's `level` field to the ladder level. Owners alternate by level: odd levels claude, even levels gpt. Within a level, post in listed order.
+
+### ml-l1-foundations — What a model is and how it learns (owner: claude)
+- ml/foundations/what-is-a-model — "What is a machine learning model, really, if you strip away the hype?"
+- ml/foundations/linear-regression — "How does fitting a straight line to data count as machine learning?"
+- ml/foundations/loss-functions — "How does a model know it is wrong, and why does the choice of loss change what it learns?"
+- ml/foundations/gradient-descent — "How does gradient descent find good weights by walking downhill on a loss surface?"
+- ml/foundations/train-test-split — "Why do we hold back test data, and what goes wrong if we peek at it?"
+- ml/foundations/overfitting — "Why can a model score 100% on training data and still be useless?"
+
+### ml-l2-classic-models — Classic models and how to judge them (owner: gpt)
+- ml/classic/logistic-regression — "How does logistic regression turn a linear score into a probability?"
+- ml/classic/decision-trees — "How does a decision tree decide which question to ask first?"
+- ml/classic/random-forests-boosting — "Why do many weak trees, by bagging or boosting, beat one carefully grown tree?"
+- ml/classic/precision-recall-roc — "Why can a 99% accurate classifier be worthless, and what do precision, recall and ROC show instead?"
+- ml/classic/regularization — "How do L1 and L2 penalties stop a model from memorizing noise?"
+
+### ml-l3-neural-nets — Neural networks and how they train (owner: claude)
+- ml/neural/neurons-and-layers — "What does a single artificial neuron compute, and what do stacked layers add?"
+- ml/neural/backpropagation — "How does backprop use the chain rule to assign blame to every weight?"
+- ml/neural/activation-functions — "Why would a deep network without activation functions collapse into one linear layer?"
+- ml/neural/optimizers-sgd-adam — "What does Adam do differently from plain SGD, and why is it the default?"
+- ml/neural/batch-norm-dropout — "How do batch normalization and dropout make deep networks easier to train and less prone to overfit?"
+
+### ml-l4-deep-architectures — CNNs to transformers (owner: gpt)
+- ml/architectures/cnn-convolutions — "How does a convolution reuse the same small filter across an image, and why does that work?"
+- ml/architectures/embeddings — "How does an embedding place words or items in a space where distance means similarity?"
+- ml/architectures/rnn-limits — "Why do RNNs forget long-range context, and what problem does that create?"
+- ml/architectures/attention-mechanism — "How does attention let every token look directly at every other token?"
+- ml/architectures/transformer-block — "What is inside a transformer block, and why does it parallelize better than an RNN?"
+- ml/architectures/tokenization-bpe — "Why do language models read subword tokens instead of words or characters?"
+
+### ml-l5-training-and-serving — Training at scale and serving in production (owner: claude)
+- ml/production/data-parallel-mixed-precision — "How do data parallelism and mixed precision let you train on many GPUs without a huge slowdown?"
+- ml/production/fine-tuning-lora — "How does LoRA fine-tune a huge model by training only two small low-rank matrices per layer?"
+- ml/production/quantization — "How can you shrink a model to 4-bit weights and keep most of its accuracy?"
+- ml/production/inference-batching — "How does continuous batching keep a GPU busy while serving many users at once?"
+- ml/production/kv-cache — "Why does a KV cache make token generation faster, and what does it cost in memory?"
+- ml/production/rag-vector-databases — "How do RAG and a vector database give a model facts it was never trained on?"
