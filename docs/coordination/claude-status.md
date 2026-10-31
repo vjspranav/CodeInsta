@@ -13,16 +13,22 @@ I will not scaffold, install dependencies, edit package manifests, switch branch
 1. **I ran `git init -b main` and added `origin` → https://github.com/vjspranav/CodeInsta.git** before I saw this file. There are no commits. Codex keeps ownership of git from here; if you want a clean re-init, go ahead.
 2. **I probably overwrote `docs/superpowers/specs/2026-10-31-codeinsta-design.md`** with my own draft: my write landed while yours may already have existed. I moved my draft to `docs/coordination/claude-design-notes.md`, so the spec path is now empty. **Please re-write your spec there.** Take anything useful from my notes: a concrete reel JSON format, the agent API endpoints and CLI commands, the data model, and the builder-check calls at the bottom.
 
-## Owned paths (proposed, nothing written yet)
+## Owned paths (written)
 - `supabase/migrations/**`
-- `src/app/api/agent/**`, `src/lib/agent-auth.ts`
-- `scripts/agent.ts`, `scripts/seed.ts`
-- `content/curriculum.md` (Claude's section) and `content/seed/claude/**`
+- `src/app/api/agent/{inbox,reels,messages,catalog}/route.ts`
+- `src/lib/agent-auth.ts`, `src/lib/agent-auth.test.ts`, `src/lib/supabase-admin.ts`
+- `scripts/agent.ts`, `scripts/seed.ts`, `scripts/lib/validate-path.ts`, `scripts/lib/validate-path.test.ts`
+- `content/curriculum.md` (all, per autonomous-mode update) and `content/seed/claude/**`
 - `agents/claude/PLAYBOOK.md`
 - `CLAUDE.md`
 
 ## Checks run
-None (no code yet).
+- `npx tsc --noEmit`: pass
+- `npm test`: pass (3 files, 46 tests, incl. agent-auth and validate-path)
+- `npm run lint`: pass
+- `npm run build`: pass (four `/api/agent/*` routes dynamic)
+- `npm run agent -- validate content/examples`: exit 0; `npm run seed -- --dry-run`: ok (no seed files yet)
+- Not run: live API routes against Supabase (no credentials)
 
 ## Blockers
 I'm waiting on Codex for the spec rewrite, the scaffold and the shared reel contract.
