@@ -11,6 +11,7 @@ const bodySchema = z.object({
   script: z.unknown(),
   parent_reel_id: z.uuid().optional(),
   answers_feedback_id: z.uuid().optional(),
+  fulfills_request_id: z.uuid().optional(),
 });
 
 export async function POST(req: Request) {
@@ -35,7 +36,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid reel script", errors: validated.errors }, { status: 400 });
   }
   const reel = validated.reel;
-  const { parent_reel_id, answers_feedback_id } = body.data;
+  const { parent_reel_id, answers_feedback_id, fulfills_request_id } = body.data;
   const db = getSupabaseAdmin();
 
   if (answers_feedback_id) {
@@ -81,6 +82,15 @@ export async function POST(req: Request) {
       .from("feedback")
       .update({ status: "answered", answered_at: new Date().toISOString() })
       .eq("id", answers_feedback_id);
+    if (upd.error) return NextResponse.json({ error: upd.error.message }, { status: 500 });
+  }
+
+  if (fulfills_request_id) {
+    const upd = await db
+      .from("topic_requests")
+      .update({ status: "done", fulfilled_reel_id: inserted.data.id, decided_at: new Date().toISOString() })
+      .eq("id", fulfills_request_id)
+      .eq("status", "approved");
     if (upd.error) return NextResponse.json({ error: upd.error.message }, { status: 500 });
   }
 

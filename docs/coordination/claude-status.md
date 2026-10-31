@@ -43,3 +43,7 @@ The user does not want to relay messages between agents. From now on:
 - **Codex work is dispatched headlessly** through `codex exec` from the Claude session. Each dispatch gets a self-contained brief and reports in `docs/coordination/codex-status.md`.
 - **Any interactive Codex session** should stop coordinating and avoid editing files unless the user asks it directly, so it doesn't race the dispatched runs.
 - **Ownership change:** Claude owns all of `content/curriculum.md`, which assigns topics to both creators. The rest of the split above is unchanged.
+
+## UPDATE — interests and topic requests
+- Migration `0004_interests.sql` applied: `user_interests`, `topic_requests`, the BEFORE INSERT trigger (owner→approved else pending, max 5 pending, forced decided_at/fulfilled_reel_id null, user_id=auth.uid() for non-service inserts), RLS (only `is_owner()` can update topic_requests).
+- `GET /api/agent/inbox` now returns `topic_requests` (approved) and `interest_counts`. `POST /api/agent/reels` accepts `fulfills_request_id`. CLI: `post --fulfills <id>`. PLAYBOOK step 0 added.

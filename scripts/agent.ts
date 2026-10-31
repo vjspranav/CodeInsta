@@ -6,7 +6,7 @@ import { validateReel, type Reel } from "../src/lib/reel-schema";
 
 const USAGE = `usage: npm run agent -- <command>
   inbox
-  post <file.json> [--parent <reel_id>] [--answers <feedback_id>] [--no-audio]
+  post <file.json> [--parent <reel_id>] [--answers <feedback_id>] [--fulfills <request_id>] [--no-audio]
   audio <reel_id> <file.json>   (re)render narration with Kokoro TTS and upload it
   dm <file.md> [--feedback <feedback_id>]
   catalog [all|claude|gpt]
@@ -104,6 +104,7 @@ async function main() {
         script,
         ...(flags.parent ? { parent_reel_id: flags.parent } : {}),
         ...(flags.answers ? { answers_feedback_id: flags.answers } : {}),
+        ...(flags.fulfills ? { fulfills_request_id: flags.fulfills } : {}),
       })) as { id: string; creator_id: "claude" | "gpt" };
       if (flags["no-audio"]) return;
       try {

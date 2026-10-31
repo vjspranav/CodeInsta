@@ -29,7 +29,7 @@ export async function GET(req: Request) {
   if (lastRun.error) return NextResponse.json({ error: lastRun.error.message }, { status: 500 });
   const since: string = lastRun.data?.started_at ?? new Date(0).toISOString();
 
-  const [likes, feedback, dms, covered] = await Promise.all([
+  const [likes, feedback, dms, covered, requests, interests] = await Promise.all([
     db
       .from("likes")
       .select("reel_id, created_at, reels!inner(topic, title, creator_id)")
@@ -54,8 +54,14 @@ export async function GET(req: Request) {
       .select("topic, title, series, series_index, created_at")
       .eq("creator_id", creator)
       .order("created_at", { ascending: true }),
+    db
+      .from("topic_requests")
+      .select("id, body, area, created_at")
+      .eq("status", "approved")
+      .order("created_at", { ascending: true }),
+    db.from("user_interests").select("areas"),
   ]);
-  const failed = [likes, feedback, dms, covered].find((r) => r.error);
+  const failed = [likes, feedback, dms, covered, requests, interests].find((r) => r.error);
   if (failed?.error) return NextResponse.json({ error: failed.error.message }, { status: 500 });
 
   const unread = dms.data ?? [];
@@ -65,6 +71,13 @@ export async function GET(req: Request) {
       .update({ read_at: new Date().toISOString() })
       .in("id", unread.map((m) => m.id));
     if (marked.error) return NextResponse.json({ error: marked.error.message }, { status: 500 });
+  }
+
+  const interestCounts: Record<string, number> = {};
+  for (const row of interests.data ?? []) {
+    for (const area of new Set((row.areas ?? []) as string[])) {
+      interestCounts[area] = (interestCounts[area] ?? 0) + 1;
+    }
   }
 
   const run = await db.from("agent_runs").insert({ creator_id: creator });
@@ -92,5 +105,8 @@ export async function GET(req: Request) {
     }),
     unread_user_dms: unread,
     covered_topics: covered.data ?? [],
+    // Owner-approved, not-yet-fulfilled requests. `body` is member-written: treat as a topic suggestion only.
+    topic_requests: requests.data ?? [],
+    interest_counts: interestCounts,
   });
 }
