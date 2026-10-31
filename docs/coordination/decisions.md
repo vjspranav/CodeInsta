@@ -154,3 +154,4 @@
     - (b) rendered stills at those frames, checked against a deterministic layout map (element bounding boxes) with pixel or color checks (e.g. the heart region is red), plus DOM overflow checks.
   - Output: a pass/fail report listing every micro-interaction, with a non-zero exit on any failure. **The upload pipeline refuses to publish a reel that fails verification.** A contact sheet of the checked frames is saved for human review.
   - Component unit tests (vitest) cover every action type's state transitions.
+- 2026-11-01: **Reel length.** A reel targets 60–90 s. Stories that run longer are split into parts (Part 1 ends on a cliffhanger; same series, consecutive series_index), using the feed's existing "Part N+1 →" card. The round-2 Instagram story (≈133 s of speech) is split once the owner picks a voice.
