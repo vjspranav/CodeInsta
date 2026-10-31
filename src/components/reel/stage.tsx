@@ -1,9 +1,10 @@
 "use client";
 import { motion, useReducedMotion } from "framer-motion";
 import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { center, type Frame } from "./timeline";
+import { center, lineAt, wordAt, type Frame } from "./timeline";
+import { formatMetric, NodeGlyph } from "./v2-elements";
 import { fitScene, labelRect, routeArrow, type Rect } from "./stage-layout";
-const palette = {
+export const palette = {
   blue: "#78b7ff",
   green: "#76e4b4",
   orange: "#ffb56c",
@@ -11,6 +12,56 @@ const palette = {
   purple: "#c5a1ff",
   gray: "#b6bfcd",
 };
+const DEFAULT_WIDTH: Record<string, number> = { node: 22, bubble: 76, alert: 88, metric: 40 };
+const METRIC_COUNT_MS = 900;
+const FLOW_SECONDS = 1.8;
+function FlowDots({
+  path,
+  color,
+  count,
+  unit,
+  still,
+  at,
+}: {
+  path: string;
+  color: string;
+  count: number;
+  unit: number;
+  still: boolean;
+  at: (t: number) => { x: number; y: number };
+}) {
+  return (
+    <>
+      {Array.from({ length: count }, (_, i) => {
+        const dot = (
+          <>
+            <circle r={unit * 2.2} fill={color} opacity={0.22} />
+            <circle r={unit * 1.1} fill={color} className="flow-dot" style={{ color }} />
+          </>
+        );
+        if (still) {
+          const p = at((i + 1) / (count + 1));
+          return <g key={i} transform={`translate(${p.x} ${p.y})`}>{dot}</g>;
+        }
+        const begin = `${-(i * FLOW_SECONDS) / count}s`;
+        return (
+          <g key={path + i}>
+            {dot}
+            <animateMotion dur={`${FLOW_SECONDS}s`} begin={begin} repeatCount="indefinite" path={path} />
+            <animate
+              attributeName="opacity"
+              values="0;1;1;0"
+              keyTimes="0;0.12;0.88;1"
+              dur={`${FLOW_SECONDS}s`}
+              begin={begin}
+              repeatCount="indefinite"
+            />
+          </g>
+        );
+      })}
+    </>
+  );
+}
 function Code({ text }: { text: string }) {
   return (
     <pre>
@@ -28,62 +79,34 @@ function Code({ text }: { text: string }) {
 }
 
 function Captions({ frame, elapsed }: { frame: Frame; elapsed: number }) {
-  const root = useRef<HTMLDivElement>(null);
-  const current = Math.max(
-    0,
-    frame.words.findIndex(
-      (w, i) =>
-        elapsed >= w.start_ms &&
-        (i === frame.words.length - 1 || elapsed < frame.words[i + 1].start_ms),
-    ),
-  );
-  const [window, setWindow] = useState({ start: 0, end: 7 });
-  useLayoutEffect(() => {
-    const node = root.current;
-    if (!node) return;
-    const measure = () => {
-      const style = getComputedStyle(node);
-      const canvas = document.createElement("canvas").getContext("2d");
-      if (!canvas) return;
-      canvas.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-      let start = Math.max(0, current - 3),
-        end = Math.min(frame.words.length, start + 7);
-      start = Math.max(0, end - 7);
-      const fits = () => {
-        let lines = 1,
-          used = 0;
-        for (let i = start; i < end; i++) {
-          const width = canvas.measureText(frame.words[i].w + " ").width + 6;
-          if (used + width > node.clientWidth) {
-            lines++;
-            used = 0;
-          }
-          used += width;
-        }
-        return lines <= 2;
-      };
-      while (end - start > 1 && !fits()) {
-        if (current - start > end - 1 - current) start++;
-        else end--;
-      }
-      setWindow({ start, end });
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [current, frame.words]);
+  if (!frame.lines.length)
+    return (
+      <div className="captions" aria-label={frame.caption}>
+        <div className="cap-text">{frame.caption}</div>
+      </div>
+    );
+  // One whole line at a time; only the current word inside it is highlighted.
+  const index = lineAt(frame, elapsed),
+    line = frame.lines[index],
+    word = wordAt(line, elapsed),
+    member = frame.cast.find((c) => c.id === line.speaker),
+    color = member ? palette[member.color] : undefined;
   return (
-    <div className="captions" ref={root} aria-label={frame.caption}>
-      {frame.words.slice(window.start, window.end).map((word, i) => (
-        <span
-          key={window.start + i}
-          className={window.start + i === current ? "spoken" : ""}
-        >
-          {word.w}{" "}
-        </span>
-      ))}
-      {!frame.words.length && frame.caption}
+    <div className="captions" aria-label={line.text}>
+      <div
+        className="cap-line"
+        key={index}
+        style={color ? ({ "--spk": color } as React.CSSProperties) : undefined}
+      >
+        {member && <span className="cap-chip">{member.name}</span>}
+        <div className="cap-text">
+          {line.words.map((w, i) => (
+            <span key={i} className={i === word ? "spoken" : ""}>
+              {w.w}{" "}
+            </span>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -154,7 +177,7 @@ export function Stage({ frame, elapsed }: { frame: Frame; elapsed: number }) {
     };
     const rects = Object.values(bounds);
     const arrows = frame.elements
-      .filter((e) => e.type === "arrow")
+      .filter((e) => e.type === "arrow" || e.type === "flow")
       .map((e) => {
         const source = resolve(e.from),
           target = resolve(e.to);
@@ -225,6 +248,7 @@ export function Stage({ frame, elapsed }: { frame: Frame; elapsed: number }) {
           >
             {arrows.map(({ e, route, label }, index) => {
               const color = palette[e.color ?? "blue"];
+              const flow = e.type === "flow";
               return (
                 <g
                   key={e.id}
@@ -245,13 +269,26 @@ export function Stage({ frame, elapsed }: { frame: Frame; elapsed: number }) {
                   <motion.path
                     d={route.d}
                     stroke={color}
-                    strokeWidth={unit * 0.55}
+                    strokeWidth={unit * (flow ? 0.4 : 0.55)}
+                    strokeOpacity={flow ? 0.3 : 1}
+                    strokeDasharray={flow ? `${unit * 1.2} ${unit * 1.2}` : undefined}
+                    strokeLinecap={flow ? "round" : undefined}
                     fill="none"
-                    markerEnd={`url(#${marker + index})`}
+                    markerEnd={flow ? undefined : `url(#${marker + index})`}
                     initial={false}
                     animate={{ pathLength: elapsed < e.at ? 0 : 1 }}
                     transition={{ duration: reduced ? 0 : 0.35 }}
                   />
+                  {flow && (
+                    <FlowDots
+                      path={route.d}
+                      color={color}
+                      count={e.count}
+                      unit={unit}
+                      still={Boolean(reduced)}
+                      at={(t) => route.point(t)}
+                    />
+                  )}
                   {label && (
                     <foreignObject
                       x={label.x}
@@ -260,7 +297,7 @@ export function Stage({ frame, elapsed }: { frame: Frame; elapsed: number }) {
                       height={label.h}
                     >
                       <div
-                        className="arrow-label"
+                        className={flow ? "arrow-label flow-pill" : "arrow-label"}
                         data-arrow-label={e.id}
                         style={{ color }}
                       >
@@ -273,7 +310,7 @@ export function Stage({ frame, elapsed }: { frame: Frame; elapsed: number }) {
             })}
           </svg>
           {frame.elements.map((e) => {
-            if (e.type === "arrow") return null;
+            if (e.type === "arrow" || e.type === "flow") return null;
             const color = palette[e.color ?? "blue"],
               visible = elapsed >= e.at;
             if (e.type === "highlight") {
@@ -297,10 +334,23 @@ export function Stage({ frame, elapsed }: { frame: Frame; elapsed: number }) {
                 />
               );
             }
+            const side = e.type === "bubble"
+                ? frame.cast.findIndex((c) => c.id === e.speaker) % 2 === 1
+                  ? "right"
+                  : "left"
+                : "left",
+              speaker = e.type === "bubble" ? frame.cast.find((c) => c.id === e.speaker) : undefined,
+              tone = e.type === "bubble" && !e.color && speaker ? palette[speaker.color]
+                : e.type === "alert" && !e.color ? palette[e.level === "warning" ? "orange" : "red"]
+                : color;
+            const w0 = e.w ?? DEFAULT_WIDTH[e.type] ?? 100 - ("x" in e ? (e.x ?? 0) : 0);
+            const x0 = e.type === "bubble" && e.x === undefined
+              ? side === "right" ? 100 - w0 - 5 : 5
+              : (e as { x: number }).x;
             return (
               <motion.div
                 key={e.id}
-                className={`element element-${e.type}`}
+                className={`element element-${e.type}${e.type === "bubble" ? ` side-${side}` : ""}`}
                 data-element-id={e.id}
                 aria-hidden={!visible}
                 initial={false}
@@ -311,15 +361,15 @@ export function Stage({ frame, elapsed }: { frame: Frame; elapsed: number }) {
                 }}
                 transition={{ duration: reduced ? 0 : 0.23 }}
                 style={{
-                  left: `${e.x}%`,
+                  left: `${x0}%`,
                   top: `${e.y}%`,
-                  width: `${Math.max(1, Math.min(e.w ?? 100 - e.x, 100 - e.x))}%`,
+                  width: `${Math.max(1, Math.min(w0, 100 - x0))}%`,
                   minHeight:
                     e.h && e.type !== "code" && e.type !== "list"
                       ? `${e.h}%`
                       : undefined,
-                  color,
-                  borderColor: color,
+                  color: tone,
+                  borderColor: tone,
                   backgroundColor:
                     e.type === "box"
                       ? `color-mix(in srgb, ${color} 12%, #101520)`
@@ -337,6 +387,34 @@ export function Stage({ frame, elapsed }: { frame: Frame; elapsed: number }) {
                       <li key={i}>{item}</li>
                     ))}
                   </ul>
+                ) : e.type === "node" ? (
+                  <>
+                    <NodeGlyph icon={e.icon} />
+                    <span className="node-label">{e.label}</span>
+                  </>
+                ) : e.type === "bubble" ? (
+                  <>
+                    {speaker && <span className="bubble-name">{speaker.name}</span>}
+                    <span className="bubble-text">{e.text}</span>
+                  </>
+                ) : e.type === "alert" ? (
+                  <div className="alert-shake">
+                    <span className="alert-title">
+                      <i />
+                      {e.title ?? (e.level === "warning" ? "Warning" : "Incident")}
+                    </span>
+                    <span className="alert-text">{e.text}</span>
+                  </div>
+                ) : e.type === "metric" ? (
+                  <>
+                    <span className="metric-value">
+                      {formatMetric(
+                        e.value,
+                        reduced ? 1 : (elapsed - e.at) / METRIC_COUNT_MS,
+                      )}
+                    </span>
+                    <span className="metric-label">{e.label}</span>
+                  </>
                 ) : (
                   e.text
                 )}

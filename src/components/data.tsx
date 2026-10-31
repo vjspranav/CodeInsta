@@ -4,6 +4,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import Image from "next/image";
@@ -31,9 +32,12 @@ export type ReelRow = {
   audio: AudioJson | null;
   parent_reel_id?: string | null;
 };
+/** Format Lab experiments (topic lab/…) are kept out of every public list. */
+export const isLabReel = (reel: { topic: string }) => reel.topic.startsWith("lab/");
 type Data = {
   isOwner: boolean;
   reels: ReelRow[];
+  labReels: ReelRow[];
   creators: Creator[];
   liked: Set<string>;
   seen: Set<string>;
@@ -52,13 +56,15 @@ export function DataProvider({ children, isOwner }: { children: React.ReactNode;
   const path = usePathname(),
     router = useRouter();
   const isPublic = ["/login", "/join", "/not-invited", "/auth/callback", "/auth/google", "/auth/google/nonce", "/privacy"].includes(path);
-  const [reels, setReels] = useState<ReelRow[]>([]),
+  const [allReels, setReels] = useState<ReelRow[]>([]),
     [creators, setCreators] = useState<Creator[]>([]);
   const [liked, setLiked] = useState(new Set<string>()),
     [seen, setSeen] = useState(new Set<string>());
   const [areas, setAreas] = useState<string[]>([]),
     [onboarded, setOnboarded] = useState<boolean | null>(null),
     [fulfilled, setFulfilled] = useState(new Set<string>());
+  const reels = useMemo(() => allReels.filter((r) => !isLabReel(r)), [allReels]),
+    labReels = useMemo(() => allReels.filter(isLabReel), [allReels]);
   const [userId, setUserId] = useState(""),
     [loading, setLoading] = useState(true),
     [error, setError] = useState("");
@@ -172,6 +178,7 @@ export function DataProvider({ children, isOwner }: { children: React.ReactNode;
       value={{
         isOwner,
         reels,
+        labReels,
         creators,
         liked,
         seen,

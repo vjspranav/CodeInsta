@@ -1,14 +1,29 @@
-import type { Reel, ReelElement } from "@/lib/reel-schema";
+import type { CastMember, Reel, ReelElement } from "@/lib/reel-schema";
 import type { AudioJson, WordTiming } from "@/lib/reel-audio";
+/** One caption unit: a single speaker's sentence. `words` start relative to `start`. */
+export type FrameLine = {
+  speaker?: string;
+  text: string;
+  start: number;
+  duration: number;
+  url?: string;
+  words: WordTiming[];
+};
 export type Frame = {
   text: string;
   caption: string;
   duration: number;
   elements: ReelElement[];
   url?: string;
+  /** Word timings from the frame start (all lines, absolute). */
   words: WordTiming[];
+  /** Captions play these one at a time; per-line clips (multi-voice) carry their own url. */
+  lines: FrameLine[];
+  cast: CastMember[];
   card?: "hook" | "takeaway" | "next";
 };
+export const LINE_GAP_MS = 250;
+const MAX_CAPTION_WORDS = 14;
 export function wordTimings(text: string, duration: number): WordTiming[] {
   const words = text.split(/\s+/).filter(Boolean),
     total = words.reduce((n, word) => n + word.length + 1, 0);
@@ -19,11 +34,43 @@ export function wordTimings(text: string, duration: number): WordTiming[] {
     return { w, start_ms };
   });
 }
+/** Splits timed words into whole sentences (never fragments), halving very long ones. */
+export function captionLines(words: WordTiming[], duration: number): FrameLine[] {
+  const groups: WordTiming[][] = [];
+  let current: WordTiming[] = [];
+  for (const word of words) {
+    current.push(word);
+    if (/[.!?…]["')\]]*$/.test(word.w)) {
+      groups.push(current);
+      current = [];
+    }
+  }
+  if (current.length) groups.push(current);
+  const pieces = groups.flatMap((group) => {
+    if (group.length <= MAX_CAPTION_WORDS) return [group];
+    const parts = Math.ceil(group.length / MAX_CAPTION_WORDS),
+      size = Math.ceil(group.length / parts);
+    return Array.from({ length: parts }, (_, i) => group.slice(i * size, (i + 1) * size));
+  });
+  return pieces.map((piece, i) => {
+    const start = i === 0 ? 0 : piece[0].start_ms,
+      end = i + 1 < pieces.length ? pieces[i + 1][0].start_ms : duration;
+    return {
+      text: piece.map((w) => w.w).join(" "),
+      start,
+      duration: Math.max(0, end - start),
+      words: piece.map((w) => ({ w: w.w, start_ms: Math.max(0, w.start_ms - start) })),
+    };
+  });
+}
+const estimate = (text: string) =>
+  Math.max(1200, text.split(/\s+/).filter(Boolean).length * 330);
 export function timeline(
   script: Reel,
   audio: AudioJson | null,
   nextPart?: number,
 ): Frame[] {
+  const cast = script.cast ?? [];
   const card = (
     text: string,
     kind: "hook" | "takeaway",
@@ -31,6 +78,7 @@ export function timeline(
   ): Frame => {
     const duration =
       clip?.duration_ms || Math.max(2500, text.split(/\s+/).length * 370);
+    const words = wordTimings(text, duration);
     return {
       text,
       caption: text,
@@ -38,25 +86,65 @@ export function timeline(
       duration,
       url: clip?.url,
       elements: [],
-      words: wordTimings(text, duration),
+      words,
+      lines: captionLines(words, duration),
+      cast,
     };
   };
   return [
     card(script.hook, "hook", audio?.hook),
     ...script.scenes.map((scene, i): Frame => {
-      const clip = audio?.scenes?.[i],
-        text = scene.narration || scene.caption;
+      const clip = audio?.scenes?.[i];
+      if (scene.lines?.length) {
+        // Multi-voice: play the line clips back to back with a small gap.
+        let cursor = 0,
+          recorded = true;
+        const lines = scene.lines.map((line, j): FrameLine => {
+          const lineClip = clip?.lines?.[j];
+          recorded &&= Boolean(lineClip?.url);
+          const duration = lineClip?.duration_ms || estimate(line.text),
+            start = cursor;
+          cursor += duration + LINE_GAP_MS;
+          return {
+            speaker: line.speaker,
+            text: line.text,
+            start,
+            duration,
+            url: lineClip?.url || undefined,
+            words: lineClip?.words?.length ? lineClip.words : wordTimings(line.text, duration),
+          };
+        });
+        const spoken = cursor - LINE_GAP_MS;
+        // Elements must never be cut off by a short recording.
+        const lastAt = Math.max(0, ...scene.elements.map((e) => e.at));
+        const duration = recorded
+          ? Math.max(spoken + LINE_GAP_MS, lastAt + 600)
+          : Math.max(scene.duration_ms, spoken + LINE_GAP_MS);
+        return {
+          text: scene.lines.map((l) => l.text).join(" "),
+          caption: scene.caption,
+          duration,
+          elements: scene.elements,
+          words: lines.flatMap((l) => l.words.map((w) => ({ w: w.w, start_ms: l.start + w.start_ms }))),
+          lines,
+          cast,
+        };
+      }
+      const text = scene.narration || scene.caption;
       const duration = Math.max(
         scene.duration_ms,
-        clip ? clip.duration_ms + 250 : 0,
+        clip?.url ? clip.duration_ms + 250 : 0,
       );
+      const words = clip?.words?.length ? clip.words : wordTimings(text, duration);
       return {
         text,
         caption: scene.caption,
         duration,
-        url: clip?.url,
+        url: clip?.url || undefined,
         elements: scene.elements,
-        words: clip?.words?.length ? clip.words : wordTimings(text, duration),
+        words,
+        lines: captionLines(words, duration),
+        cast,
       };
     }),
     card(script.takeaway, "takeaway", audio?.takeaway),
@@ -69,10 +157,29 @@ export function timeline(
             duration: 1800,
             elements: [],
             words: [],
+            lines: [],
+            cast,
           },
         ]
       : []),
   ];
+}
+/** Index of the line being spoken (the latest that has started). */
+export function lineAt(frame: Frame, elapsed: number): number {
+  let index = 0;
+  frame.lines.forEach((line, i) => {
+    if (elapsed >= line.start) index = i;
+  });
+  return index;
+}
+/** Index of the highlighted word within a line. */
+export function wordAt(line: FrameLine, elapsed: number): number {
+  const local = elapsed - line.start;
+  let index = 0;
+  line.words.forEach((word, i) => {
+    if (local >= word.start_ms) index = i;
+  });
+  return index;
 }
 export function center(
   id: string,
@@ -83,7 +190,7 @@ export function center(
   visited.add(id);
   const e = elements.find((e) => e.id === id);
   if (!e) return { x: 50, y: 50 };
-  if ("x" in e) return { x: e.x + (e.w ?? 30) / 2, y: e.y + (e.h ?? 8) / 2 };
+  if ("y" in e) return { x: (e.x ?? 5) + (e.w ?? 30) / 2, y: e.y + (e.h ?? 8) / 2 };
   if (e.type === "highlight") return center(e.target, elements, visited);
   const a = center(e.from, elements, new Set(visited)),
     b = center(e.to, elements, new Set(visited));

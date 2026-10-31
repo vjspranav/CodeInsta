@@ -148,3 +148,55 @@ describe("interest ranking", () => {
     expect(orderFeed(rows, new Set()).map((r) => r.id)).toEqual(["2", "1"]);
   });
 });
+describe("multi-voice timeline", () => {
+  const cast = [
+    { id: "a", name: "Ana", role: "Senior", voice: "af_heart", color: "purple" as const },
+    { id: "b", name: "Bo", role: "Junior", voice: "am_michael", color: "green" as const },
+  ];
+  const multi = {
+    ...script,
+    cast,
+    scenes: script.scenes.map((scene, i) =>
+      i === 0
+        ? { ...scene, lines: [{ speaker: "a", text: "Why so fast?" }, { speaker: "b", text: "Caching, mostly." }] }
+        : scene,
+    ),
+  };
+  it("sums line clips plus gaps and exposes one caption line per clip", () => {
+    const audio = {
+      voice: "x",
+      hook: { url: "h", duration_ms: 1000 },
+      scenes: multi.scenes.map((_, i) =>
+        i === 0
+          ? {
+              url: "",
+              duration_ms: 0,
+              words: [],
+              lines: [
+                { url: "l0", duration_ms: 1500, speaker: "a", words: [] },
+                { url: "l1", duration_ms: 2000, speaker: "b", words: [] },
+              ],
+            }
+          : { url: "s", duration_ms: 1000, words: [] },
+      ),
+      takeaway: { url: "t", duration_ms: 1000 },
+    };
+    const frame = timeline(multi, audio)[1];
+    expect(frame.lines.map((l) => [l.speaker, l.start, l.url])).toEqual([
+      ["a", 0, "l0"],
+      ["b", 1750, "l1"],
+    ]);
+    expect(frame.duration).toBe(1500 + 250 + 2000 + 250);
+  });
+  it("falls back to the authored duration without audio", () => {
+    const frame = timeline(multi, null)[1];
+    expect(frame.duration).toBe(script.scenes[0].duration_ms);
+    expect(frame.lines).toHaveLength(2);
+    expect(frame.lines[0].url).toBeUndefined();
+  });
+  it("splits legacy narration into whole sentences", () => {
+    const frame = timeline(script, null)[1];
+    expect(frame.lines.length).toBeGreaterThan(0);
+    expect(frame.lines.map((l) => l.text).join(" ")).toBe(frame.words.map((w) => w.w).join(" "));
+  });
+});

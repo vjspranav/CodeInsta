@@ -4,11 +4,15 @@ export const AUDIO_BUCKET = "reel-audio";
 
 export type WordTiming = { w: string; start_ms: number };
 
+/** v2: one clip per spoken line of a multi-voice scene. */
+export type LineClip = { url: string; duration_ms: number; speaker: string; words: WordTiming[] };
+
 /** The manifest stored in reels.audio (see docs/coordination/decisions.md). */
 export type AudioJson = {
   voice: string;
   hook: { url: string; duration_ms: number };
-  scenes: { url: string; duration_ms: number; words: WordTiming[] }[];
+  /** For scenes with `lines`, `lines` holds one clip per line (same order); url may be "" and words []. */
+  scenes: { url: string; duration_ms: number; words: WordTiming[]; lines?: LineClip[] }[];
   takeaway: { url: string; duration_ms: number };
 };
 
@@ -16,7 +20,7 @@ export type AudioClipBytes = { bytes: Uint8Array; duration_ms: number };
 export type AudioUploadInput = {
   voice: string;
   hook: AudioClipBytes;
-  scenes: (AudioClipBytes & { words: WordTiming[] })[];
+  scenes: (AudioClipBytes & { words: WordTiming[]; lines?: (AudioClipBytes & { speaker: string; words: WordTiming[] })[] })[];
   takeaway: AudioClipBytes;
 };
 
@@ -42,7 +46,19 @@ export async function storeReelAudio(db: SupabaseClient, reelId: string, input: 
   };
   for (let i = 0; i < input.scenes.length; i++) {
     const s = input.scenes[i];
-    audio.scenes.push({ url: await put(`scene-${i}`, s.bytes), duration_ms: s.duration_ms, words: s.words });
+    const lines: LineClip[] | undefined = s.lines
+      ? []
+      : undefined;
+    for (let j = 0; lines && s.lines && j < s.lines.length; j++) {
+      const line = s.lines[j];
+      lines.push({ url: await put(`scene-${i}-line-${j}`, line.bytes), duration_ms: line.duration_ms, speaker: line.speaker, words: line.words });
+    }
+    audio.scenes.push({
+      url: s.bytes.length ? await put(`scene-${i}`, s.bytes) : "",
+      duration_ms: s.duration_ms,
+      words: s.words,
+      ...(lines ? { lines } : {}),
+    });
   }
   audio.takeaway.url = await put("takeaway", input.takeaway.bytes);
 

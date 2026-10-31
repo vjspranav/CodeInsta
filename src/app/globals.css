@@ -386,16 +386,11 @@ small {
 }
 .captions {
   position: absolute;
-  top: 80%;
+  top: 77%;
   left: 6%;
   width: 88%;
-  max-height: 2.8em;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
   text-align: center;
-  font-size: 4.8cqw;
+  font-size: 4.6cqw;
   font-weight: 800;
   line-height: 1.4;
   overflow-wrap: anywhere;
@@ -1033,3 +1028,279 @@ input {
 .status-badge.approved { color: #9fd6ff; border-color: #2c5a7a; }
 .status-badge.done { color: #8fe3b0; border-color: #2b6a45; }
 .status-badge.rejected { color: #ff9cad; border-color: #6b2d3a; }
+
+/* ---- Reel v2 elements (8px grid) ---- */
+.element-node,
+.element-alert,
+.element-metric,
+.element-bubble {
+  border: 1px solid color-mix(in srgb, currentColor 38%, transparent);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, currentColor 14%, #141a28),
+    color-mix(in srgb, currentColor 5%, #0d111c)
+  );
+  box-shadow:
+    0 8px 24px #00000066,
+    0 1px 0 #ffffff12 inset;
+}
+.element-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 8px;
+  border-radius: 16px;
+  text-align: center;
+}
+.element-node .node-icon {
+  width: 9cqw;
+  height: 9cqw;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, currentColor 55%, transparent));
+}
+.element-node .node-label {
+  color: #eef0f8;
+  font-size: 3.6cqw;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.1px;
+}
+.element-bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 16px 16px;
+  border-radius: 24px;
+  max-width: 100%;
+}
+.element-bubble.side-left {
+  border-bottom-left-radius: 8px;
+}
+.element-bubble.side-right {
+  border-bottom-right-radius: 8px;
+  align-items: flex-end;
+  text-align: right;
+}
+.bubble-name {
+  padding-top: 8px;
+  font-size: 3cqw;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+.bubble-text {
+  color: #f1f3fa;
+  font-size: 4.4cqw;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.element-alert {
+  border-radius: 16px;
+  padding: 0;
+  border-width: 1.5px;
+  box-shadow:
+    0 8px 24px #00000066,
+    0 0 32px color-mix(in srgb, currentColor 28%, transparent);
+}
+.alert-shake {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  animation: alert-shake 2.4s ease-in-out infinite;
+}
+.alert-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 3.2cqw;
+  font-weight: 850;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.alert-title i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 10px currentColor;
+  animation: alert-pulse 1.2s ease-in-out infinite;
+}
+.alert-text {
+  color: #f6f1f2;
+  font-size: 4.6cqw;
+  font-weight: 700;
+  line-height: 1.25;
+}
+@keyframes alert-shake {
+  0%, 12%, 100% { transform: translate(0, 0) rotate(0); }
+  2% { transform: translate(-1.5px, 0.5px) rotate(-0.4deg); }
+  4% { transform: translate(1.5px, -0.5px) rotate(0.4deg); }
+  6% { transform: translate(-1px, 0) rotate(-0.3deg); }
+  8% { transform: translate(1px, 0.5px) rotate(0.3deg); }
+  10% { transform: translate(-0.5px, 0) rotate(0); }
+}
+@keyframes alert-pulse {
+  50% { opacity: 0.35; }
+}
+.element-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 16px;
+  text-align: center;
+}
+.metric-value {
+  font-size: 11cqw;
+  font-weight: 850;
+  letter-spacing: -1.5px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 24px color-mix(in srgb, currentColor 45%, transparent);
+}
+.metric-label {
+  color: #c4cbdc;
+  font-size: 3.4cqw;
+  font-weight: 650;
+  letter-spacing: 0.4px;
+}
+.flow-dot {
+  filter: drop-shadow(0 0 4px currentColor) drop-shadow(0 0 10px currentColor);
+}
+.flow-pill {
+  border-radius: 999px;
+  padding: 4px 12px;
+  box-shadow: 0 4px 16px #00000066;
+  white-space: nowrap;
+}
+.captions .cap-line {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  animation: cap-in 0.18s ease-out;
+}
+.cap-chip {
+  background: color-mix(in srgb, var(--spk, #b5a1ff) 22%, #0b0e17);
+  color: var(--spk, #b5a1ff);
+  border: 1px solid color-mix(in srgb, var(--spk, #b5a1ff) 55%, transparent);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 3cqw;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  text-shadow: none;
+}
+.cap-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+.captions .spoken {
+  background: var(--spk, #b5a1ff);
+}
+@keyframes cap-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---- Format Lab ---- */
+.lab-link {
+  margin-top: 8px;
+}
+.lab-list {
+  display: grid;
+  gap: 16px;
+}
+.lab-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 24px;
+  text-align: left;
+  border-radius: 24px;
+  border: 1px solid #ffffff14;
+  background: linear-gradient(160deg, #1b2236, #0f131f);
+  box-shadow: 0 8px 24px #00000066;
+  color: inherit;
+}
+.lab-format {
+  color: #b5a1ff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+.lab-card h2 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.4px;
+}
+.lab-cast {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+.lab-cast li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.lab-cast i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+.lab-cast span {
+  color: var(--muted);
+}
+.lab-cast code {
+  margin-left: auto;
+  font-size: 12px;
+  color: #aab3c8;
+}
+.lab-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: #14102a;
+  background: #aaa3ff;
+  border-radius: 999px;
+  padding: 8px 16px;
+}
+.lab-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #08090d;
+}
+.lab-overlay .reel-slot {
+  max-width: 760px;
+  margin: auto;
+}
+.lab-close {
+  position: absolute;
+  top: calc(24px + env(safe-area-inset-top));
+  right: 16px;
+  z-index: 120;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 0;
+  display: grid;
+  place-items: center;
+  background: #000000a0;
+  color: #fff;
+}

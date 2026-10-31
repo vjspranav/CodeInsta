@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Avatar, useData, type ReelRow } from "../data";
-import { timeline } from "./timeline";
+import { lineAt, timeline } from "./timeline";
+import { pickVoice } from "./voices";
 import { Stage } from "./stage";
 import { Feedback } from "./feedback";
 type Props = {
@@ -52,12 +53,18 @@ export function Player({
     [done, setDone] = useState(false);
   const frame = frames[index],
     running = active && !paused && !hidden && !sheet && !done;
+  // Multi-voice scenes carry one clip per line; legacy scenes have one clip per frame.
+  const perLine = frame.lines.some((l) => l.url),
+    perLineSpeech = frame.lines.some((l) => l.speaker);
+  const lineIndex = lineAt(frame, elapsed),
+    line = frame.lines[lineIndex];
   const clock = useRef(0),
     played = useRef(0),
     viewed = useRef(false),
     tap = useRef<ReturnType<typeof setTimeout> | null>(null),
     lastTap = useRef(0),
-    speech = useRef<SpeechSynthesisUtterance | null>(null);
+    loaded = useRef(""),
+    speech = useRef<{ key: string; utterance: SpeechSynthesisUtterance } | null>(null);
   const callbacks = useRef({ finish, view, audioBlocked });
   callbacks.current = { finish, view, audioBlocked };
   useEffect(() => {
@@ -73,6 +80,8 @@ export function Player({
   );
   useEffect(() => {
     clock.current = 0;
+    loaded.current = "";
+    speech.current = null;
     setElapsed(0);
     if (!active || !audio) return;
     audio.pause();
@@ -96,8 +105,16 @@ export function Player({
       window.speechSynthesis?.pause();
       return;
     }
-    if (frame.url) {
-      if (Math.abs(audio.currentTime * 1000 - clock.current) > 500)
+    const clipUrl = perLine ? line?.url : frame.url;
+    if (clipUrl) {
+      if (loaded.current !== clipUrl) {
+        loaded.current = clipUrl;
+        audio.src = clipUrl;
+        audio.load();
+      } else if (
+        !perLine &&
+        Math.abs(audio.currentTime * 1000 - clock.current) > 500
+      )
         audio.currentTime = Math.min(
           clock.current / 1000,
           Number.isFinite(audio.duration)
@@ -108,20 +125,29 @@ export function Player({
         if (error.name === "NotAllowedError") callbacks.current.audioBlocked();
       });
     } else if ("speechSynthesis" in window && frame.card !== "next") {
-      if (speech.current) window.speechSynthesis.resume();
+      const key = perLineSpeech ? `${index}:${lineIndex}` : `${index}`;
+      if (speech.current?.key === key) window.speechSynthesis.resume();
       else {
         window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(frame.text);
+        window.speechSynthesis.resume();
+        const text = perLineSpeech ? (line?.text ?? "") : frame.text;
+        const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = 1.05;
-        speech.current = utterance;
-        window.speechSynthesis.speak(utterance);
+        if (perLineSpeech) {
+          const who = frame.cast.findIndex((c) => c.id === line?.speaker);
+          const voice = pickVoice(frame.cast[who]?.voice ?? "", Math.max(0, who));
+          if (voice.voice) utterance.voice = voice.voice;
+          utterance.pitch = voice.pitch;
+        }
+        speech.current = { key, utterance };
+        if (text) window.speechSynthesis.speak(utterance);
       }
     }
     return () => {
       audio.pause();
       window.speechSynthesis?.pause();
     };
-  }, [active, audio, running, unlocked, muted, frame]);
+  }, [active, audio, running, unlocked, muted, frame, index, perLine, perLineSpeech, lineIndex, line]);
   useEffect(() => {
     if (!running) return;
     let last = performance.now(),
@@ -130,6 +156,7 @@ export function Player({
       const delta = Math.min(now - last, 100);
       last = now;
       const previousTime = clock.current;
+      const lineClip = perLine ? frame.lines[lineAt(frame, clock.current)] : undefined;
       if (
         frame.url &&
         unlocked &&
@@ -139,7 +166,11 @@ export function Player({
         !audio.error
       )
         clock.current = audio.currentTime * 1000;
-      else clock.current += delta;
+      else if (lineClip?.url && unlocked && !muted && audio && !audio.error && !audio.ended) {
+        // Follow the line's clip once it starts; wait for it while it loads.
+        if (audio.currentTime > 0)
+          clock.current = lineClip.start + audio.currentTime * 1000;
+      } else clock.current += delta;
       played.current += Math.min(
         delta,
         Math.max(0, clock.current - previousTime),
@@ -159,7 +190,7 @@ export function Player({
     };
     id = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(id);
-  }, [running, frame, index, frames.length, audio, unlocked, muted, reel.id]);
+  }, [running, frame, index, frames.length, audio, unlocked, muted, reel.id, perLine]);
   const creator = creators.find((c) => c.id === reel.creator_id);
   const toggle = () => {
     if (done) {

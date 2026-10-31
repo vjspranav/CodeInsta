@@ -37,7 +37,7 @@ describe("reel v1 contract", () => {
 
   // Each mutation removes one guarantee consumers rely on; no validator internals are mocked.
   it.each([
-    ["wrong version", (r: ReturnType<typeof example>) => { r.version = 2; }],
+    ["wrong version", (r: ReturnType<typeof example>) => { r.version = 3; }],
     ["two scenes", (r: ReturnType<typeof example>) => { r.scenes.pop(); }],
     ["eleven scenes", (r: ReturnType<typeof example>) => { r.scenes = Array(11).fill(r.scenes[0]); }],
     ["too short", (r: ReturnType<typeof example>) => { r.scenes.forEach((s: { duration_ms: number }) => { s.duration_ms = 6000; }); }],
@@ -83,5 +83,71 @@ describe("reel v1 contract", () => {
 
   it.each([[null], [undefined], ["{}"], [{}], [[]]])("returns errors rather than throwing for invalid input %j", (input) => {
     expect(validateReel(input).ok).toBe(false);
+  });
+});
+
+describe("reel v2 contract", () => {
+  const cast = [
+    { id: "sr", name: "Maya", role: "Senior engineer", voice: "af_heart", color: "purple" },
+    { id: "jr", name: "Sam", role: "Junior engineer", voice: "am_michael", color: "green" },
+  ];
+  const v2 = () => {
+    const reel = example();
+    reel.version = 2;
+    reel.format = "dialogue";
+    reel.cast = structuredClone(cast);
+    reel.scenes[0].lines = [
+      { speaker: "sr", text: "Why is the feed instant?" },
+      { speaker: "jr", text: "Caching?" },
+    ];
+    reel.scenes[0].elements = [
+      { id: "client", type: "node", x: 4, y: 10, w: 24, label: "Phone", icon: "phone", at: 0 },
+      { id: "cdn", type: "node", x: 60, y: 10, w: 24, label: "CDN", icon: "cdn", at: 100 },
+      { id: "pkt", type: "flow", from: "client", to: "cdn", label: "GET /feed", count: 4, at: 200 },
+      { id: "b1", type: "bubble", y: 40, speaker: "sr", text: "Hi", at: 300 },
+      { id: "a1", type: "alert", x: 5, y: 60, title: "PAGE", text: "p99 > 2s", at: 400 },
+      { id: "m1", type: "metric", x: 5, y: 80, value: "42 ms", label: "p99", at: 500 },
+    ];
+    return reel;
+  };
+
+  it("accepts a full v2 script and applies defaults", () => {
+    const result = validateReel(v2());
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const els = result.reel.scenes[0].elements;
+    expect(els.find((e) => e.type === "alert" && e.level === "critical")).toBeTruthy();
+    expect(els.find((e) => e.type === "flow")).toMatchObject({ count: 4 });
+  });
+
+  it("still accepts v1 and v2 scripts without v2 fields", () => {
+    expect(validateReel(example()).ok).toBe(true);
+    expect(validateReel({ ...example(), version: 2 }).ok).toBe(true);
+  });
+
+  it.each([
+    ["line speaker outside the cast", (r: ReturnType<typeof v2>) => { r.scenes[0].lines[0].speaker = "ghost"; }],
+    ["lines without a cast", (r: ReturnType<typeof v2>) => { delete r.cast; }],
+    ["bubble speaker outside the cast", (r: ReturnType<typeof v2>) => { r.scenes[0].elements[3].speaker = "ghost"; }],
+    ["duplicate cast ids", (r: ReturnType<typeof v2>) => { r.cast[1].id = "sr"; }],
+    ["seven lines", (r: ReturnType<typeof v2>) => { r.scenes[0].lines = Array.from({ length: 7 }, () => ({ speaker: "sr", text: "x" })); }],
+    ["empty lines", (r: ReturnType<typeof v2>) => { r.scenes[0].lines = []; }],
+    ["flow to a missing element", (r: ReturnType<typeof v2>) => { r.scenes[0].elements[2].to = "missing"; }],
+    ["flow endpoint that is not a node or box", (r: ReturnType<typeof v2>) => { r.scenes[0].elements[2].to = "m1"; }],
+    ["flow with six dots", (r: ReturnType<typeof v2>) => { r.scenes[0].elements[2].count = 6; }],
+    ["unknown node icon", (r: ReturnType<typeof v2>) => { r.scenes[0].elements[0].icon = "toaster"; }],
+    ["unknown format", (r: ReturnType<typeof v2>) => { r.format = "sitcom"; }],
+    ["unknown cast color", (r: ReturnType<typeof v2>) => { r.cast[0].color = "pink"; }],
+  ])("rejects %s", (_, mutate) => {
+    const reel = v2();
+    mutate(reel);
+    expect(validateReel(reel).ok).toBe(false);
+  });
+
+  it("accepts exactly six lines and box endpoints for flows", () => {
+    const reel = v2();
+    reel.scenes[0].lines = Array.from({ length: 6 }, (_, i) => ({ speaker: i % 2 ? "jr" : "sr", text: `line ${i}` }));
+    reel.scenes[0].elements[1] = { id: "cdn", type: "box", x: 60, y: 10, w: 24, h: 10, text: "CDN", at: 100 };
+    expect(validateReel(reel).ok).toBe(true);
   });
 });

@@ -123,6 +123,7 @@ export function Profiles({ creatorId }: { creatorId?: string }) {
         <TopicRequests />
         {isOwner && <ReviewRequests />}
         {isOwner && <Link className="primary" href="/invites">Invite friends</Link>}
+        {isOwner && <Link className="primary lab-link" href="/lab">Format Lab</Link>}
         <form action={signOut}>
           <button className="signout">Sign out</button>
         </form>
