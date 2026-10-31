@@ -82,3 +82,29 @@
   - Commits must be REAL. Look them up with `gh api repos/<org>/<repo>/commits?path=…&per_page=…` or `gh search commits`, never invent them.
   - Show the short hash, the repo and a one-line subject on screen (a `code` or `text` element), quote at most a few diff lines, and add the commit URL to `sources`.
   - Good fits: build system changes, HAL/VINTF, SELinux policy, init.rc, framework patches, vendor tree setup.
+- 2026-11-01: **Commit references (user correction).** No commit hashes on screen. Show *important* StagOS/LineageOS commits as a story: what broke, what the commit changed, and why it fixed it. The commits must still be real (looked up via `gh`), with the URL in `sources`.
+- 2026-11-01: **Reels v3: "Story mode", pre-rendered video (user feedback round 1).**
+  - **Why:** the lab samples looked "AI-like" (glowing boxes, gradients, random placement); spoilers came first; bubbles and captions drifted out of sync with the audio; the voices sounded robotic and mispronounced words; and there were no full forms for abbreviations.
+  - **Structure:**
+    - Cold open inside a story, with no title or answer card and no spoken title or summary at the end.
+    - Original characters (no copyrighted personas): e.g. **Rookie** (overconfident junior who ships things) and **Senior** (calm, dry humor), plus a separate **Narrator** used only for short scene-setting lines.
+    - Arc: build the naive thing → simulate real UI breaking (tap ❤️ → spinner stuck → error toast) → debug → the real design → it's instant.
+    - Strict reveal order: a visual appears only when its line is spoken. A question is never on screen together with its answer.
+  - **Visual language:** a hand-drawn whiteboard (rough.js sketch strokes, a handwritten font such as Excalifont/Virgil, off-white paper, ink colors plus ONE accent; no glow, no gradients). Mix in realistic UI mockups: a phone with the feed and like button, a terminal, a DB table with rows. DB scenes visualize rows moving: inserts, sharding, replication, fan-out to feed tables, cache hit/miss. Each scene is a deliberate composition from layout templates (slots), not free x/y placement.
+  - **Pronunciation:** a lexicon applied before TTS (URL→"U R L", TLS→"T L S", POP→"pop", prefetch→"pree-fetch", AOSP→"A O S P", …), plus per-line `say` overrides.
+  - **Glossary:** the first mention of a term shows a lower-third "POP · Point of Presence". The end card shows the reel's word list on screen (NOT read aloud), and it's stored with the reel.
+  - **Pace:** about 1.12× faster with tight gaps.
+  - **Rendering:** each reel is pre-rendered to MP4 (720×1280, H.264, about 3 MB) by a headless renderer in `render/`. Every action is keyed to the start of its line (per-line audio clips give exact timing), so it's frame-locked to the audio. The video is uploaded to the Supabase bucket `reel-video/<reel_id>.mp4`; `reels.video_url` is new, and the player plays the video when it's present. The renderer is Remotion (React → MP4 CLI, reliable headless rendering); the look comes from our own sketch component library. (Motion Canvas/Revideo were considered; Remotion was chosen for robust headless automation.)
+  - **Voices to compare:** Gemini TTS (GEMINI_API_KEY in .env.local) and Chatterbox (local). Per-line clips; narrator, Rookie and Senior get distinct voices; avoid husky voices.
+  - **Script schema v3** (`render/src/schema.ts`, zod):
+    `{version:3, format:"story", title, topic, tags, level, cast:[{id,name,role,color}], glossary:[{term,full,note?}], beats:[{speaker:"narrator"|castId, text, say?, visuals:[Action]}], sources?}`
+    `Action = {do, id?, at?: "start"|"end"|number(0–1 of line), ...props}`, where `do` is one of:
+    - `phone.show`, `phone.feed`, `phone.tap`, `phone.spinner`, `phone.toast`, `phone.instant`
+    - `sketch.box`, `sketch.arrow`, `sketch.note`
+    - `db.table`, `db.insert`, `db.shard`, `db.replicate`, `db.fanout`
+    - `cache.hit`, `cache.miss`
+    - `term.type`
+    - `code.show` (a short real snippet)
+    - `commit.story` (repo, title, what broke, the fix)
+    - `define` (a glossary lower-third)
+    - `layout` (a template: "phone-left+board-right", "board-full", "db-focus", "split"), `clear`, `focus`.
