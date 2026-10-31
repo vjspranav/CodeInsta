@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "title": "Why a compiler needs an intermediate representation",
+  "hook": "Does every source language need a new machine-code generator?",
+  "topic": "compilers/pipeline/intermediate-representation",
+  "tags": [
+    "compilers",
+    "llvm"
+  ],
+  "level": "beginner",
+  "scenes": [
+    {
+      "duration_ms": 8000,
+      "caption": "A frontend checks source code and lowers it into an intermediate representation.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Source to IR",
+          "x": 8,
+          "y": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "source",
+          "type": "box",
+          "text": "Source code",
+          "x": 8,
+          "y": 35,
+          "w": 35,
+          "h": 12,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "ir",
+          "type": "box",
+          "text": "IR",
+          "x": 55,
+          "y": 35,
+          "w": 35,
+          "h": 12,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "lower",
+          "type": "arrow",
+          "from": "source",
+          "to": "ir",
+          "label": "Frontend",
+          "at": 1000
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "Optimization passes transform IR while preserving program behavior.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Transform the program",
+          "x": 8,
+          "y": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "code",
+          "type": "code",
+          "lang": "text",
+          "text": "x = 2 + 3\n\u2193 constant folding\nx = 5",
+          "x": 8,
+          "y": 30,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "focus",
+          "type": "highlight",
+          "target": "code",
+          "at": 2000
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "A backend selects instructions and allocates registers for the target architecture.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "IR to machine code",
+          "x": 8,
+          "y": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "ir",
+          "type": "box",
+          "text": "Optimized IR",
+          "x": 8,
+          "y": 35,
+          "w": 35,
+          "h": 12,
+          "color": "purple",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "target",
+          "type": "box",
+          "text": "Machine code",
+          "x": 55,
+          "y": 35,
+          "w": 35,
+          "h": 12,
+          "color": "gray",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "generate",
+          "type": "arrow",
+          "from": "ir",
+          "to": "target",
+          "label": "Backend",
+          "at": 1000,
+          "enter": "draw"
+        },
+        {
+          "id": "note",
+          "type": "text",
+          "text": "Target details still constrain optimizations.",
+          "x": 8,
+          "y": 65,
+          "color": "red",
+          "at": 2500
+        }
+      ]
+    }
+  ],
+  "takeaway": "IR separates language concerns from target code generation, enabling reusable passes."
+}

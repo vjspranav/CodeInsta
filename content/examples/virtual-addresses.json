@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "title": "Why virtual addresses need translation",
+  "hook": "How can two processes use the same address?",
+  "topic": "os/memory/address-spaces",
+  "tags": [
+    "os",
+    "memory"
+  ],
+  "level": "intermediate",
+  "series": "virtual-memory",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 8000,
+      "caption": "Each process gets its own virtual address space.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Same address, separate spaces",
+          "x": 8,
+          "y": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "a",
+          "type": "box",
+          "text": "Process A: 0x1000",
+          "x": 8,
+          "y": 35,
+          "w": 35,
+          "h": 12,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "Process B: 0x1000",
+          "x": 55,
+          "y": 35,
+          "w": 35,
+          "h": 12,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "note",
+          "type": "text",
+          "text": "Virtual addresses are local to an address space.",
+          "x": 8,
+          "y": 62,
+          "at": 1500
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "Page tables map virtual pages to physical frames.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Translate before access",
+          "x": 8,
+          "y": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "virtual",
+          "type": "box",
+          "text": "Virtual page",
+          "x": 8,
+          "y": 35,
+          "w": 35,
+          "h": 12,
+          "color": "purple",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "physical",
+          "type": "box",
+          "text": "Physical frame",
+          "x": 55,
+          "y": 35,
+          "w": 35,
+          "h": 12,
+          "color": "orange",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "translation",
+          "type": "arrow",
+          "from": "virtual",
+          "to": "physical",
+          "label": "Page table",
+          "at": 1500,
+          "enter": "draw"
+        },
+        {
+          "id": "focus",
+          "type": "highlight",
+          "target": "physical",
+          "at": 2500
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "The TLB caches translations; a miss may require a page-table walk.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Avoid repeated walks",
+          "x": 8,
+          "y": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "steps",
+          "type": "list",
+          "items": [
+            "Look up the translation in the TLB",
+            "On a miss, walk the page tables",
+            "Check permissions before access"
+          ],
+          "x": 8,
+          "y": 30,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "formula",
+          "type": "code",
+          "lang": "text",
+          "text": "physical address = frame base + page offset",
+          "x": 8,
+          "y": 65,
+          "w": 84,
+          "at": 2000
+        }
+      ]
+    }
+  ],
+  "takeaway": "Per-process mappings isolate memory; the TLB makes translation faster."
+}
