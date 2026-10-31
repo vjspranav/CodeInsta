@@ -1,0 +1,565 @@
+{
+  "version": 2,
+  "format": "podcast",
+  "cast": [
+    {
+      "id": "bel",
+      "name": "Bella",
+      "role": "Host",
+      "voice": "af_bella",
+      "color": "purple"
+    },
+    {
+      "id": "ada",
+      "name": "Adam",
+      "role": "Host",
+      "voice": "am_adam",
+      "color": "orange"
+    }
+  ],
+  "title": "Your feed was ready before you opened it",
+  "hook": "Two billion users, and your feed loads before you blink. Here's the cheat code.",
+  "topic": "lab/instagram-feed/podcast",
+  "tags": [
+    "instagram",
+    "feed",
+    "cdn",
+    "caching",
+    "podcast"
+  ],
+  "level": "intermediate",
+  "scenes": [
+    {
+      "duration_ms": 10100,
+      "caption": "Before you even blink",
+      "lines": [
+        {
+          "speaker": "bel",
+          "text": "Two billion users, and my feed loads before I blink. How?"
+        },
+        {
+          "speaker": "ada",
+          "text": "Simple. It was built before you opened the app."
+        },
+        {
+          "speaker": "bel",
+          "text": "Rude. But explain."
+        }
+      ],
+      "elements": [
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 4,
+          "y": 8,
+          "w": 92,
+          "h": 16,
+          "value": "2 BILLION",
+          "label": "people opening the app",
+          "color": "purple",
+          "enter": "pop",
+          "at": 200
+        },
+        {
+          "id": "phone",
+          "type": "node",
+          "x": 38,
+          "y": 32,
+          "w": 24,
+          "h": 11,
+          "label": "You, tapping",
+          "icon": "phone",
+          "enter": "pop",
+          "at": 2220
+        },
+        {
+          "id": "m2",
+          "type": "metric",
+          "x": 4,
+          "y": 50,
+          "w": 92,
+          "h": 16,
+          "value": "< 1 s",
+          "label": "to first posts, thanks to 4 tricks",
+          "color": "orange",
+          "enter": "pop",
+          "at": 4240
+        }
+      ]
+    },
+    {
+      "duration_ms": 12400,
+      "caption": "Trick 1: be close",
+      "lines": [
+        {
+          "speaker": "ada",
+          "text": "First trick: distance. Edge POPs sit near you, and photos come from a CDN."
+        },
+        {
+          "speaker": "bel",
+          "text": "So no photos flying across an ocean."
+        },
+        {
+          "speaker": "ada",
+          "text": "Physics is the slowest thing on the internet."
+        }
+      ],
+      "elements": [
+        {
+          "id": "t1",
+          "type": "title",
+          "x": 4,
+          "y": 6,
+          "w": 92,
+          "h": 10,
+          "text": "TRICK 1 · BE CLOSE",
+          "color": "orange",
+          "enter": "slide-up",
+          "at": 200
+        },
+        {
+          "id": "phone",
+          "type": "node",
+          "x": 4,
+          "y": 28,
+          "w": 24,
+          "h": 11,
+          "label": "You",
+          "icon": "phone",
+          "enter": "pop",
+          "at": 1262
+        },
+        {
+          "id": "cdn",
+          "type": "node",
+          "x": 38,
+          "y": 28,
+          "w": 24,
+          "h": 11,
+          "label": "Edge POP + CDN",
+          "icon": "cdn",
+          "color": "purple",
+          "enter": "pop",
+          "at": 2324
+        },
+        {
+          "id": "origin",
+          "type": "node",
+          "x": 72,
+          "y": 28,
+          "w": 24,
+          "h": 11,
+          "label": "Origin DC",
+          "icon": "storage",
+          "enter": "pop",
+          "at": 3386
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "origin",
+          "to": "cdn",
+          "label": "rare miss",
+          "count": 1,
+          "color": "gray",
+          "enter": "draw",
+          "at": 4448
+        },
+        {
+          "id": "f2",
+          "type": "flow",
+          "from": "cdn",
+          "to": "phone",
+          "label": "photos",
+          "count": 4,
+          "color": "purple",
+          "enter": "draw",
+          "at": 5510
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 20,
+          "y": 48,
+          "w": 60,
+          "h": 14,
+          "value": "~10 ms",
+          "label": "to the nearest edge",
+          "color": "purple",
+          "enter": "pop",
+          "at": 6572
+        }
+      ]
+    },
+    {
+      "duration_ms": 12800,
+      "caption": "Trick 2: meal-prep the feed",
+      "lines": [
+        {
+          "speaker": "bel",
+          "text": "Okay, but who picks my posts?"
+        },
+        {
+          "speaker": "ada",
+          "text": "Nobody, live. When a friend posts, we drop it in your feed list ahead of time. Meal prep."
+        },
+        {
+          "speaker": "ada",
+          "text": "Except celebrities. Those merge in live."
+        }
+      ],
+      "elements": [
+        {
+          "id": "t1",
+          "type": "title",
+          "x": 4,
+          "y": 6,
+          "w": 92,
+          "h": 10,
+          "text": "TRICK 2 · MEAL-PREP THE FEED",
+          "color": "orange",
+          "enter": "slide-up",
+          "at": 200
+        },
+        {
+          "id": "author",
+          "type": "node",
+          "x": 4,
+          "y": 28,
+          "w": 24,
+          "h": 11,
+          "label": "Friend posts",
+          "icon": "user",
+          "enter": "pop",
+          "at": 1297
+        },
+        {
+          "id": "worker",
+          "type": "node",
+          "x": 38,
+          "y": 28,
+          "w": 24,
+          "h": 11,
+          "label": "Fan-out worker",
+          "icon": "worker",
+          "enter": "pop",
+          "at": 2394
+        },
+        {
+          "id": "cache",
+          "type": "node",
+          "x": 72,
+          "y": 28,
+          "w": 24,
+          "h": 11,
+          "label": "Your feed list",
+          "icon": "cache",
+          "color": "green",
+          "enter": "pop",
+          "at": 3491
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "author",
+          "to": "worker",
+          "label": "new post",
+          "count": 1,
+          "enter": "draw",
+          "at": 4588
+        },
+        {
+          "id": "f2",
+          "type": "flow",
+          "from": "worker",
+          "to": "cache",
+          "label": "post ID to each follower",
+          "count": 3,
+          "color": "green",
+          "enter": "draw",
+          "at": 5685
+        },
+        {
+          "id": "b1",
+          "type": "box",
+          "x": 4,
+          "y": 48,
+          "w": 92,
+          "h": 12,
+          "text": "Celebrities? Merged in at read time.",
+          "color": "orange",
+          "enter": "slide-up",
+          "at": 6782
+        }
+      ]
+    },
+    {
+      "duration_ms": 10100,
+      "caption": "Trick 3: cache and rank",
+      "lines": [
+        {
+          "speaker": "ada",
+          "text": "Next: cache. Over ninety-five percent of reads never touch the database."
+        },
+        {
+          "speaker": "bel",
+          "text": "So the database just naps?"
+        },
+        {
+          "speaker": "ada",
+          "text": "Mostly. Then ranking picks the best few."
+        }
+      ],
+      "elements": [
+        {
+          "id": "t1",
+          "type": "title",
+          "x": 4,
+          "y": 6,
+          "w": 92,
+          "h": 10,
+          "text": "TRICK 3 · CACHE + RANK",
+          "color": "orange",
+          "enter": "slide-up",
+          "at": 200
+        },
+        {
+          "id": "cache",
+          "type": "node",
+          "x": 4,
+          "y": 22,
+          "w": 24,
+          "h": 11,
+          "label": "Memcached + TAO",
+          "icon": "cache",
+          "color": "green",
+          "enter": "pop",
+          "at": 957
+        },
+        {
+          "id": "ranker",
+          "type": "node",
+          "x": 38,
+          "y": 22,
+          "w": 24,
+          "h": 11,
+          "label": "Ranker",
+          "icon": "service",
+          "color": "purple",
+          "enter": "pop",
+          "at": 1714
+        },
+        {
+          "id": "phone",
+          "type": "node",
+          "x": 72,
+          "y": 22,
+          "w": 24,
+          "h": 11,
+          "label": "You",
+          "icon": "phone",
+          "enter": "pop",
+          "at": 2471
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "cache",
+          "to": "ranker",
+          "label": "~500 posts",
+          "count": 4,
+          "enter": "draw",
+          "at": 3228
+        },
+        {
+          "id": "f2",
+          "type": "flow",
+          "from": "ranker",
+          "to": "phone",
+          "label": "the best few",
+          "count": 2,
+          "color": "purple",
+          "enter": "draw",
+          "at": 3985
+        },
+        {
+          "id": "db",
+          "type": "node",
+          "x": 4,
+          "y": 38,
+          "w": 24,
+          "h": 11,
+          "label": "Database (napping)",
+          "icon": "db",
+          "color": "gray",
+          "enter": "pop",
+          "at": 4742
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 20,
+          "y": 54,
+          "w": 60,
+          "h": 14,
+          "value": "95%+",
+          "label": "reads never hit the DB",
+          "color": "green",
+          "enter": "pop",
+          "at": 5499
+        }
+      ]
+    },
+    {
+      "duration_ms": 12400,
+      "caption": "Trick 4: load it early",
+      "lines": [
+        {
+          "speaker": "bel",
+          "text": "And when I scroll? It never stalls."
+        },
+        {
+          "speaker": "ada",
+          "text": "Prefetch. Before you hit the bottom, the app already grabbed the next page."
+        },
+        {
+          "speaker": "ada",
+          "text": "A cursor, not page numbers. Everything after this post."
+        }
+      ],
+      "elements": [
+        {
+          "id": "t1",
+          "type": "title",
+          "x": 4,
+          "y": 6,
+          "w": 92,
+          "h": 10,
+          "text": "TRICK 4 · LOAD IT EARLY",
+          "color": "orange",
+          "enter": "slide-up",
+          "at": 200
+        },
+        {
+          "id": "b1",
+          "type": "box",
+          "x": 4,
+          "y": 22,
+          "w": 92,
+          "h": 11,
+          "text": "On screen · posts 1 to 10",
+          "color": "green",
+          "enter": "slide-up",
+          "at": 1688
+        },
+        {
+          "id": "b2",
+          "type": "box",
+          "x": 4,
+          "y": 36,
+          "w": 92,
+          "h": 11,
+          "text": "Prefetched · posts 11 to 20",
+          "color": "blue",
+          "enter": "slide-up",
+          "at": 3176
+        },
+        {
+          "id": "b3",
+          "type": "box",
+          "x": 4,
+          "y": 50,
+          "w": 92,
+          "h": 11,
+          "text": "Cursor: everything after post 10",
+          "color": "orange",
+          "enter": "slide-up",
+          "at": 4664
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 20,
+          "y": 63,
+          "w": 60,
+          "h": 10,
+          "value": "0 spinners",
+          "label": "next page ready early",
+          "color": "green",
+          "enter": "pop",
+          "at": 6152
+        }
+      ]
+    },
+    {
+      "duration_ms": 11600,
+      "caption": "3-point recap",
+      "lines": [
+        {
+          "speaker": "bel",
+          "text": "Recap time. Three things."
+        },
+        {
+          "speaker": "ada",
+          "text": "One: be close. Edge and CDN."
+        },
+        {
+          "speaker": "bel",
+          "text": "Two: cook ahead. Precomputed, cached, ranked."
+        },
+        {
+          "speaker": "ada",
+          "text": "Three: load early. Cursor and prefetch."
+        },
+        {
+          "speaker": "bel",
+          "text": "Now go doomscroll responsibly."
+        }
+      ],
+      "elements": [
+        {
+          "id": "t1",
+          "type": "title",
+          "x": 4,
+          "y": 4,
+          "w": 92,
+          "h": 10,
+          "text": "3-POINT RECAP",
+          "color": "purple",
+          "enter": "slide-up",
+          "at": 200
+        },
+        {
+          "id": "l1",
+          "type": "list",
+          "x": 4,
+          "y": 20,
+          "w": 92,
+          "h": 36,
+          "items": [
+            "1 · Be close: edge POPs + CDN",
+            "2 · Cook ahead: fan-out, cache, ranking",
+            "3 · Load early: cursor + prefetch"
+          ],
+          "color": "purple",
+          "enter": "slide-up",
+          "at": 2520
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 4,
+          "y": 58,
+          "w": 92,
+          "h": 14,
+          "value": "p99 < 100 ms",
+          "label": "nothing heavy happens when you tap",
+          "color": "green",
+          "enter": "pop",
+          "at": 4840
+        }
+      ]
+    }
+  ],
+  "takeaway": "Be close, cook ahead, load early: the feed is mostly ready before you tap."
+}

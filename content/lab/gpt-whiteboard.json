@@ -1,0 +1,700 @@
+{
+  "version": 2,
+  "format": "whiteboard",
+  "cast": [
+    {
+      "id": "nar",
+      "name": "George",
+      "role": "Systems architect",
+      "voice": "bm_george",
+      "color": "blue"
+    }
+  ],
+  "title": "Instagram's feed, drawn in 60 seconds",
+  "hook": "Your feed loads in under a second. Here's the whole machine, drawn live.",
+  "topic": "lab/instagram-feed/whiteboard",
+  "tags": [
+    "instagram",
+    "feed",
+    "system-design",
+    "cdn",
+    "ranking"
+  ],
+  "level": "intermediate",
+  "scenes": [
+    {
+      "duration_ms": 12100,
+      "caption": "Step 1: hit the edge",
+      "lines": [
+        {
+          "speaker": "nar",
+          "text": "You tap the app. The first hop isn't a data center. It's an edge POP, a few milliseconds away, where TLS terminates. A warm backbone link does the rest."
+        }
+      ],
+      "elements": [
+        {
+          "id": "t1",
+          "type": "title",
+          "x": 4,
+          "y": 2,
+          "w": 92,
+          "h": 10,
+          "text": "1 · Start at the edge",
+          "enter": "slide-up",
+          "at": 200
+        },
+        {
+          "id": "phone",
+          "type": "node",
+          "x": 4,
+          "y": 14,
+          "w": 24,
+          "h": 11,
+          "label": "Phone",
+          "icon": "phone",
+          "enter": "pop",
+          "at": 1237
+        },
+        {
+          "id": "pop",
+          "type": "node",
+          "x": 38,
+          "y": 14,
+          "w": 24,
+          "h": 11,
+          "label": "Edge POP",
+          "icon": "cdn",
+          "enter": "pop",
+          "at": 2274
+        },
+        {
+          "id": "api",
+          "type": "node",
+          "x": 72,
+          "y": 14,
+          "w": 24,
+          "h": 11,
+          "label": "Feed API",
+          "icon": "service",
+          "enter": "pop",
+          "at": 3311
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "phone",
+          "to": "pop",
+          "label": "TLS",
+          "count": 2,
+          "enter": "draw",
+          "at": 4348
+        },
+        {
+          "id": "f2",
+          "type": "flow",
+          "from": "pop",
+          "to": "api",
+          "label": "warm link",
+          "count": 3,
+          "enter": "draw",
+          "at": 5385
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 4,
+          "y": 58,
+          "w": 44,
+          "h": 11,
+          "value": "~10 ms",
+          "label": "to nearest edge POP",
+          "color": "blue",
+          "enter": "pop",
+          "at": 6422
+        }
+      ]
+    },
+    {
+      "duration_ms": 9800,
+      "caption": "Step 2: read a precomputed feed",
+      "lines": [
+        {
+          "speaker": "nar",
+          "text": "The feed service doesn't build your feed. It reads a list of post IDs, precomputed when your friends posted. That's fan-out on write."
+        }
+      ],
+      "elements": [
+        {
+          "id": "t1",
+          "type": "title",
+          "x": 4,
+          "y": 2,
+          "w": 92,
+          "h": 10,
+          "text": "2 · Precomputed feed",
+          "enter": "slide-up",
+          "at": 200
+        },
+        {
+          "id": "phone",
+          "type": "node",
+          "x": 4,
+          "y": 14,
+          "w": 24,
+          "h": 11,
+          "label": "Phone",
+          "icon": "phone",
+          "enter": "pop",
+          "at": 1040
+        },
+        {
+          "id": "pop",
+          "type": "node",
+          "x": 38,
+          "y": 14,
+          "w": 24,
+          "h": 11,
+          "label": "Edge POP",
+          "icon": "cdn",
+          "enter": "pop",
+          "at": 1880
+        },
+        {
+          "id": "api",
+          "type": "node",
+          "x": 72,
+          "y": 14,
+          "w": 24,
+          "h": 11,
+          "label": "Feed API",
+          "icon": "service",
+          "enter": "pop",
+          "at": 2720
+        },
+        {
+          "id": "cache",
+          "type": "node",
+          "x": 72,
+          "y": 29,
+          "w": 24,
+          "h": 11,
+          "label": "Feed cache",
+          "icon": "cache",
+          "enter": "pop",
+          "at": 3560
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "api",
+          "to": "cache",
+          "label": "post IDs",
+          "count": 3,
+          "color": "green",
+          "enter": "draw",
+          "at": 4400
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 4,
+          "y": 58,
+          "w": 44,
+          "h": 11,
+          "value": "1 read",
+          "label": "no joins at request time",
+          "color": "green",
+          "enter": "pop",
+          "at": 5240
+        }
+      ]
+    },
+    {
+      "duration_ms": 10600,
+      "caption": "Step 3: rank the candidates",
+      "lines": [
+        {
+          "speaker": "nar",
+          "text": "Next, a ranking service scores a few hundred candidates by who you talk to, what you linger on, and freshness. The best handful go back."
+        }
+      ],
+      "elements": [
+        {
+          "id": "t1",
+          "type": "title",
+          "x": 4,
+          "y": 2,
+          "w": 92,
+          "h": 10,
+          "text": "3 · Ranking",
+          "enter": "slide-up",
+          "at": 200
+        },
+        {
+          "id": "api",
+          "type": "node",
+          "x": 72,
+          "y": 14,
+          "w": 24,
+          "h": 11,
+          "label": "Feed API",
+          "icon": "service",
+          "enter": "pop",
+          "at": 1108
+        },
+        {
+          "id": "cache",
+          "type": "node",
+          "x": 72,
+          "y": 29,
+          "w": 24,
+          "h": 11,
+          "label": "Feed cache",
+          "icon": "cache",
+          "enter": "pop",
+          "at": 2016
+        },
+        {
+          "id": "ranker",
+          "type": "node",
+          "x": 38,
+          "y": 29,
+          "w": 24,
+          "h": 11,
+          "label": "Ranking svc",
+          "icon": "service",
+          "enter": "pop",
+          "at": 2924
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "cache",
+          "to": "ranker",
+          "label": "~500 candidates",
+          "count": 4,
+          "enter": "draw",
+          "at": 3832
+        },
+        {
+          "id": "f2",
+          "type": "flow",
+          "from": "ranker",
+          "to": "api",
+          "label": "top posts",
+          "count": 2,
+          "color": "green",
+          "enter": "draw",
+          "at": 4740
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 4,
+          "y": 58,
+          "w": 44,
+          "h": 11,
+          "value": "500 → 10",
+          "label": "candidates → first page",
+          "color": "purple",
+          "enter": "pop",
+          "at": 5648
+        }
+      ]
+    },
+    {
+      "duration_ms": 8300,
+      "caption": "Step 4: the cache tier",
+      "lines": [
+        {
+          "speaker": "nar",
+          "text": "Misses fall through to the database. But Memcached and a TAO-style graph cache absorb over ninety-five percent of reads."
+        }
+      ],
+      "elements": [
+        {
+          "id": "t1",
+          "type": "title",
+          "x": 4,
+          "y": 2,
+          "w": 92,
+          "h": 10,
+          "text": "4 · Cache tier",
+          "enter": "slide-up",
+          "at": 200
+        },
+        {
+          "id": "api",
+          "type": "node",
+          "x": 72,
+          "y": 14,
+          "w": 24,
+          "h": 11,
+          "label": "Feed API",
+          "icon": "service",
+          "enter": "pop",
+          "at": 911
+        },
+        {
+          "id": "ranker",
+          "type": "node",
+          "x": 38,
+          "y": 29,
+          "w": 24,
+          "h": 11,
+          "label": "Ranking svc",
+          "icon": "service",
+          "enter": "pop",
+          "at": 1622
+        },
+        {
+          "id": "cache",
+          "type": "node",
+          "x": 72,
+          "y": 29,
+          "w": 24,
+          "h": 11,
+          "label": "Feed cache",
+          "icon": "cache",
+          "color": "green",
+          "enter": "pop",
+          "at": 2333
+        },
+        {
+          "id": "db",
+          "type": "node",
+          "x": 72,
+          "y": 44,
+          "w": 24,
+          "h": 11,
+          "label": "Database",
+          "icon": "db",
+          "enter": "pop",
+          "at": 3044
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "cache",
+          "to": "db",
+          "label": "miss only",
+          "count": 1,
+          "color": "gray",
+          "enter": "draw",
+          "at": 3755
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 4,
+          "y": 58,
+          "w": 44,
+          "h": 11,
+          "value": "95%+",
+          "label": "reads served from cache",
+          "color": "green",
+          "enter": "pop",
+          "at": 4466
+        }
+      ]
+    },
+    {
+      "duration_ms": 10200,
+      "caption": "Step 5: media rides the CDN",
+      "lines": [
+        {
+          "speaker": "nar",
+          "text": "Media never rides this path. The feed carries URLs. Images come from the CDN, sized for your screen, progressive so a blur lands first."
+        }
+      ],
+      "elements": [
+        {
+          "id": "t1",
+          "type": "title",
+          "x": 4,
+          "y": 2,
+          "w": 92,
+          "h": 10,
+          "text": "5 · Media via CDN",
+          "enter": "slide-up",
+          "at": 200
+        },
+        {
+          "id": "phone",
+          "type": "node",
+          "x": 4,
+          "y": 14,
+          "w": 24,
+          "h": 11,
+          "label": "Phone",
+          "icon": "phone",
+          "enter": "pop",
+          "at": 1220
+        },
+        {
+          "id": "cdn",
+          "type": "node",
+          "x": 4,
+          "y": 29,
+          "w": 24,
+          "h": 11,
+          "label": "Media CDN",
+          "icon": "cdn",
+          "color": "purple",
+          "enter": "pop",
+          "at": 2240
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "cdn",
+          "to": "phone",
+          "label": "640 px, progressive",
+          "count": 4,
+          "color": "purple",
+          "enter": "draw",
+          "at": 3260
+        },
+        {
+          "id": "b1",
+          "type": "box",
+          "x": 4,
+          "y": 44,
+          "w": 64,
+          "h": 11,
+          "text": "One photo, three sizes: 320 / 640 / 1080 px",
+          "color": "purple",
+          "enter": "slide-up",
+          "at": 4280
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 4,
+          "y": 58,
+          "w": 44,
+          "h": 11,
+          "value": "KBs",
+          "label": "feed JSON, not MBs of pixels",
+          "color": "purple",
+          "enter": "pop",
+          "at": 5300
+        }
+      ]
+    },
+    {
+      "duration_ms": 10200,
+      "caption": "Step 6: cursor + prefetch",
+      "lines": [
+        {
+          "speaker": "nar",
+          "text": "Scroll, and the app sends a cursor, not page two, so new posts never shift your place. It prefetches before you hit the bottom."
+        }
+      ],
+      "elements": [
+        {
+          "id": "t1",
+          "type": "title",
+          "x": 4,
+          "y": 2,
+          "w": 92,
+          "h": 10,
+          "text": "6 · Pagination",
+          "enter": "slide-up",
+          "at": 200
+        },
+        {
+          "id": "phone",
+          "type": "node",
+          "x": 4,
+          "y": 14,
+          "w": 24,
+          "h": 11,
+          "label": "Phone",
+          "icon": "phone",
+          "enter": "pop",
+          "at": 965
+        },
+        {
+          "id": "pop",
+          "type": "node",
+          "x": 38,
+          "y": 14,
+          "w": 24,
+          "h": 11,
+          "label": "Edge POP",
+          "icon": "cdn",
+          "enter": "pop",
+          "at": 1730
+        },
+        {
+          "id": "api",
+          "type": "node",
+          "x": 72,
+          "y": 14,
+          "w": 24,
+          "h": 11,
+          "label": "Feed API",
+          "icon": "service",
+          "enter": "pop",
+          "at": 2495
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "phone",
+          "to": "pop",
+          "label": "cursor",
+          "count": 2,
+          "enter": "draw",
+          "at": 3260
+        },
+        {
+          "id": "f2",
+          "type": "flow",
+          "from": "pop",
+          "to": "api",
+          "label": "next page",
+          "count": 3,
+          "color": "green",
+          "enter": "draw",
+          "at": 4025
+        },
+        {
+          "id": "b1",
+          "type": "box",
+          "x": 4,
+          "y": 44,
+          "w": 64,
+          "h": 11,
+          "text": "Cursor = everything after THIS post",
+          "color": "orange",
+          "enter": "slide-up",
+          "at": 4790
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 4,
+          "y": 58,
+          "w": 44,
+          "h": 11,
+          "value": "prefetch",
+          "label": "next page ready early",
+          "color": "green",
+          "enter": "pop",
+          "at": 5555
+        }
+      ]
+    },
+    {
+      "duration_ms": 7900,
+      "caption": "The whole path",
+      "lines": [
+        {
+          "speaker": "nar",
+          "text": "Edge, precomputed feed, cache, ranking, CDN. Together, that's how the feed targets a p99 under a hundred milliseconds."
+        }
+      ],
+      "elements": [
+        {
+          "id": "phone",
+          "type": "node",
+          "x": 4,
+          "y": 14,
+          "w": 24,
+          "h": 11,
+          "label": "Phone",
+          "icon": "phone",
+          "enter": "pop",
+          "at": 200
+        },
+        {
+          "id": "pop",
+          "type": "node",
+          "x": 38,
+          "y": 14,
+          "w": 24,
+          "h": 11,
+          "label": "Edge POP",
+          "icon": "cdn",
+          "enter": "pop",
+          "at": 792
+        },
+        {
+          "id": "api",
+          "type": "node",
+          "x": 72,
+          "y": 14,
+          "w": 24,
+          "h": 11,
+          "label": "Feed API",
+          "icon": "service",
+          "enter": "pop",
+          "at": 1384
+        },
+        {
+          "id": "cache",
+          "type": "node",
+          "x": 72,
+          "y": 29,
+          "w": 24,
+          "h": 11,
+          "label": "Feed cache",
+          "icon": "cache",
+          "enter": "pop",
+          "at": 1976
+        },
+        {
+          "id": "ranker",
+          "type": "node",
+          "x": 38,
+          "y": 29,
+          "w": 24,
+          "h": 11,
+          "label": "Ranking svc",
+          "icon": "service",
+          "enter": "pop",
+          "at": 2568
+        },
+        {
+          "id": "cdn",
+          "type": "node",
+          "x": 4,
+          "y": 29,
+          "w": 24,
+          "h": 11,
+          "label": "Media CDN",
+          "icon": "cdn",
+          "enter": "pop",
+          "at": 3160
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "phone",
+          "to": "pop",
+          "label": "tap",
+          "count": 1,
+          "color": "green",
+          "enter": "draw",
+          "at": 3752
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 4,
+          "y": 50,
+          "w": 92,
+          "h": 14,
+          "value": "p99 < 100 ms",
+          "label": "feed API target",
+          "color": "green",
+          "enter": "pop",
+          "at": 4344
+        }
+      ]
+    }
+  ],
+  "takeaway": "Fast feeds come from moving work off the request path: edge, precompute, cache, prefetch."
+}

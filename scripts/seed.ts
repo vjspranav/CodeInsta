@@ -8,6 +8,13 @@ const CREATORS = ["claude", "gpt"] as const;
 const root = resolve(__dirname, "..");
 const dryRun = process.argv.includes("--dry-run");
 const noAudio = process.argv.includes("--no-audio");
+const forceAudio = process.argv.includes("--force-audio");
+const onlyIdx = process.argv.indexOf("--only");
+const only = onlyIdx >= 0 ? process.argv[onlyIdx + 1] : undefined;
+if (only !== undefined && only !== "lab") {
+  console.error(`unknown --only value: ${only} (expected "lab")`);
+  process.exit(1);
+}
 
 function loadEnv() {
   const envFile = join(root, ".env.local");
@@ -18,29 +25,27 @@ async function main() {
   const rows: Record<string, unknown>[] = [];
   const counts: Record<string, { found: number; valid: number; skipped: number }> = {};
 
-  for (const creator of CREATORS) {
-    const dir = join(root, "content/seed", creator);
-    counts[creator] = { found: 0, valid: 0, skipped: 0 };
-    if (!existsSync(dir)) continue;
-    const files = readdirSync(dir).filter((f) => f.endsWith(".json")).sort();
-    const seenTopics = new Set<string>();
+  const collect = (creator: (typeof CREATORS)[number], dir: string, files: string[], label: string, seenTopics: Set<string>) => {
+    counts[label] ??= { found: 0, valid: 0, skipped: 0 };
+    const count = counts[label];
     for (const f of files) {
       const path = join(dir, f);
-      counts[creator].found++;
+      count.found++;
       const check = validatePath(path).files[0];
       if (!check.ok) {
-        console.warn(`WARN skipping ${creator}/${f}: ${check.errors.join("; ")}`);
-        counts[creator].skipped++;
+        console.warn(`WARN skipping ${label}/${f}: ${check.errors.join("; ")}`);
+        count.skipped++;
         continue;
       }
       const reel: Reel = (validateReel(JSON.parse(readFileSync(path, "utf8"))) as { ok: true; reel: Reel }).reel;
-      if (seenTopics.has(reel.topic)) {
-        console.warn(`WARN skipping ${creator}/${f}: duplicate topic ${reel.topic}`);
-        counts[creator].skipped++;
+      const key = `${creator}:${reel.topic}`;
+      if (seenTopics.has(key)) {
+        console.warn(`WARN skipping ${label}/${f}: duplicate topic ${reel.topic}`);
+        count.skipped++;
         continue;
       }
-      seenTopics.add(reel.topic);
-      counts[creator].valid++;
+      seenTopics.add(key);
+      count.valid++;
       rows.push({
         creator_id: creator,
         topic: reel.topic,
@@ -52,6 +57,33 @@ async function main() {
         series_index: reel.series_index ?? null,
         script: reel,
       });
+    }
+  };
+
+  if (only !== "lab") {
+    for (const creator of CREATORS) {
+      const dir = join(root, "content/seed", creator);
+      counts[creator] = { found: 0, valid: 0, skipped: 0 };
+      if (!existsSync(dir)) continue;
+      const files = readdirSync(dir).filter((f) => f.endsWith(".json")).sort();
+      collect(creator, dir, files, creator, new Set());
+    }
+  }
+
+  // Format Lab: content/lab/<creator>-*.json (creator from the filename prefix).
+  const labDir = join(root, "content/lab");
+  if (existsSync(labDir)) {
+    const seen = new Set<string>();
+    for (const f of readdirSync(labDir).filter((f) => f.endsWith(".json")).sort()) {
+      const creator = CREATORS.find((c) => f.startsWith(`${c}-`));
+      counts.lab ??= { found: 0, valid: 0, skipped: 0 };
+      if (!creator) {
+        console.warn(`WARN skipping lab/${f}: filename must start with claude- or gpt-`);
+        counts.lab.found++;
+        counts.lab.skipped++;
+        continue;
+      }
+      collect(creator, labDir, [f], "lab", seen);
     }
   }
 
@@ -85,7 +117,7 @@ async function main() {
         .eq("topic", topic)
         .single();
       if (found.error) throw new Error(`lookup ${creator}/${topic} failed: ${found.error.message}`);
-      if (found.data.audio) {
+      if (found.data.audio && !forceAudio) {
         audio.skipped++;
         continue;
       }

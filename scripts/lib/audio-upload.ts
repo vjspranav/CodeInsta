@@ -12,7 +12,11 @@ export async function uploadReelAudio(reelId: string, manifest: LocalAudioManife
   return storeReelAudio(getSupabaseAdmin(), reelId, {
     voice: manifest.voice,
     hook: clip(manifest.hook),
-    scenes: manifest.scenes.map((s) => ({ ...clip(s), words: s.words })),
+    scenes: manifest.scenes.map((s) => ({
+      ...(s.file ? clip(s) : { bytes: new Uint8Array(0), duration_ms: s.duration_ms }),
+      words: s.words,
+      ...(s.lines ? { lines: s.lines.map((l) => ({ ...clip(l), speaker: l.speaker, words: l.words })) } : {}),
+    })),
     takeaway: clip(manifest.takeaway),
   });
 }
@@ -30,14 +34,21 @@ export async function uploadReelAudioViaApi(
     JSON.stringify({
       voice: manifest.voice,
       hook: { duration_ms: manifest.hook.duration_ms },
-      scenes: manifest.scenes.map((s) => ({ duration_ms: s.duration_ms, words: s.words })),
+      scenes: manifest.scenes.map((s) => ({
+        duration_ms: s.duration_ms,
+        words: s.words,
+        ...(s.lines ? { lines: s.lines.map((l) => ({ duration_ms: l.duration_ms, speaker: l.speaker, words: l.words })) } : {}),
+      })),
       takeaway: { duration_ms: manifest.takeaway.duration_ms },
     }),
   );
   const add = (name: string, file: string) =>
     form.set(name, new Blob([new Uint8Array(readFileSync(file))], { type: "audio/mpeg" }), `${name}.mp3`);
   add("hook", manifest.hook.file);
-  manifest.scenes.forEach((s, i) => add(`scene-${i}`, s.file));
+  manifest.scenes.forEach((s, i) => {
+    if (s.file) add(`scene-${i}`, s.file);
+    s.lines?.forEach((l, j) => add(`scene-${i}-line-${j}`, l.file));
+  });
   add("takeaway", manifest.takeaway.file);
 
   const res = await fetch(new URL(`/api/agent/reels/${reelId}/audio`, base), {

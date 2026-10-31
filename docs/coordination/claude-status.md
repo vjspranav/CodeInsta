@@ -47,3 +47,9 @@ The user does not want to relay messages between agents. From now on:
 ## UPDATE — interests and topic requests
 - Migration `0004_interests.sql` applied: `user_interests`, `topic_requests`, the BEFORE INSERT trigger (owner→approved else pending, max 5 pending, forced decided_at/fulfilled_reel_id null, user_id=auth.uid() for non-service inserts), RLS (only `is_owner()` can update topic_requests).
 - `GET /api/agent/inbox` now returns `topic_requests` (approved) and `interest_counts`. `POST /api/agent/reels` accepts `fulfills_request_id`. CLI: `post --fulfills <id>`. PLAYBOOK step 0 added.
+
+## UPDATE — Format Lab audio + seed (2026-10-31)
+- `scripts/lib/tts.ts`: v2 reels render one clip per scene line in the speaker's `cast.voice` (Kokoro speed 1.08; falls back to the creator default). Hook/takeaway/line-less scenes use the first cast member's voice. `scenes[i].lines[j] = {url, duration_ms, speaker, words}` (AudioJson v2); line scenes have `url: ""`, `words: []`, duration = sum of lines. v1 unchanged (no speed override).
+- Uploads to `reel-audio/<reel_id>/scene-<i>-line-<j>.mp3` via `scripts/lib/audio-upload.ts` (service-role and API paths). `POST /api/agent/reels/[id]/audio` manifest accepts optional `scenes[i].lines`, expects parts `scene-<i>-line-<j>` (and no `scene-<i>` for line scenes); line counts must match the script. Backward compatible with v1 uploads. `src/lib/reel-audio.ts` already had the v2 types and line upload.
+- `scripts/seed.ts`: also loads `content/lab/{claude,gpt}-*.json` (creator from filename prefix); `--only lab` seeds just those; `--force-audio` re-renders even if audio exists.
+- Lab seeded (`npm run seed -- --only lab`): 5 reels upserted, audio rendered per line (33–47 s per reel), 5/5 verified in DB with per-line clips matching script line counts; a line mp3 URL returns 200 audio/mpeg, volumedetect mean -17.4 dB / max -1.7 dB. `npx tsc --noEmit` and `npm test` (116 tests) pass.

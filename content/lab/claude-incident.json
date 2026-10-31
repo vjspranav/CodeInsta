@@ -1,0 +1,756 @@
+{
+  "version": 2,
+  "format": "incident",
+  "cast": [
+    {
+      "id": "oc",
+      "name": "Sam",
+      "role": "On-call engineer",
+      "voice": "am_fenrir",
+      "color": "orange"
+    },
+    {
+      "id": "sre",
+      "name": "Nadia",
+      "role": "SRE lead",
+      "voice": "af_nicole",
+      "color": "blue"
+    }
+  ],
+  "title": "03:12 AM: the feed is on fire",
+  "hook": "3 AM. The feed takes four seconds to load. The deploy was supposed to be boring.",
+  "topic": "lab/instagram-feed/incident",
+  "tags": [
+    "instagram",
+    "feed",
+    "memcached",
+    "cache-stampede",
+    "incident"
+  ],
+  "level": "advanced",
+  "scenes": [
+    {
+      "duration_ms": 10100,
+      "caption": "03:12 AM. The page.",
+      "lines": [
+        {
+          "speaker": "oc",
+          "text": "Feed p99 just hit four point two seconds. Normal is under a hundred milliseconds."
+        },
+        {
+          "speaker": "sre",
+          "text": "I'm up. What changed?"
+        },
+        {
+          "speaker": "oc",
+          "text": "We deployed forty minutes ago."
+        }
+      ],
+      "elements": [
+        {
+          "id": "a1",
+          "type": "alert",
+          "x": 4,
+          "y": 2,
+          "w": 92,
+          "h": 14,
+          "title": "PAGE · Feed API",
+          "text": "Feed p99 latency 4.2s 🔥 03:12 AM",
+          "level": "critical",
+          "enter": "pop",
+          "at": 200
+        },
+        {
+          "id": "b1",
+          "type": "bubble",
+          "y": 19,
+          "h": 13,
+          "speaker": "oc",
+          "text": "p99 is 4.2 s. Normal is 100 ms.",
+          "enter": "slide-up",
+          "at": 0
+        },
+        {
+          "id": "b2",
+          "type": "bubble",
+          "y": 34,
+          "h": 13,
+          "speaker": "sre",
+          "text": "What changed?",
+          "enter": "slide-up",
+          "at": 5535
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 4,
+          "y": 52,
+          "w": 44,
+          "h": 13,
+          "value": "4.2 s",
+          "label": "p99 now",
+          "color": "red",
+          "enter": "pop",
+          "at": 2220
+        },
+        {
+          "id": "m2",
+          "type": "metric",
+          "x": 52,
+          "y": 52,
+          "w": 44,
+          "h": 13,
+          "value": "100 ms",
+          "label": "p99 normal",
+          "color": "green",
+          "enter": "pop",
+          "at": 4240
+        }
+      ]
+    },
+    {
+      "duration_ms": 8600,
+      "caption": "Trace the slow requests",
+      "lines": [
+        {
+          "speaker": "sre",
+          "text": "Where's the time going?"
+        },
+        {
+          "speaker": "oc",
+          "text": "Not ranking. Not the API. Everything's waiting on the database, and it's pegged."
+        },
+        {
+          "speaker": "sre",
+          "text": "Check Memcached."
+        }
+      ],
+      "elements": [
+        {
+          "id": "b1",
+          "type": "bubble",
+          "y": 2,
+          "h": 13,
+          "speaker": "sre",
+          "text": "Where's the time going?",
+          "enter": "slide-up",
+          "at": 0
+        },
+        {
+          "id": "b2",
+          "type": "bubble",
+          "y": 17,
+          "h": 13,
+          "speaker": "oc",
+          "text": "Everything waits on the database.",
+          "enter": "slide-up",
+          "at": 1688
+        },
+        {
+          "id": "api",
+          "type": "node",
+          "x": 4,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Feed API",
+          "icon": "service",
+          "enter": "pop",
+          "at": 200
+        },
+        {
+          "id": "cache",
+          "type": "node",
+          "x": 38,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Memcached",
+          "icon": "cache",
+          "enter": "pop",
+          "at": 1060
+        },
+        {
+          "id": "db",
+          "type": "node",
+          "x": 72,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Database",
+          "icon": "db",
+          "color": "red",
+          "enter": "pop",
+          "at": 1920
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "api",
+          "to": "cache",
+          "label": "reads",
+          "count": 2,
+          "enter": "draw",
+          "at": 2780
+        },
+        {
+          "id": "f2",
+          "type": "flow",
+          "from": "cache",
+          "to": "db",
+          "label": "everything",
+          "count": 5,
+          "color": "red",
+          "enter": "draw",
+          "at": 3640
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 28,
+          "y": 64,
+          "w": 44,
+          "h": 10,
+          "value": "98%",
+          "label": "database CPU",
+          "color": "red",
+          "enter": "pop",
+          "at": 4500
+        }
+      ]
+    },
+    {
+      "duration_ms": 11600,
+      "caption": "Root cause: a cold cache",
+      "lines": [
+        {
+          "speaker": "oc",
+          "text": "Hit rate fell from ninety-six percent to near zero."
+        },
+        {
+          "speaker": "sre",
+          "text": "The deploy restarted the cache tier. It came back cold and empty."
+        },
+        {
+          "speaker": "oc",
+          "text": "So every request misses at once."
+        }
+      ],
+      "elements": [
+        {
+          "id": "b1",
+          "type": "bubble",
+          "y": 2,
+          "h": 13,
+          "speaker": "oc",
+          "text": "Hit rate: 96% to ~0%.",
+          "enter": "slide-up",
+          "at": 0
+        },
+        {
+          "id": "b2",
+          "type": "bubble",
+          "y": 17,
+          "h": 13,
+          "speaker": "sre",
+          "text": "Deploy restarted Memcached. Cold.",
+          "enter": "slide-up",
+          "at": 3612
+        },
+        {
+          "id": "api",
+          "type": "node",
+          "x": 4,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Feed API",
+          "icon": "service",
+          "enter": "pop",
+          "at": 200
+        },
+        {
+          "id": "cache",
+          "type": "node",
+          "x": 38,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Memcached: cold",
+          "icon": "cache",
+          "color": "red",
+          "enter": "pop",
+          "at": 1360
+        },
+        {
+          "id": "db",
+          "type": "node",
+          "x": 72,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Database",
+          "icon": "db",
+          "enter": "pop",
+          "at": 2520
+        },
+        {
+          "id": "deploy",
+          "type": "node",
+          "x": 38,
+          "y": 51,
+          "w": 24,
+          "h": 11,
+          "label": "Deploy",
+          "icon": "worker",
+          "enter": "pop",
+          "at": 3680
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "deploy",
+          "to": "cache",
+          "label": "restart",
+          "count": 2,
+          "color": "orange",
+          "enter": "draw",
+          "at": 4840
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 72,
+          "y": 51,
+          "w": 24,
+          "h": 11,
+          "value": "~0%",
+          "label": "cache hit rate",
+          "color": "red",
+          "enter": "pop",
+          "at": 6000
+        }
+      ]
+    },
+    {
+      "duration_ms": 10100,
+      "caption": "It's a cache stampede",
+      "lines": [
+        {
+          "speaker": "sre",
+          "text": "That's a cache stampede. Ten thousand requests ask for the same hot key."
+        },
+        {
+          "speaker": "sre",
+          "text": "All miss together. All hit the database together."
+        },
+        {
+          "speaker": "oc",
+          "text": "Thundering herd."
+        }
+      ],
+      "elements": [
+        {
+          "id": "b1",
+          "type": "bubble",
+          "y": 2,
+          "h": 13,
+          "speaker": "sre",
+          "text": "10k requests. Same key. All miss.",
+          "enter": "slide-up",
+          "at": 5150
+        },
+        {
+          "id": "b2",
+          "type": "bubble",
+          "y": 17,
+          "h": 13,
+          "speaker": "oc",
+          "text": "Thundering herd.",
+          "enter": "slide-up",
+          "at": 8377
+        },
+        {
+          "id": "api",
+          "type": "node",
+          "x": 4,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Feed API",
+          "icon": "service",
+          "enter": "pop",
+          "at": 200
+        },
+        {
+          "id": "cache",
+          "type": "node",
+          "x": 38,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Memcached",
+          "icon": "cache",
+          "color": "red",
+          "enter": "pop",
+          "at": 1210
+        },
+        {
+          "id": "db",
+          "type": "node",
+          "x": 72,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Database",
+          "icon": "db",
+          "color": "red",
+          "enter": "pop",
+          "at": 2220
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "api",
+          "to": "cache",
+          "label": "MISS x10k",
+          "count": 5,
+          "color": "red",
+          "enter": "draw",
+          "at": 3230
+        },
+        {
+          "id": "f2",
+          "type": "flow",
+          "from": "cache",
+          "to": "db",
+          "label": "10k identical queries",
+          "count": 5,
+          "color": "red",
+          "enter": "draw",
+          "at": 4240
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 28,
+          "y": 64,
+          "w": 44,
+          "h": 10,
+          "value": "10,000x",
+          "label": "same query, same instant",
+          "color": "red",
+          "enter": "pop",
+          "at": 5250
+        }
+      ]
+    },
+    {
+      "duration_ms": 9700,
+      "caption": "Stop the bleeding",
+      "lines": [
+        {
+          "speaker": "sre",
+          "text": "Rate-limit the feed. Let the cache refill slowly."
+        },
+        {
+          "speaker": "oc",
+          "text": "Done. Database CPU is coming down."
+        },
+        {
+          "speaker": "sre",
+          "text": "Now the real fix, so this never repeats."
+        }
+      ],
+      "elements": [
+        {
+          "id": "b1",
+          "type": "bubble",
+          "y": 2,
+          "h": 13,
+          "speaker": "sre",
+          "text": "Rate-limit. Let the cache refill.",
+          "enter": "slide-up",
+          "at": 0
+        },
+        {
+          "id": "b2",
+          "type": "bubble",
+          "y": 17,
+          "h": 13,
+          "speaker": "oc",
+          "text": "DB CPU is coming down.",
+          "enter": "slide-up",
+          "at": 3227
+        },
+        {
+          "id": "api",
+          "type": "node",
+          "x": 4,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Feed API",
+          "icon": "service",
+          "enter": "pop",
+          "at": 200
+        },
+        {
+          "id": "cache",
+          "type": "node",
+          "x": 38,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Memcached",
+          "icon": "cache",
+          "color": "orange",
+          "enter": "pop",
+          "at": 1364
+        },
+        {
+          "id": "db",
+          "type": "node",
+          "x": 72,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Database",
+          "icon": "db",
+          "enter": "pop",
+          "at": 2528
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "api",
+          "to": "cache",
+          "label": "throttled",
+          "count": 1,
+          "color": "orange",
+          "enter": "draw",
+          "at": 3692
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 28,
+          "y": 64,
+          "w": 44,
+          "h": 10,
+          "value": "98% → 40%",
+          "label": "database CPU",
+          "color": "orange",
+          "enter": "pop",
+          "at": 4856
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "The real fix",
+      "lines": [
+        {
+          "speaker": "sre",
+          "text": "Fix one: request coalescing. One request rebuilds a key. The rest wait."
+        },
+        {
+          "speaker": "oc",
+          "text": "Two: jittered TTLs, so keys never expire together."
+        },
+        {
+          "speaker": "sre",
+          "text": "Three: warm the cache before it takes traffic."
+        }
+      ],
+      "elements": [
+        {
+          "id": "b1",
+          "type": "bubble",
+          "y": 2,
+          "h": 13,
+          "speaker": "sre",
+          "text": "Coalesce: one rebuild per key.",
+          "enter": "slide-up",
+          "at": 0
+        },
+        {
+          "id": "b2",
+          "type": "bubble",
+          "y": 17,
+          "h": 13,
+          "speaker": "oc",
+          "text": "Jitter the TTLs.",
+          "enter": "slide-up",
+          "at": 4765
+        },
+        {
+          "id": "api",
+          "type": "node",
+          "x": 4,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Feed API",
+          "icon": "service",
+          "enter": "pop",
+          "at": 200
+        },
+        {
+          "id": "cache",
+          "type": "node",
+          "x": 38,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Memcached",
+          "icon": "cache",
+          "color": "green",
+          "enter": "pop",
+          "at": 1640
+        },
+        {
+          "id": "db",
+          "type": "node",
+          "x": 72,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Database",
+          "icon": "db",
+          "enter": "pop",
+          "at": 3080
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "cache",
+          "to": "db",
+          "label": "1 query, not 10k",
+          "count": 1,
+          "color": "green",
+          "enter": "draw",
+          "at": 4520
+        },
+        {
+          "id": "l1",
+          "type": "list",
+          "x": 4,
+          "y": 51,
+          "w": 92,
+          "h": 20,
+          "items": [
+            "Coalesce: one rebuild per key",
+            "Jittered TTLs: no mass expiry",
+            "Warm the cache before traffic"
+          ],
+          "color": "green",
+          "enter": "slide-up",
+          "at": 5960
+        }
+      ]
+    },
+    {
+      "duration_ms": 7000,
+      "caption": "Recovered",
+      "lines": [
+        {
+          "speaker": "oc",
+          "text": "p99 is back to ninety-two milliseconds. Hit rate's at ninety-six."
+        },
+        {
+          "speaker": "sre",
+          "text": "Good. Postmortem tomorrow. Go sleep."
+        }
+      ],
+      "elements": [
+        {
+          "id": "b1",
+          "type": "bubble",
+          "y": 2,
+          "h": 13,
+          "speaker": "oc",
+          "text": "p99 back to 92 ms.",
+          "enter": "slide-up",
+          "at": 0
+        },
+        {
+          "id": "b2",
+          "type": "bubble",
+          "y": 17,
+          "h": 13,
+          "speaker": "sre",
+          "text": "Postmortem tomorrow. Sleep.",
+          "enter": "slide-up",
+          "at": 3996
+        },
+        {
+          "id": "api",
+          "type": "node",
+          "x": 4,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Feed API",
+          "icon": "service",
+          "color": "green",
+          "enter": "pop",
+          "at": 200
+        },
+        {
+          "id": "cache",
+          "type": "node",
+          "x": 38,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Memcached",
+          "icon": "cache",
+          "color": "green",
+          "enter": "pop",
+          "at": 1040
+        },
+        {
+          "id": "db",
+          "type": "node",
+          "x": 72,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Database",
+          "icon": "db",
+          "color": "green",
+          "enter": "pop",
+          "at": 1880
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 4,
+          "y": 56,
+          "w": 44,
+          "h": 12,
+          "value": "92 ms",
+          "label": "p99 recovered",
+          "color": "green",
+          "enter": "pop",
+          "at": 2720
+        },
+        {
+          "id": "m2",
+          "type": "metric",
+          "x": 52,
+          "y": 56,
+          "w": 44,
+          "h": 12,
+          "value": "96%",
+          "label": "cache hit rate",
+          "color": "green",
+          "enter": "pop",
+          "at": 3560
+        }
+      ]
+    }
+  ],
+  "takeaway": "A cold cache plus no coalescing turns one restart into a stampede: coalesce, jitter TTLs, warm before traffic."
+}

@@ -14,11 +14,20 @@ const words = z.array(z.object({ w: z.string(), start_ms: z.number().int().min(0
 const manifestSchema = z.object({
   voice: z.string().min(1),
   hook: z.object({ duration_ms: ms }),
-  scenes: z.array(z.object({ duration_ms: ms, words })).min(1).max(20),
+  scenes: z
+    .array(
+      z.object({
+        duration_ms: ms,
+        words,
+        lines: z.array(z.object({ duration_ms: ms, speaker: z.string().min(1), words })).min(1).max(12).optional(),
+      }),
+    )
+    .min(1)
+    .max(20),
   takeaway: z.object({ duration_ms: ms }),
 });
 
-/** POST multipart: `manifest` (JSON) plus mp3 parts `hook`, `scene-0`..`scene-N`, `takeaway`. */
+/** POST multipart: `manifest` (JSON) plus mp3 parts `hook`, `scene-0`..`scene-N` (omitted for scenes with `lines`), `scene-<i>-line-<j>` (v2), `takeaway`. */
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const creator = authenticateAgent(req);
   if (!creator) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -52,12 +61,21 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     );
   }
   const manifest = parsed.data;
-  const sceneCount = (reel.data.script as { scenes?: unknown[] } | null)?.scenes?.length ?? 0;
+  const scriptScenes = (reel.data.script as { scenes?: { lines?: unknown[] }[] } | null)?.scenes ?? [];
+  const sceneCount = scriptScenes.length;
   if (manifest.scenes.length !== sceneCount) {
     return NextResponse.json(
       { error: `manifest has ${manifest.scenes.length} scenes but the reel has ${sceneCount}` },
       { status: 400 },
     );
+  }
+
+  for (let i = 0; i < manifest.scenes.length; i++) {
+    const want = scriptScenes[i]?.lines?.length ?? 0;
+    const got = manifest.scenes[i].lines?.length ?? 0;
+    if (want !== got) {
+      return NextResponse.json({ error: `scene ${i}: manifest has ${got} lines but the reel has ${want}` }, { status: 400 });
+    }
   }
 
   const readClip = async (name: string, duration_ms: number): Promise<AudioClipBytes | string> => {
@@ -68,14 +86,29 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   };
   const hook = await readClip("hook", manifest.hook.duration_ms);
   const takeaway = await readClip("takeaway", manifest.takeaway.duration_ms);
-  const scenes: (AudioClipBytes & { words: { w: string; start_ms: number }[] })[] = [];
+  const scenes: (AudioClipBytes & {
+    words: { w: string; start_ms: number }[];
+    lines?: (AudioClipBytes & { speaker: string; words: { w: string; start_ms: number }[] })[];
+  })[] = [];
   const problems: string[] = [];
   if (typeof hook === "string") problems.push(hook);
   if (typeof takeaway === "string") problems.push(takeaway);
   for (let i = 0; i < manifest.scenes.length; i++) {
-    const c = await readClip(`scene-${i}`, manifest.scenes[i].duration_ms);
+    const ms_ = manifest.scenes[i];
+    if (ms_.lines) {
+      const lines: NonNullable<(typeof scenes)[number]["lines"]> = [];
+      for (let j = 0; j < ms_.lines.length; j++) {
+        const l = ms_.lines[j];
+        const c = await readClip(`scene-${i}-line-${j}`, l.duration_ms);
+        if (typeof c === "string") problems.push(c);
+        else lines.push({ ...c, speaker: l.speaker, words: l.words });
+      }
+      scenes.push({ bytes: new Uint8Array(0), duration_ms: ms_.duration_ms, words: ms_.words, lines });
+      continue;
+    }
+    const c = await readClip(`scene-${i}`, ms_.duration_ms);
     if (typeof c === "string") problems.push(c);
-    else scenes.push({ ...c, words: manifest.scenes[i].words });
+    else scenes.push({ ...c, words: ms_.words });
   }
   if (problems.length || typeof hook === "string" || typeof takeaway === "string") {
     return NextResponse.json({ error: "invalid upload", errors: problems }, { status: 400 });

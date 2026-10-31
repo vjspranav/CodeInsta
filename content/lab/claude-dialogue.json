@@ -1,0 +1,697 @@
+{
+  "version": 2,
+  "format": "dialogue",
+  "cast": [
+    {
+      "id": "sen",
+      "name": "Marcus",
+      "role": "Staff engineer",
+      "voice": "am_michael",
+      "color": "blue"
+    },
+    {
+      "id": "jun",
+      "name": "Priya",
+      "role": "Junior dev",
+      "voice": "af_heart",
+      "color": "orange"
+    }
+  ],
+  "title": "Why Instagram's feed never makes you wait",
+  "hook": "You open Instagram and the feed is just there. Why not query the database? Because that would kill it.",
+  "topic": "lab/instagram-feed/dialogue",
+  "tags": [
+    "instagram",
+    "feed",
+    "caching",
+    "cdn",
+    "system-design"
+  ],
+  "level": "intermediate",
+  "scenes": [
+    {
+      "duration_ms": 11400,
+      "caption": "Why not just query the database?",
+      "lines": [
+        {
+          "speaker": "jun",
+          "text": "Wait, why not just query the database?"
+        },
+        {
+          "speaker": "sen",
+          "text": "You follow five hundred people. That's five hundred lookups, every open."
+        },
+        {
+          "speaker": "jun",
+          "text": "Ouch."
+        },
+        {
+          "speaker": "sen",
+          "text": "Times two billion users. It taps out."
+        }
+      ],
+      "elements": [
+        {
+          "id": "b1",
+          "type": "bubble",
+          "y": 2,
+          "h": 13,
+          "speaker": "jun",
+          "text": "Why not just query the DB?",
+          "enter": "slide-up",
+          "at": 0
+        },
+        {
+          "id": "b2",
+          "type": "bubble",
+          "y": 17,
+          "h": 13,
+          "speaker": "sen",
+          "text": "500 lookups. Every open.",
+          "enter": "slide-up",
+          "at": 2842
+        },
+        {
+          "id": "phone",
+          "type": "node",
+          "x": 4,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Your phone",
+          "icon": "phone",
+          "enter": "pop",
+          "at": 200
+        },
+        {
+          "id": "api",
+          "type": "node",
+          "x": 38,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Feed API",
+          "icon": "service",
+          "enter": "pop",
+          "at": 1340
+        },
+        {
+          "id": "db",
+          "type": "node",
+          "x": 72,
+          "y": 51,
+          "w": 24,
+          "h": 11,
+          "label": "Database",
+          "icon": "db",
+          "color": "red",
+          "enter": "pop",
+          "at": 2480
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "phone",
+          "to": "api",
+          "label": "open app",
+          "count": 2,
+          "enter": "draw",
+          "at": 3620
+        },
+        {
+          "id": "f2",
+          "type": "flow",
+          "from": "api",
+          "to": "db",
+          "label": "500 lookups",
+          "count": 5,
+          "color": "red",
+          "enter": "draw",
+          "at": 4760
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 28,
+          "y": 64,
+          "w": 44,
+          "h": 10,
+          "value": "2B users",
+          "label": "x 500 lookups each",
+          "color": "red",
+          "enter": "pop",
+          "at": 5900
+        }
+      ]
+    },
+    {
+      "duration_ms": 13900,
+      "caption": "Cook the feed ahead of time",
+      "lines": [
+        {
+          "speaker": "sen",
+          "text": "We cook the feed ahead. When someone posts, a worker pushes the post ID into each follower's list."
+        },
+        {
+          "speaker": "jun",
+          "text": "So opening the app is just reading a list?"
+        },
+        {
+          "speaker": "sen",
+          "text": "Exactly. Boring reads are fast reads."
+        }
+      ],
+      "elements": [
+        {
+          "id": "b1",
+          "type": "bubble",
+          "y": 2,
+          "h": 13,
+          "speaker": "jun",
+          "text": "So it's just... reading a list?",
+          "enter": "slide-up",
+          "at": 7073
+        },
+        {
+          "id": "b2",
+          "type": "bubble",
+          "y": 17,
+          "h": 13,
+          "speaker": "sen",
+          "text": "Writes cook it. Reads stay boring.",
+          "enter": "slide-up",
+          "at": 10685
+        },
+        {
+          "id": "api",
+          "type": "node",
+          "x": 38,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Feed API",
+          "icon": "service",
+          "enter": "pop",
+          "at": 200
+        },
+        {
+          "id": "cache",
+          "type": "node",
+          "x": 72,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Feed lists",
+          "icon": "cache",
+          "enter": "pop",
+          "at": 1590
+        },
+        {
+          "id": "db",
+          "type": "node",
+          "x": 72,
+          "y": 51,
+          "w": 24,
+          "h": 11,
+          "label": "Database",
+          "icon": "db",
+          "enter": "pop",
+          "at": 2980
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "db",
+          "to": "cache",
+          "label": "push post IDs",
+          "count": 4,
+          "color": "green",
+          "enter": "draw",
+          "at": 4370
+        },
+        {
+          "id": "f2",
+          "type": "flow",
+          "from": "api",
+          "to": "cache",
+          "label": "read list",
+          "count": 2,
+          "enter": "draw",
+          "at": 5760
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 28,
+          "y": 64,
+          "w": 44,
+          "h": 10,
+          "value": "1 read",
+          "label": "no joins at request time",
+          "color": "green",
+          "enter": "pop",
+          "at": 7150
+        }
+      ]
+    },
+    {
+      "duration_ms": 13200,
+      "caption": "A cache tier shields the DB",
+      "lines": [
+        {
+          "speaker": "jun",
+          "text": "Doesn't the database still get hammered?"
+        },
+        {
+          "speaker": "sen",
+          "text": "A cache tier sits in front. Memcached, plus TAO, a graph cache for follows and likes."
+        },
+        {
+          "speaker": "sen",
+          "text": "Over ninety-five percent of reads never reach the database."
+        }
+      ],
+      "elements": [
+        {
+          "id": "b1",
+          "type": "bubble",
+          "y": 2,
+          "h": 13,
+          "speaker": "jun",
+          "text": "Doesn't the DB still get hammered?",
+          "enter": "slide-up",
+          "at": 0
+        },
+        {
+          "id": "b2",
+          "type": "bubble",
+          "y": 17,
+          "h": 13,
+          "speaker": "sen",
+          "text": "Memcached + a TAO-style graph cache.",
+          "enter": "slide-up",
+          "at": 2458
+        },
+        {
+          "id": "api",
+          "type": "node",
+          "x": 38,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Feed API",
+          "icon": "service",
+          "enter": "pop",
+          "at": 200
+        },
+        {
+          "id": "cache",
+          "type": "node",
+          "x": 72,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Memcached / TAO",
+          "icon": "cache",
+          "enter": "pop",
+          "at": 1520
+        },
+        {
+          "id": "db",
+          "type": "node",
+          "x": 72,
+          "y": 51,
+          "w": 24,
+          "h": 11,
+          "label": "Database",
+          "icon": "db",
+          "enter": "pop",
+          "at": 2840
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "api",
+          "to": "cache",
+          "label": "hit",
+          "count": 4,
+          "color": "green",
+          "enter": "draw",
+          "at": 4160
+        },
+        {
+          "id": "f2",
+          "type": "flow",
+          "from": "cache",
+          "to": "db",
+          "label": "miss only",
+          "count": 1,
+          "color": "gray",
+          "enter": "draw",
+          "at": 5480
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 28,
+          "y": 64,
+          "w": 44,
+          "h": 10,
+          "value": "95%+",
+          "label": "cache hit rate",
+          "color": "green",
+          "enter": "pop",
+          "at": 6800
+        }
+      ]
+    },
+    {
+      "duration_ms": 9200,
+      "caption": "Photos come from the CDN",
+      "lines": [
+        {
+          "speaker": "jun",
+          "text": "And the photos? Those are huge."
+        },
+        {
+          "speaker": "sen",
+          "text": "Right. The feed only returns IDs and URLs. Pixels come from a CDN near you."
+        }
+      ],
+      "elements": [
+        {
+          "id": "b1",
+          "type": "bubble",
+          "y": 2,
+          "h": 13,
+          "speaker": "jun",
+          "text": "And the photos? Huge.",
+          "enter": "slide-up",
+          "at": 0
+        },
+        {
+          "id": "b2",
+          "type": "bubble",
+          "y": 17,
+          "h": 13,
+          "speaker": "sen",
+          "text": "Feed = IDs + URLs. Pixels = CDN.",
+          "enter": "slide-up",
+          "at": 2458
+        },
+        {
+          "id": "phone",
+          "type": "node",
+          "x": 4,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Your phone",
+          "icon": "phone",
+          "enter": "pop",
+          "at": 200
+        },
+        {
+          "id": "api",
+          "type": "node",
+          "x": 38,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Feed API",
+          "icon": "service",
+          "enter": "pop",
+          "at": 1120
+        },
+        {
+          "id": "cdn",
+          "type": "node",
+          "x": 4,
+          "y": 51,
+          "w": 24,
+          "h": 11,
+          "label": "CDN edge",
+          "icon": "cdn",
+          "enter": "pop",
+          "at": 2040
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "phone",
+          "to": "api",
+          "label": "IDs + URLs",
+          "count": 2,
+          "enter": "draw",
+          "at": 2960
+        },
+        {
+          "id": "f2",
+          "type": "flow",
+          "from": "cdn",
+          "to": "phone",
+          "label": "pixels",
+          "count": 4,
+          "color": "purple",
+          "enter": "draw",
+          "at": 3880
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 28,
+          "y": 64,
+          "w": 44,
+          "h": 10,
+          "value": "~KB",
+          "label": "feed JSON, pixels excluded",
+          "color": "purple",
+          "enter": "pop",
+          "at": 4800
+        }
+      ]
+    },
+    {
+      "duration_ms": 12800,
+      "caption": "Right-sized, progressive images",
+      "lines": [
+        {
+          "speaker": "jun",
+          "text": "Why download a giant photo on a tiny phone?"
+        },
+        {
+          "speaker": "sen",
+          "text": "You don't. Every upload becomes several sizes. You get the one that fits."
+        },
+        {
+          "speaker": "sen",
+          "text": "Progressive JPEG: blurry first, sharp a beat later."
+        }
+      ],
+      "elements": [
+        {
+          "id": "b1",
+          "type": "bubble",
+          "y": 2,
+          "h": 13,
+          "speaker": "jun",
+          "text": "Why download a giant photo?",
+          "enter": "slide-up",
+          "at": 0
+        },
+        {
+          "id": "b2",
+          "type": "bubble",
+          "y": 17,
+          "h": 13,
+          "speaker": "sen",
+          "text": "You don't. Many sizes per upload.",
+          "enter": "slide-up",
+          "at": 3612
+        },
+        {
+          "id": "phone",
+          "type": "node",
+          "x": 4,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Your phone",
+          "icon": "phone",
+          "enter": "pop",
+          "at": 200
+        },
+        {
+          "id": "cdn",
+          "type": "node",
+          "x": 38,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "CDN edge",
+          "icon": "cdn",
+          "enter": "pop",
+          "at": 1480
+        },
+        {
+          "id": "v1",
+          "type": "box",
+          "x": 4,
+          "y": 53,
+          "w": 28,
+          "h": 10,
+          "text": "320 w",
+          "color": "gray",
+          "enter": "slide-up",
+          "at": 2760
+        },
+        {
+          "id": "v2",
+          "type": "box",
+          "x": 37,
+          "y": 53,
+          "w": 28,
+          "h": 10,
+          "text": "640 w",
+          "color": "green",
+          "enter": "slide-up",
+          "at": 4040
+        },
+        {
+          "id": "v3",
+          "type": "box",
+          "x": 68,
+          "y": 53,
+          "w": 28,
+          "h": 10,
+          "text": "1080 w",
+          "color": "gray",
+          "enter": "slide-up",
+          "at": 5320
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "cdn",
+          "to": "phone",
+          "label": "640 w, progressive",
+          "count": 4,
+          "color": "green",
+          "enter": "draw",
+          "at": 6600
+        }
+      ]
+    },
+    {
+      "duration_ms": 11600,
+      "caption": "Prefetch the next page",
+      "lines": [
+        {
+          "speaker": "jun",
+          "text": "How does scrolling never stall?"
+        },
+        {
+          "speaker": "sen",
+          "text": "Prefetch. A few posts before the end, your app quietly fetches the next page with a cursor."
+        },
+        {
+          "speaker": "sen",
+          "text": "You never see a spinner."
+        }
+      ],
+      "elements": [
+        {
+          "id": "b1",
+          "type": "bubble",
+          "y": 2,
+          "h": 13,
+          "speaker": "jun",
+          "text": "How does scrolling never stall?",
+          "enter": "slide-up",
+          "at": 0
+        },
+        {
+          "id": "b2",
+          "type": "bubble",
+          "y": 17,
+          "h": 13,
+          "speaker": "sen",
+          "text": "Prefetch the next page with a cursor.",
+          "enter": "slide-up",
+          "at": 2073
+        },
+        {
+          "id": "phone",
+          "type": "node",
+          "x": 4,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Your phone",
+          "icon": "phone",
+          "enter": "pop",
+          "at": 200
+        },
+        {
+          "id": "api",
+          "type": "node",
+          "x": 38,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Feed API",
+          "icon": "service",
+          "enter": "pop",
+          "at": 1360
+        },
+        {
+          "id": "cache",
+          "type": "node",
+          "x": 72,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Next page",
+          "icon": "cache",
+          "enter": "pop",
+          "at": 2520
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "phone",
+          "to": "api",
+          "label": "cursor: after post 20",
+          "count": 2,
+          "enter": "draw",
+          "at": 3680
+        },
+        {
+          "id": "f2",
+          "type": "flow",
+          "from": "api",
+          "to": "cache",
+          "label": "page 2 ready",
+          "count": 3,
+          "color": "green",
+          "enter": "draw",
+          "at": 4840
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 20,
+          "y": 54,
+          "w": 60,
+          "h": 11,
+          "value": "0 spinners",
+          "label": "page 2 loaded before you arrive",
+          "color": "green",
+          "enter": "pop",
+          "at": 6000
+        }
+      ]
+    }
+  ],
+  "takeaway": "Instagram feels instant because almost nothing is computed when you open the app: it's precooked, cached, and prefetched."
+}

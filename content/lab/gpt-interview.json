@@ -1,0 +1,691 @@
+{
+  "version": 2,
+  "format": "interview",
+  "cast": [
+    {
+      "id": "int",
+      "name": "Emma",
+      "role": "Interviewer",
+      "voice": "bf_emma",
+      "color": "purple"
+    },
+    {
+      "id": "can",
+      "name": "Raj",
+      "role": "Candidate",
+      "voice": "am_puck",
+      "color": "green"
+    }
+  ],
+  "title": "Ronaldo broke my feed design",
+  "hook": "Design Instagram's feed. Easy, right? Then the interviewer says: what about Ronaldo?",
+  "topic": "lab/instagram-feed/interview",
+  "tags": [
+    "instagram",
+    "feed",
+    "fan-out",
+    "interview",
+    "system-design"
+  ],
+  "level": "advanced",
+  "scenes": [
+    {
+      "duration_ms": 13600,
+      "caption": "Design the Instagram feed",
+      "lines": [
+        {
+          "speaker": "int",
+          "text": "Design Instagram's feed. It has to load in under a second."
+        },
+        {
+          "speaker": "can",
+          "text": "Easy. Query posts from everyone you follow, sort by time, return twenty."
+        },
+        {
+          "speaker": "int",
+          "text": "So, fan-out on read. Walk me through the cost."
+        }
+      ],
+      "elements": [
+        {
+          "id": "b1",
+          "type": "bubble",
+          "y": 2,
+          "h": 13,
+          "speaker": "int",
+          "text": "Design the feed. Under a second.",
+          "enter": "slide-up",
+          "at": 0
+        },
+        {
+          "id": "b2",
+          "type": "bubble",
+          "y": 17,
+          "h": 13,
+          "speaker": "can",
+          "text": "Query everyone you follow. Sort.",
+          "enter": "slide-up",
+          "at": 4381
+        },
+        {
+          "id": "phone",
+          "type": "node",
+          "x": 4,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Reader",
+          "icon": "phone",
+          "enter": "pop",
+          "at": 200
+        },
+        {
+          "id": "db",
+          "type": "node",
+          "x": 72,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Posts DB",
+          "icon": "db",
+          "color": "red",
+          "enter": "pop",
+          "at": 2240
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "phone",
+          "to": "db",
+          "label": "500 queries",
+          "count": 5,
+          "color": "red",
+          "enter": "draw",
+          "at": 4280
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 4,
+          "y": 54,
+          "w": 92,
+          "h": 13,
+          "value": "Fan-out on READ",
+          "label": "the cost lands on every open",
+          "color": "red",
+          "enter": "pop",
+          "at": 6320
+        }
+      ]
+    },
+    {
+      "duration_ms": 11300,
+      "caption": "Fan-out on write",
+      "lines": [
+        {
+          "speaker": "can",
+          "text": "Better: precompute. When someone posts, push the post ID into each follower's feed."
+        },
+        {
+          "speaker": "int",
+          "text": "So reads are cheap. And writes?"
+        },
+        {
+          "speaker": "can",
+          "text": "A hundred followers, a hundred writes. Fine."
+        }
+      ],
+      "elements": [
+        {
+          "id": "b1",
+          "type": "bubble",
+          "y": 2,
+          "h": 13,
+          "speaker": "can",
+          "text": "Push the post ID to every follower.",
+          "enter": "slide-up",
+          "at": 0
+        },
+        {
+          "id": "b2",
+          "type": "bubble",
+          "y": 17,
+          "h": 13,
+          "speaker": "int",
+          "text": "Reads are cheap. And writes?",
+          "enter": "slide-up",
+          "at": 5150
+        },
+        {
+          "id": "author",
+          "type": "node",
+          "x": 4,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Author",
+          "icon": "user",
+          "enter": "pop",
+          "at": 200
+        },
+        {
+          "id": "worker",
+          "type": "node",
+          "x": 38,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Fan-out worker",
+          "icon": "worker",
+          "enter": "pop",
+          "at": 1330
+        },
+        {
+          "id": "cache",
+          "type": "node",
+          "x": 72,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Follower feeds",
+          "icon": "cache",
+          "color": "green",
+          "enter": "pop",
+          "at": 2460
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "author",
+          "to": "worker",
+          "label": "new post",
+          "count": 1,
+          "enter": "draw",
+          "at": 3590
+        },
+        {
+          "id": "f2",
+          "type": "flow",
+          "from": "worker",
+          "to": "cache",
+          "label": "x 100 writes",
+          "count": 3,
+          "color": "green",
+          "enter": "draw",
+          "at": 4720
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 4,
+          "y": 54,
+          "w": 92,
+          "h": 13,
+          "value": "Fan-out on WRITE",
+          "label": "the cost lands on the post",
+          "color": "green",
+          "enter": "pop",
+          "at": 5850
+        }
+      ]
+    },
+    {
+      "duration_ms": 8900,
+      "caption": "What about Ronaldo?",
+      "lines": [
+        {
+          "speaker": "int",
+          "text": "What about Ronaldo? Six hundred million followers."
+        },
+        {
+          "speaker": "can",
+          "text": "Hmm. Six hundred million writes for one post."
+        },
+        {
+          "speaker": "int",
+          "text": "Exactly. Your queue just melted."
+        }
+      ],
+      "elements": [
+        {
+          "id": "b1",
+          "type": "bubble",
+          "y": 2,
+          "h": 13,
+          "speaker": "int",
+          "text": "Ronaldo. 600M followers.",
+          "enter": "slide-up",
+          "at": 0
+        },
+        {
+          "id": "b2",
+          "type": "bubble",
+          "y": 17,
+          "h": 13,
+          "speaker": "can",
+          "text": "Hmm. 600M writes. One post.",
+          "enter": "slide-up",
+          "at": 2842
+        },
+        {
+          "id": "author",
+          "type": "node",
+          "x": 4,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Ronaldo",
+          "icon": "user",
+          "enter": "pop",
+          "at": 200
+        },
+        {
+          "id": "worker",
+          "type": "node",
+          "x": 38,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Fan-out worker",
+          "icon": "worker",
+          "color": "red",
+          "enter": "pop",
+          "at": 1090
+        },
+        {
+          "id": "cache",
+          "type": "node",
+          "x": 72,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Follower feeds",
+          "icon": "cache",
+          "color": "red",
+          "enter": "pop",
+          "at": 1980
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "author",
+          "to": "worker",
+          "label": "1 post",
+          "count": 1,
+          "enter": "draw",
+          "at": 2870
+        },
+        {
+          "id": "f2",
+          "type": "flow",
+          "from": "worker",
+          "to": "cache",
+          "label": "600,000,000 writes",
+          "count": 5,
+          "color": "red",
+          "enter": "draw",
+          "at": 3760
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 28,
+          "y": 54,
+          "w": 44,
+          "h": 13,
+          "value": "600M",
+          "label": "writes for ONE post",
+          "color": "red",
+          "enter": "pop",
+          "at": 4650
+        }
+      ]
+    },
+    {
+      "duration_ms": 11800,
+      "caption": "Hybrid fan-out",
+      "lines": [
+        {
+          "speaker": "can",
+          "text": "Hybrid. Regular accounts fan out on write. Celebrities don't."
+        },
+        {
+          "speaker": "can",
+          "text": "At read time, I merge their recent posts into your feed."
+        },
+        {
+          "speaker": "int",
+          "text": "Where's the cutoff?"
+        },
+        {
+          "speaker": "can",
+          "text": "A follower threshold. Tunable."
+        }
+      ],
+      "elements": [
+        {
+          "id": "b1",
+          "type": "bubble",
+          "y": 2,
+          "h": 13,
+          "speaker": "can",
+          "text": "Celebs: pull and merge at read time.",
+          "enter": "slide-up",
+          "at": 3612
+        },
+        {
+          "id": "b2",
+          "type": "bubble",
+          "y": 17,
+          "h": 13,
+          "speaker": "int",
+          "text": "Where's the cutoff?",
+          "enter": "slide-up",
+          "at": 9296
+        },
+        {
+          "id": "friend",
+          "type": "node",
+          "x": 4,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Friend",
+          "icon": "user",
+          "enter": "pop",
+          "at": 200
+        },
+        {
+          "id": "ronaldo",
+          "type": "node",
+          "x": 4,
+          "y": 51,
+          "w": 24,
+          "h": 11,
+          "label": "Ronaldo",
+          "icon": "user",
+          "enter": "pop",
+          "at": 1380
+        },
+        {
+          "id": "cache",
+          "type": "node",
+          "x": 72,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Feed lists",
+          "icon": "cache",
+          "color": "green",
+          "enter": "pop",
+          "at": 2560
+        },
+        {
+          "id": "api",
+          "type": "node",
+          "x": 72,
+          "y": 51,
+          "w": 24,
+          "h": 11,
+          "label": "Read + merge",
+          "icon": "service",
+          "color": "purple",
+          "enter": "pop",
+          "at": 3740
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "friend",
+          "to": "cache",
+          "label": "push on write",
+          "count": 3,
+          "color": "green",
+          "enter": "draw",
+          "at": 4920
+        },
+        {
+          "id": "f2",
+          "type": "flow",
+          "from": "ronaldo",
+          "to": "api",
+          "label": "pull on read",
+          "count": 3,
+          "color": "purple",
+          "enter": "draw",
+          "at": 6100
+        }
+      ]
+    },
+    {
+      "duration_ms": 13300,
+      "caption": "Now rank it",
+      "lines": [
+        {
+          "speaker": "int",
+          "text": "Chronological is boring. How do you rank?"
+        },
+        {
+          "speaker": "can",
+          "text": "A ranking service scores a few hundred candidates and returns the best handful."
+        },
+        {
+          "speaker": "int",
+          "text": "Doesn't that add latency?"
+        },
+        {
+          "speaker": "can",
+          "text": "Features come from cache. Tens of milliseconds."
+        }
+      ],
+      "elements": [
+        {
+          "id": "b1",
+          "type": "bubble",
+          "y": 2,
+          "h": 13,
+          "speaker": "int",
+          "text": "How do you rank it?",
+          "enter": "slide-up",
+          "at": 0
+        },
+        {
+          "id": "b2",
+          "type": "bubble",
+          "y": 17,
+          "h": 13,
+          "speaker": "can",
+          "text": "Features from cache. Tens of ms.",
+          "enter": "slide-up",
+          "at": 9681
+        },
+        {
+          "id": "cache",
+          "type": "node",
+          "x": 4,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Merged feed",
+          "icon": "cache",
+          "enter": "pop",
+          "at": 200
+        },
+        {
+          "id": "ranker",
+          "type": "node",
+          "x": 38,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Ranking service",
+          "icon": "service",
+          "enter": "pop",
+          "at": 1530
+        },
+        {
+          "id": "phone",
+          "type": "node",
+          "x": 72,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Your feed",
+          "icon": "phone",
+          "enter": "pop",
+          "at": 2860
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "cache",
+          "to": "ranker",
+          "label": "~500 candidates",
+          "count": 4,
+          "enter": "draw",
+          "at": 4190
+        },
+        {
+          "id": "f2",
+          "type": "flow",
+          "from": "ranker",
+          "to": "phone",
+          "label": "best handful",
+          "count": 2,
+          "color": "green",
+          "enter": "draw",
+          "at": 5520
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 28,
+          "y": 54,
+          "w": 44,
+          "h": 13,
+          "value": "tens of ms",
+          "label": "ranking budget",
+          "color": "purple",
+          "enter": "pop",
+          "at": 6850
+        }
+      ]
+    },
+    {
+      "duration_ms": 12900,
+      "caption": "Pagination and prefetch",
+      "lines": [
+        {
+          "speaker": "int",
+          "text": "Last one. User scrolls. How do you page?"
+        },
+        {
+          "speaker": "can",
+          "text": "Cursor pagination, not offsets. New posts can't shift your place."
+        },
+        {
+          "speaker": "can",
+          "text": "And I prefetch the next page before you reach the end."
+        },
+        {
+          "speaker": "int",
+          "text": "Hired."
+        }
+      ],
+      "elements": [
+        {
+          "id": "b1",
+          "type": "bubble",
+          "y": 2,
+          "h": 13,
+          "speaker": "can",
+          "text": "Cursors, not offsets. Prefetch.",
+          "enter": "slide-up",
+          "at": 3227
+        },
+        {
+          "id": "b2",
+          "type": "bubble",
+          "y": 17,
+          "h": 13,
+          "speaker": "int",
+          "text": "Hired.",
+          "enter": "slide-up",
+          "at": 11604
+        },
+        {
+          "id": "phone",
+          "type": "node",
+          "x": 4,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Reader",
+          "icon": "phone",
+          "enter": "pop",
+          "at": 200
+        },
+        {
+          "id": "api",
+          "type": "node",
+          "x": 38,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Feed API",
+          "icon": "service",
+          "enter": "pop",
+          "at": 1490
+        },
+        {
+          "id": "cache",
+          "type": "node",
+          "x": 72,
+          "y": 36,
+          "w": 24,
+          "h": 11,
+          "label": "Next page",
+          "icon": "cache",
+          "color": "green",
+          "enter": "pop",
+          "at": 2780
+        },
+        {
+          "id": "f1",
+          "type": "flow",
+          "from": "phone",
+          "to": "api",
+          "label": "cursor",
+          "count": 2,
+          "enter": "draw",
+          "at": 4070
+        },
+        {
+          "id": "f2",
+          "type": "flow",
+          "from": "api",
+          "to": "cache",
+          "label": "prefetch",
+          "count": 3,
+          "color": "green",
+          "enter": "draw",
+          "at": 5360
+        },
+        {
+          "id": "m1",
+          "type": "metric",
+          "x": 4,
+          "y": 54,
+          "w": 92,
+          "h": 13,
+          "value": "Cursor > Offset",
+          "label": "new posts can't shift your place",
+          "color": "green",
+          "enter": "pop",
+          "at": 6650
+        }
+      ]
+    }
+  ],
+  "takeaway": "Fan out on write for normal accounts, merge celebrities at read time, then rank and prefetch."
+}
