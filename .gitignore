@@ -15,3 +15,4 @@ yarn-error.log*
 .env*
 !.env.example
 .vercel
+.schedule-logs/
