@@ -138,3 +138,19 @@
      - after a punchline: 500 ms.
      Lines may use commas and ellipses for in-line pauses. For OpenAI, the voice instructions ask for varied pitch, emphasis on key words, natural pauses at commas, and no monotone.
   5. **No empty scenes:** every beat, narrator lines included, has at least one visual. Visuals are larger (fill the board area), and lower-thirds never truncate (they wrap).
+- 2026-11-01: **Reel QA gate: micro-interaction tests (owner requirement, before any bulk creation).** In the first render the heart was tapped but never turned red. Automated reels must not ship such bugs.
+  - Every reel gets an **expectations list**, derived automatically from its actions plus optional explicit `expect` entries in the script. Each expectation is a checkable claim at a time. Examples:
+    - `phone.tap(target=like)` → like icon filled with the accent red within 300 ms, staying red until reset;
+    - `phone.spinner` → spinner visible until the next phone state;
+    - `phone.toast` → toast visible for ≥1.2 s with the exact text;
+    - `db.join` step k → exactly those rows highlighted;
+    - `db.insert/fanout/shard` → row counts per table after the step;
+    - `define` → the lower-third is fully visible, not truncated;
+    - caption → it shows the current line's text;
+    - every beat → ≥1 visible visual;
+    - layout → no overlaps, and nothing outside the safe area.
+  - Verification runs in `render/verify.ts <script> <audio-manifest>` and checks two ways:
+    - (a) the components' pure state functions at each expectation time (unit-test level);
+    - (b) rendered stills at those frames, checked against a deterministic layout map (element bounding boxes) with pixel or color checks (e.g. the heart region is red), plus DOM overflow checks.
+  - Output: a pass/fail report listing every micro-interaction, with a non-zero exit on any failure. **The upload pipeline refuses to publish a reel that fails verification.** A contact sheet of the checked frames is saved for human review.
+  - Component unit tests (vitest) cover every action type's state transitions.
