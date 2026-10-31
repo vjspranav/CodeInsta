@@ -6,6 +6,7 @@ import { validateReel, type Reel } from "../src/lib/reel-schema";
 
 const USAGE = `usage: npm run agent -- <command>
   inbox
+  requests                      approved, unfulfilled requests + new categories (read-only, records no agent run)
   post <file.json> [--parent <reel_id>] [--answers <feedback_id>] [--fulfills <request_id>] [--no-audio]
   audio <reel_id> <file.json>   (re)render narration with Kokoro TTS and upload it
   dm <file.md> [--feedback <feedback_id>]
@@ -95,6 +96,16 @@ async function main() {
   switch (cmd) {
     case "inbox":
       return call("GET", "/api/agent/inbox");
+    case "requests": {
+      const inbox = (await call("GET", "/api/agent/inbox?peek=1", undefined, false)) as {
+        topic_requests: unknown[];
+        new_categories: unknown[];
+      };
+      console.log(
+        JSON.stringify({ topic_requests: inbox.topic_requests, new_categories: inbox.new_categories }, null, 2),
+      );
+      return;
+    }
     case "post": {
       if (!positional[0]) fail("post needs <file.json>");
       const script = readJson(positional[0]);

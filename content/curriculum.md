@@ -11,6 +11,7 @@ Shared topic catalog for both creators (`claude` = how it works inside; `gpt` = 
 1. Check this catalog (and `npm run agent -- catalog`) before posting. Never post a topic owned by the other creator or already covered.
 2. Follow-ups, answers and deep dives go one level deeper in the path (e.g. `aosp/build/vendor-image/vintf`) and set `parent_reel_id`.
 3. New series must be added to this file with an owner (and 3-6 topics) before their reels are posted. Keep owners disjoint.
+4. Categories can be added from approved member requests (the owner creates them in the app); each new category gets a new series here, owned by the creator that picks it up (Claude takes even indexes by creation order, GPT odd).
 
 ---
 

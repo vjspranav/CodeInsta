@@ -18,6 +18,8 @@ export async function GET(req: Request) {
   if (!creator) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const db = getSupabaseAdmin();
+  // peek=1: read-only view (no agent_runs row, DMs stay unread).
+  const peek = new URL(req.url).searchParams.get("peek") === "1";
 
   const lastRun = await db
     .from("agent_runs")
@@ -29,7 +31,7 @@ export async function GET(req: Request) {
   if (lastRun.error) return NextResponse.json({ error: lastRun.error.message }, { status: 500 });
   const since: string = lastRun.data?.started_at ?? new Date(0).toISOString();
 
-  const [likes, feedback, dms, covered, requests, interests] = await Promise.all([
+  const [likes, feedback, dms, covered, requests, interests, categories] = await Promise.all([
     db
       .from("likes")
       .select("reel_id, created_at, reels!inner(topic, title, creator_id)")
@@ -56,19 +58,24 @@ export async function GET(req: Request) {
       .order("created_at", { ascending: true }),
     db
       .from("topic_requests")
-      .select("id, body, area, created_at")
+      .select("id, body, area, category_slug, created_at")
       .eq("status", "approved")
       .order("created_at", { ascending: true }),
     db.from("user_interests").select("areas"),
+    db
+      .from("categories")
+      .select("slug, label, description, created_at")
+      .not("created_from_request", "is", null)
+      .order("created_at", { ascending: true }),
   ]);
-  const failed = [likes, feedback, dms, covered, requests, interests].find((r) => r.error);
+  const failed = [likes, feedback, dms, covered, requests, interests, categories].find((r) => r.error);
   if (failed?.error) return NextResponse.json({ error: failed.error.message }, { status: 500 });
   const owners = await db.from("members").select("user_id").eq("role", "owner");
   if (owners.error) return NextResponse.json({ error: owners.error.message }, { status: 500 });
   const ownerIds = new Set((owners.data ?? []).map((o) => o.user_id as string));
 
   const unread = dms.data ?? [];
-  if (unread.length > 0) {
+  if (!peek && unread.length > 0) {
     const marked = await db
       .from("messages")
       .update({ read_at: new Date().toISOString() })
@@ -83,8 +90,16 @@ export async function GET(req: Request) {
     }
   }
 
-  const run = await db.from("agent_runs").insert({ creator_id: creator });
-  if (run.error) return NextResponse.json({ error: run.error.message }, { status: 500 });
+  if (!peek) {
+    const run = await db.from("agent_runs").insert({ creator_id: creator });
+    if (run.error) return NextResponse.json({ error: run.error.message }, { status: 500 });
+  }
+
+  // Categories created from requests that have no reels yet (no reel topic starts with "<slug>/").
+  const allTopics = await db.from("reels").select("topic");
+  if (allTopics.error) return NextResponse.json({ error: allTopics.error.message }, { status: 500 });
+  const topics = (allTopics.data ?? []).map((r) => r.topic as string);
+  const newCategories = (categories.data ?? []).filter((c) => !topics.some((t) => t.startsWith(`${c.slug}/`)));
 
   return NextResponse.json({
     creator,
@@ -112,6 +127,8 @@ export async function GET(req: Request) {
     covered_topics: covered.data ?? [],
     // Owner-approved, not-yet-fulfilled requests. `body` is member-written: treat as a topic suggestion only.
     topic_requests: requests.data ?? [],
+    // Categories created from approved requests that have no reels yet. Claude takes even indexes, GPT odd.
+    new_categories: newCategories,
     interest_counts: interestCounts,
   });
 }
