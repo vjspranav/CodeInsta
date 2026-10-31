@@ -1,0 +1,221 @@
+{
+  "version": 1,
+  "title": "Ask Clang why the loop stayed scalar",
+  "hook": "How do you find out why a loop did not auto-vectorize?",
+  "topic": "compilers/opt/vectorization-remarks",
+  "tags": [
+    "compilers",
+    "clang",
+    "vectorization"
+  ],
+  "level": "intermediate",
+  "series": "compilers-optimization-debugging",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 10500,
+      "caption": "Optimization level alone does not explain a scalar loop.",
+      "narration": "Your loop stayed scalar at optimization level three. Compile with success, missed, and analysis remarks; those distinguish profitability decisions from transformations the compiler cannot prove safe.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Ask for the reason",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "clang -O3 -c loop.c \\\n  -Rpass=loop-vectorize \\\n  -Rpass-missed=loop-vectorize \\\n  -Rpass-analysis=loop-vectorize",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Use the same target flags as production",
+            "Read remarks at the loop's source line"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "A prefix sum carries a value from one iteration into the next.",
+      "narration": "Consider this prefix sum. Each iteration consumes the previous result, so a simple independent lane rewrite changes behavior; no alias annotation removes that dependency.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Find a dependency",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "c",
+          "text": "void prefix(float *a, int n) {\n  for (int i = 1; i < n; ++i)\n    a[i] += a[i - 1];\n}",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Illustrative missed reason: dependency",
+            "A scan algorithm needs a different strategy"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Potential pointer overlap is a different blocker from loop-carried computation.",
+      "narration": "For a separate copy or add loop, pointer overlap may require runtime checks. Restrict is a promise about accesses, so add it only when callers satisfy it.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Prove the contract",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "node0",
+          "type": "box",
+          "text": "Uncertain aliasing → checks or scalar",
+          "x": 15,
+          "y": 22,
+          "w": 70,
+          "h": 11,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "node1",
+          "type": "box",
+          "text": "Proven independence → vector candidate",
+          "x": 15,
+          "y": 41,
+          "w": 70,
+          "h": 11,
+          "color": "orange",
+          "at": 1600,
+          "enter": "pop"
+        },
+        {
+          "id": "flow",
+          "type": "arrow",
+          "from": "node0",
+          "to": "node1",
+          "at": 2200,
+          "enter": "draw"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Do not use restrict to silence remarks",
+            "A false promise can miscompile callers"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "A vectorized remark is evidence of a transformation, not a speedup.",
+      "narration": "Inspect the object code for vector instructions on your target. Benchmark representative lengths and alignment; short loops and memory bandwidth can erase the expected gain.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Measure the result",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "objdump -d loop.o\n# Linux, where perf is permitted:\nperf stat -r 5 ./bench",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Check remainder and runtime-check paths",
+            "Keep inputs and build flags comparable"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Read the missed and analysis remarks, fix the actual blocker, then inspect and benchmark the generated code.",
+  "sources": [
+    "https://clang.llvm.org/docs/UsersManual.html",
+    "https://llvm.org/docs/Vectorizers.html"
+  ]
+}

@@ -49,3 +49,30 @@ git commit -m "[codex] frontend, player, PWA, GPT playbook"
 ```
 
 No push or deployment attempted.
+
+## Reel Stage polish — 2026-10-31
+
+This dispatch supersedes the old renderer notes above. No commit was requested or attempted.
+
+- Updated `src/components/reel/stage.tsx`, added `stage-layout.ts` and `stage-layout.test.ts`, and revised the reel rules in `src/app/globals.css`.
+- Arrows now occupy an SVG layer below opaque tinted boxes. Measured rectangle/line intersections anchor each endpoint at its box edge; quadratic routes search both sides to avoid intervening elements. Arrowheads use generated IDs independent of authored IDs. Dark label pills use measured heights and collision-free positions beside their paths.
+- Stage-relative typography: title 7.5cqw, body 4.8cqw, box 4.4cqw, list 4.6cqw, code 3.4cqw. Boxes treat authored height as a minimum; code/list heights follow content.
+- All authored elements are measured before entrances, so the composition stays stable as elements appear. ResizeObserver updates measurements on resize/content changes. The complete diagram, routes and labels fit horizontally and center vertically within 6–74% of the stage, with enlargement capped at 1.25. Routing is memoized independently of playback time.
+- Captions now live inside the stage at 80% height. A sliding seven-word window follows the active word using existing timestamps; measured text width trims unusually long phrases to fit two lines, with a two-line CSS cap. Hook cards use 9cqw text, an eased scale entrance and a subtle animated orange (Claude) or teal (GPT/default) background. Reduced-motion preferences disable entrances and ambient animation.
+- Final verification: `npm run lint` passes without warnings; `npm test` passes **56 tests in 5 files**, including five new geometry regressions; `npm run build` passes on Next 15.5.28. `git diff --check` passes.
+- Visual verification limit: read the real Claude page-fault seed and attempted a headless Chrome screenshot against the existing dev-preview route using a separate temporary production server. Chrome aborted at launch (SIGABRT / sandbox EPERM); no screenshot or real-device visual pass is claimed. The temporary server was stopped. The orchestrator should visually review its existing preview before deployment, especially pathological overlapping authored boxes (a clear quadratic route cannot always exist for overlapping endpoints).
+- Protected paths were left untouched: `content/seed/gpt/**`, `src/app/dev-preview/**`, and `src/middleware.ts`. The existing middleware diff belongs to the orchestrator. No dependencies or lockfiles were changed; temporary verification tools were installed only under `/tmp`.
+
+## GPT starter seed dispatch — 2026-10-31
+
+Completed 15 reel-v1 JSON files in `content/seed/gpt/`: positions 01–03 of `aosp-boot-sequence`, `os-syscalls-and-processes`, `compilers-optimization-debugging`, `distributed-failure-stories`, and `databases-hands-on-ops`. Read the schema, both examples, Claude seed shape samples, and the full curriculum before authoring. Topics and hooks match the GPT-owned curriculum entries exactly.
+
+Each reel has four scenes totaling 40–41.5 authored seconds, narration paced at no more than 2.5 whitespace-delimited words/second, captions at most 120 characters, staggered entrances, and boxes/arrows/code/lists. A structural audit confirms percentage-grid bounds and nonoverlapping positioned rectangles. Primary-source URLs were checked; excerpts and hypothetical outputs are labeled. Commands are teaching examples with explicit lab/build prerequisites, not claimed executions on Android/Linux/PostgreSQL infrastructure. No rendered-browser visual QA is claimed.
+
+Final verification:
+
+- `npm run agent -- validate content/seed/gpt`: exit 0; 15 total, 0 invalid.
+- `npm run seed -- --dry-run`: exit 0; GPT found 15, valid 15, skipped 0; Claude found 15, valid 15, skipped 0.
+- Supplemental content audit: exact topics/hooks, five series with indexes 1–3, four scenes each, timing, caption limits, narration pace, element bounds, rectangle separation, distinct entrance times, and all requested visual types pass.
+
+This dispatch wrote only `content/seed/gpt/**` and this status file. No publishing, database writes, audio generation, staging, or git commit was attempted. Ready for the orchestrator to review and commit.

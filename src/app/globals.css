@@ -228,7 +228,7 @@ small {
   outline-offset: -5px !important;
 }
 .stage {
-  height: calc(100% - 64px);
+  height: 100%;
   aspect-ratio: 9/16;
   max-width: 100%;
   margin: auto;
@@ -238,15 +238,14 @@ small {
 }
 .element {
   position: absolute;
-  overflow: auto;
-  font-size: clamp(9px, 3.9cqw, 19px);
+  font-size: 4.8cqw;
   line-height: 1.3;
   overflow-wrap: anywhere;
   z-index: 2;
 }
 .element-title {
   font-weight: 800;
-  font-size: clamp(12px, 6cqw, 30px);
+  font-size: 7.5cqw;
   letter-spacing: -0.5px;
 }
 .element-text {
@@ -258,7 +257,8 @@ small {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 5px;
+  padding: 2cqw;
+  font-size: 4.4cqw;
   text-align: center;
   font-weight: 650;
 }
@@ -267,13 +267,13 @@ small {
   border: 1px solid #ffffff18;
   background: #070a12e6;
   border-radius: 8px;
-  font-size: clamp(7px, 3cqw, 15px);
+  font-size: 3.4cqw;
   color: #d3dbed !important;
 }
 .element-code small {
   display: block;
   color: #8d98ae;
-  font-size: 0.75em;
+  font-size: 2.8cqw;
   margin-bottom: 5px;
 }
 .element-code pre {
@@ -283,6 +283,9 @@ small {
 }
 .syntax {
   color: #e2b0ff;
+}
+.element-list {
+  font-size: 4.6cqw;
 }
 .element-list ul {
   margin: 0;
@@ -296,7 +299,8 @@ small {
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 3;
+  z-index: 1;
+  overflow: visible;
   pointer-events: none;
 }
 .highlight {
@@ -308,7 +312,8 @@ small {
 }
 .hook-card {
   position: absolute;
-  inset: 0;
+  inset: 6% 0 26%;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -317,10 +322,10 @@ small {
 }
 .hook-card > span:first-child {
   color: #adb7ce;
-  font-size: clamp(10px, 3.6cqw, 16px);
+  font-size: 3.6cqw;
 }
 .hook-card h2 {
-  font-size: clamp(20px, 9cqw, 43px);
+  font-size: 9cqw;
   font-weight: 850;
   line-height: 1.08;
   letter-spacing: -1.4px;
@@ -329,24 +334,71 @@ small {
   max-height: 85%;
 }
 .hook-card.takeaway h2 {
-  font-size: clamp(16px, 7cqw, 32px);
+  font-size: 7cqw;
 }
 .hook-card.next h2 {
   color: #c7bfff;
 }
-.captions {
-  height: 64px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 0.22em;
-  align-content: center;
-  justify-content: center;
-  max-width: 88%;
-  margin: auto;
+.scene-content {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 0;
+}
+.arrow-label {
+  background: #080d18;
+  border: 1px solid #ffffff24;
+  border-radius: 2cqw;
+  padding: 0.6cqw 1cqw;
+  font-size: 3.4cqw;
+  font-weight: 650;
+  line-height: 1.25;
   text-align: center;
-  font-size: clamp(15px, 4.5vw, 22px);
+  overflow-wrap: anywhere;
+}
+.hook-card::before {
+  content: "";
+  position: absolute;
+  inset: -8% 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse at 25% 30%, #21c6b62e, transparent 65%),
+    radial-gradient(ellipse at 80% 70%, #168b9c24, transparent 60%);
+  background-size: 140% 140%;
+  animation: hook-glow 9s ease-in-out infinite alternate;
+}
+.creator-claude .hook-card::before {
+  background-image:
+    radial-gradient(ellipse at 25% 30%, #f58a3838, transparent 65%),
+    radial-gradient(ellipse at 80% 70%, #d64e2426, transparent 60%);
+}
+@keyframes hook-glow {
+  from {
+    background-position: 0% 20%;
+    opacity: 0.65;
+  }
+  to {
+    background-position: 100% 80%;
+    opacity: 1;
+  }
+}
+.hook-card .completion {
+  font-size: 3.8cqw;
+}
+.captions {
+  position: absolute;
+  top: 80%;
+  left: 6%;
+  width: 88%;
+  max-height: 2.8em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  text-align: center;
+  font-size: 4.8cqw;
   font-weight: 800;
   line-height: 1.4;
+  overflow-wrap: anywhere;
   text-shadow: 0 2px 5px #000;
 }
 .spoken {
@@ -926,12 +978,6 @@ input {
   .hook-card {
     gap: 10px;
     padding: 6%;
-  }
-  .hook-card h2 {
-    font-size: 8cqw;
-  }
-  .captions {
-    font-size: 15px;
   }
   .reel-meta {
     bottom: 10px;

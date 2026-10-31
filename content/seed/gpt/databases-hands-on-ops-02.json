@@ -1,0 +1,232 @@
+{
+  "version": 1,
+  "title": "DELETE did not shrink the table",
+  "hook": "Why does a table keep growing after DELETE, and how do you tune autovacuum?",
+  "topic": "databases/postgres/vacuum-bloat-autovacuum",
+  "tags": [
+    "databases",
+    "postgres",
+    "vacuum"
+  ],
+  "level": "intermediate",
+  "series": "databases-hands-on-ops",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 10500,
+      "caption": "DELETE leaves row versions that cannot always be reclaimed immediately.",
+      "narration": "After deleting many rows, the table file remains large. PostgreSQL keeps obsolete versions until safe cleanup; normal vacuum generally makes that space reusable inside the relation.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Deleted, still allocated",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sql",
+          "text": "SELECT pg_size_pretty(\n  pg_relation_size('orders')\n);\n-- Measure the main relation size.",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 30,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "before",
+          "type": "box",
+          "text": "DELETE",
+          "x": 8,
+          "y": 56,
+          "w": 35,
+          "h": 11,
+          "color": "blue",
+          "at": 1800,
+          "enter": "pop"
+        },
+        {
+          "id": "after",
+          "type": "box",
+          "text": "Dead versions",
+          "x": 57,
+          "y": 56,
+          "w": 35,
+          "h": 11,
+          "color": "orange",
+          "at": 2600,
+          "enter": "pop"
+        },
+        {
+          "id": "flow",
+          "type": "arrow",
+          "from": "before",
+          "to": "after",
+          "at": 3400,
+          "enter": "draw"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Size alone does not prove a leak",
+            "Old snapshots may still need versions"
+          ],
+          "x": 8,
+          "y": 76,
+          "w": 84,
+          "h": 20,
+          "color": "green",
+          "at": 4400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "Dead-tuple estimates and vacuum history help explain growth.",
+      "narration": "Inspect estimated dead tuples and recent autovacuum activity. These counters are clues, not an exact bloat measurement; compare them over time with transaction age and workload.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Check cleanup activity",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sql",
+          "text": "SELECT n_dead_tup,\n       last_autovacuum,\n       autovacuum_count\nFROM pg_stat_user_tables\nWHERE relname = 'orders';",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Check long transactions and replication slots",
+            "Cleanup must respect the visibility horizon"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Large busy tables may need vacuum to start earlier.",
+      "narration": "When cleanup is falling behind, investigate blockers and vacuum capacity first. This example lowers a table's scale factor; the right setting depends on its churn.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Tune the table",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sql",
+          "text": "ALTER TABLE orders SET (\n  autovacuum_vacuum_scale_factor = 0.02\n);\n-- Example tuning value, not a universal fix",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Thresholds are only part of scheduling",
+            "Budget I/O and worker capacity"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "VACUUM FULL rewrites the table and takes an exclusive lock.",
+      "narration": "Run ordinary vacuum to reclaim reusable space. Vacuum full can shrink the file through a rewrite, but needs extra disk space and an exclusive lock.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Reuse or rewrite?",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sql",
+          "text": "VACUUM (VERBOSE, ANALYZE) orders;\n-- Outside a transaction block.\n-- VACUUM FULL is a planned rewrite.",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Prefer reuse when future inserts need space",
+            "Plan downtime before a blocking rewrite"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Vacuum makes dead space reusable; investigate cleanup blockers before tuning thresholds or rewriting a table.",
+  "sources": [
+    "https://www.postgresql.org/docs/current/routine-vacuuming.html"
+  ]
+}

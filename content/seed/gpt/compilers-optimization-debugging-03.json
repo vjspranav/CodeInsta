@@ -1,0 +1,223 @@
+{
+  "version": 1,
+  "title": "Choose the sanitizer for the failure",
+  "hook": "What do ASan, UBSan and TSan instrument, and what do they cost?",
+  "topic": "compilers/opt/sanitizers-asan-ubsan-tsan",
+  "tags": [
+    "compilers",
+    "asan",
+    "ubsan",
+    "tsan"
+  ],
+  "level": "intermediate",
+  "series": "compilers-optimization-debugging",
+  "series_index": 3,
+  "scenes": [
+    {
+      "duration_ms": 11000,
+      "caption": "ASan checks memory accesses against runtime tracking.",
+      "narration": "A heap crash appears far from its cause. Build with symbols and AddressSanitizer; it instruments accesses and tracks memory state to catch many bounds and lifetime errors.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Start with memory",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "clang -O1 -g \\\n  -fno-omit-frame-pointer \\\n  -fsanitize=address \\\n  app.c -o app-asan",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Reports may include allocation and free stacks",
+            "Typical documented slowdown: about 2×"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "UBSan targets selected undefined operations, not all possible bugs.",
+      "narration": "Add undefined behavior checks for cases such as signed overflow and misalignment. Cost depends on checks and workload; this does not prove your program is defined.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Add UB checks",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "clang -O1 -g \\\n  -fsanitize=address,undefined \\\n  app.c -o app-check\n./app-check",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "ASan and UBSan can be combined",
+            "Read the first actionable report"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "TSan tracks memory accesses and synchronization to detect races.",
+      "narration": "An intermittent counter mismatch needs a separate ThreadSanitizer build. It tracks conflicting accesses and synchronization; the documented typical runtime overhead is five to fifteen times.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Build for races",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "clang -O1 -g -pthread \\\n  -fsanitize=thread \\\n  race.c -o race-tsan\n./race-tsan",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Do not combine TSan with ASan",
+            "Typical TSan memory overhead: 5–10×"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Sanitizers diagnose executed paths; workload coverage still matters.",
+      "narration": "Run the failing workload, inspect the reported stacks, and fix ownership or synchronization. Repeat with the same input, then add varied scheduling and boundary cases.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Reproduce, then repair",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "node0",
+          "type": "box",
+          "text": "Failing input → sanitizer report",
+          "x": 15,
+          "y": 22,
+          "w": 70,
+          "h": 11,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "node1",
+          "type": "box",
+          "text": "Root-cause fix → repeat workload",
+          "x": 15,
+          "y": 41,
+          "w": 70,
+          "h": 11,
+          "color": "orange",
+          "at": 1600,
+          "enter": "pop"
+        },
+        {
+          "id": "flow",
+          "type": "arrow",
+          "from": "node0",
+          "to": "node1",
+          "at": 2200,
+          "enter": "draw"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Instrument relevant libraries where possible",
+            "Measure production performance separately"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Run ASan plus UBSan for memory and UB bugs; use a separate TSan build for data races.",
+  "sources": [
+    "https://clang.llvm.org/docs/AddressSanitizer.html",
+    "https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html",
+    "https://clang.llvm.org/docs/ThreadSanitizer.html"
+  ]
+}

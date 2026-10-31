@@ -1,0 +1,240 @@
+{
+  "version": 1,
+  "title": "Make stale leaders fail at the storage boundary",
+  "hook": "How does a network partition produce split brain, and how do fencing tokens stop it?",
+  "topic": "distributed/failures/partitions-split-brain",
+  "tags": [
+    "distributed",
+    "fencing",
+    "split-brain"
+  ],
+  "level": "intermediate",
+  "series": "distributed-failure-stories",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "A partition can isolate an owner from its lease service but not from storage.",
+      "narration": "Imagine an owner loses contact with its lease service but can still reach storage. A successor acquires ownership; the old process may keep sending writes.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Two owners, one resource",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "node0",
+          "type": "box",
+          "text": "Old owner: token 41",
+          "x": 15,
+          "y": 22,
+          "w": 70,
+          "h": 11,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "node1",
+          "type": "box",
+          "text": "New owner: token 42",
+          "x": 15,
+          "y": 41,
+          "w": 70,
+          "h": 11,
+          "color": "orange",
+          "at": 1600,
+          "enter": "pop"
+        },
+        {
+          "id": "flow",
+          "type": "arrow",
+          "from": "node0",
+          "to": "node1",
+          "at": 2200,
+          "enter": "draw"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Loss of contact is not proof of death",
+            "Both may still reach the resource"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "A paused owner reproduces the stale-write hazard in a local lab.",
+      "narration": "In a disposable two worker lab, pause the old owner beyond its lease. Let a successor acquire ownership and write, then resume the old process.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Reproduce stale work",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "kill -STOP \"$old_leader_pid\"\n# Wait for lease expiry and new owner.\n# Verify successor has written token 42.\nkill -CONT \"$old_leader_pid\"",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "A pause simulates stale ownership",
+            "Record token and result for every write"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "The token check must be atomic with the protected mutation.",
+      "narration": "Give each acquisition a monotonically increasing token from the coordination system. Storage checks it atomically with each mutation; checking only in the client leaves a race.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Fence at storage",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sql",
+          "text": "-- Example resource already has token 42\nUPDATE resource\nSET value = 'old', fence = 41\nWHERE id = 1 AND fence <= 41\nRETURNING id;\n-- Expected: zero rows",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Persist the highest accepted token",
+            "Do not generate tokens from wall clocks"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "The old request must fail after the newer token is accepted.",
+      "narration": "Assert that the stale write changes nothing after token forty two has been accepted. Every mutation path must enforce fencing, including external side effects and background jobs.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Test the rejection",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "node0",
+          "type": "box",
+          "text": "New token accepted by resource",
+          "x": 15,
+          "y": 22,
+          "w": 70,
+          "h": 11,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "node1",
+          "type": "box",
+          "text": "Lower token rejected atomically",
+          "x": 15,
+          "y": 41,
+          "w": 70,
+          "h": 11,
+          "color": "orange",
+          "at": 1600,
+          "enter": "pop"
+        },
+        {
+          "id": "flow",
+          "type": "arrow",
+          "from": "node0",
+          "to": "node1",
+          "at": 2200,
+          "enter": "draw"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Fencing is not duplicate suppression",
+            "Use idempotency for same-token retries"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "A lease cannot stop an old process; the protected resource must atomically reject stale fencing tokens.",
+  "sources": [
+    "https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html"
+  ]
+}

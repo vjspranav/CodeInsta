@@ -1,0 +1,232 @@
+{
+  "version": 1,
+  "title": "Why your init service never starts",
+  "hook": "How do `init.rc` actions, triggers and services decide what starts when?",
+  "topic": "aosp/boot/init-rc-actions",
+  "tags": [
+    "aosp",
+    "init",
+    "debugging"
+  ],
+  "level": "intermediate",
+  "series": "aosp-boot-sequence",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "Defining a service does not necessarily start it.",
+      "narration": "Your daemon exists on disk but never appears in process listings. First inspect its init service state, then find the installed service declaration.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Declared, not started",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "adb shell getprop init.svc.demo\nadb shell cat \\\n  /vendor/etc/init/demo.rc\n# Blank state? Check loading and name.",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Use your actual service name",
+            "Inspect the installed rc file"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "A disabled service needs an explicit start.",
+      "narration": "This example declares a vendor daemon but disables automatic class startup. Oneshot prevents automatic restart after exit; neither option creates the executable or policy.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Read the service",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "android-init",
+          "text": "service demo /vendor/bin/demo\n    class late_start\n    user system\n    disabled\n    oneshot",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Example rc; binary must exist",
+            "SELinux domain must be configured"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Property triggers queue actions; action commands run in order.",
+      "narration": "Add a property action that explicitly starts the service. Init queues matching actions and executes their commands in order; process readiness requires separate coordination.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Follow the trigger",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "android-init",
+          "text": "on property:sys.boot_completed=1\n    start demo\n# Example action in the installed rc",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 30,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "before",
+          "type": "box",
+          "text": "Property matches",
+          "x": 8,
+          "y": 56,
+          "w": 35,
+          "h": 11,
+          "color": "blue",
+          "at": 1800,
+          "enter": "pop"
+        },
+        {
+          "id": "after",
+          "type": "box",
+          "text": "start demo",
+          "x": 57,
+          "y": 56,
+          "w": 35,
+          "h": 11,
+          "color": "orange",
+          "at": 2600,
+          "enter": "pop"
+        },
+        {
+          "id": "flow",
+          "type": "arrow",
+          "from": "before",
+          "to": "after",
+          "at": 3400,
+          "enter": "draw"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "start launches; it does not await readiness",
+            "No global order across parallel daemons"
+          ],
+          "x": 8,
+          "y": 76,
+          "w": 84,
+          "h": 20,
+          "color": "green",
+          "at": 4400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "A matched action can still fail to execute the daemon.",
+      "narration": "After boot, inspect both the trigger and service state. If startup failed, init logs distinguish missing executables, permission failures, and invalid service configuration.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Check both outcomes",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "adb shell getprop sys.boot_completed\nadb shell getprop init.svc.demo\nadb logcat -b all -d -s init",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "running: process was launched",
+            "stopped: inspect exit and init logs"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "A service declaration defines a process; a matching action or class start launches it.",
+  "sources": [
+    "https://android.googlesource.com/platform/system/core/+/refs/heads/main/init/README.md"
+  ]
+}

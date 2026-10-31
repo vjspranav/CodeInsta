@@ -1,0 +1,232 @@
+{
+  "version": 1,
+  "title": "Find the first wrong row estimate",
+  "hook": "How do you read `EXPLAIN (ANALYZE, BUFFERS)` and spot the estimate that's wrong?",
+  "topic": "databases/postgres/explain-analyze-reading",
+  "tags": [
+    "databases",
+    "postgres",
+    "explain"
+  ],
+  "level": "intermediate",
+  "series": "databases-hands-on-ops",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 10500,
+      "caption": "EXPLAIN ANALYZE executes the statement and records observed work.",
+      "narration": "On a test database, explain the slow query with analysis and buffer reporting. This actually executes the statement; start with a representative select and realistic parameters.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Capture the real plan",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sql",
+          "text": "EXPLAIN (ANALYZE, BUFFERS)\nSELECT * FROM orders\nWHERE customer_id = 42;",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Use your real table and query",
+            "ANALYZE also executes modifying statements"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Estimated rows and actual rows are not the same measurement.",
+      "narration": "Read from the plan leaves upward. In this illustrative scan, ten estimated rows became ten thousand actual rows, potentially misleading every join decision above it.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Compare row counts",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sql",
+          "text": "-- Illustrative plan fragments\nIndex Scan on orders\n  (cost=... rows=10 width=...)\n  (actual time=... rows=10000 loops=1)",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 30,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "before",
+          "type": "box",
+          "text": "Estimate: 10",
+          "x": 8,
+          "y": 56,
+          "w": 35,
+          "h": 11,
+          "color": "blue",
+          "at": 1800,
+          "enter": "pop"
+        },
+        {
+          "id": "after",
+          "type": "box",
+          "text": "Actual: 10000",
+          "x": 57,
+          "y": 56,
+          "w": 35,
+          "h": 11,
+          "color": "orange",
+          "at": 2600,
+          "enter": "pop"
+        },
+        {
+          "id": "flow",
+          "type": "arrow",
+          "from": "before",
+          "to": "after",
+          "at": 3400,
+          "enter": "draw"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Find the earliest large mismatch",
+            "Costs are planner units, not milliseconds"
+          ],
+          "x": 8,
+          "y": 76,
+          "w": 84,
+          "h": 20,
+          "color": "green",
+          "at": 4400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "Actual rows and times are per-loop averages when a node repeats.",
+      "narration": "When a node runs many times, its actual rows and timings are averages per execution. Multiply by loops to understand repeated work; parent times include children.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Account for loops",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sql",
+          "text": "-- Illustrative inner node\nactual time=0.01..0.20\nrows=5 loops=1000\n-- Roughly 5000 output rows total",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Do not sum inclusive node times",
+            "Buffer reads do not prove physical disk I/O"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "Refresh statistics before forcing a favorite plan.",
+      "narration": "If statistics are stale, analyze the table and rerun the same query. Persistent errors may require better statistics or a query change, not a forced index.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Fix the evidence",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sql",
+          "text": "ANALYZE orders;\nEXPLAIN (ANALYZE, BUFFERS)\nSELECT * FROM orders\nWHERE customer_id = 42;",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Compare equivalent cache conditions",
+            "Check correlations and parameter sensitivity"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Find the earliest large estimate error, account for loops, and remeasure after fixing its cause.",
+  "sources": [
+    "https://www.postgresql.org/docs/current/using-explain.html"
+  ]
+}

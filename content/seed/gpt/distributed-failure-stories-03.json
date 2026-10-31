@@ -1,0 +1,240 @@
+{
+  "version": 1,
+  "title": "Green health check, broken requests",
+  "hook": "What is a gray failure, and why do health checks miss it?",
+  "topic": "distributed/failures/gray-failures",
+  "tags": [
+    "distributed",
+    "observability",
+    "gray-failure"
+  ],
+  "level": "intermediate",
+  "series": "distributed-failure-stories",
+  "series_index": 3,
+  "scenes": [
+    {
+      "duration_ms": 10500,
+      "caption": "A shallow health endpoint can succeed while a critical request path fails.",
+      "narration": "In this lab, the health endpoint returns immediately while a database backed read stalls. Both observations are real; the health check never exercises the failing dependency.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The green dashboard",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "# Set LAB_URL to your test service.\ncurl --max-time 2 \"$LAB_URL/healthz\"\ncurl --max-time 2 \"$LAB_URL/read\"\n# Illustrative: healthy, then timeout",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Use a harmless representative read",
+            "This is differential observability"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Partial failures can depend on client location or request path.",
+      "narration": "Compare the same read from multiple client locations. A network path or shard can fail for some callers while the monitoring agent continues reporting success.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Compare observers",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "node0",
+          "type": "box",
+          "text": "Monitor → health endpoint: OK",
+          "x": 15,
+          "y": 22,
+          "w": 70,
+          "h": 11,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "node1",
+          "type": "box",
+          "text": "Affected caller → data path: timeout",
+          "x": 15,
+          "y": 41,
+          "w": 70,
+          "h": 11,
+          "color": "orange",
+          "at": 1600,
+          "enter": "pop"
+        },
+        {
+          "id": "flow",
+          "type": "arrow",
+          "from": "node0",
+          "to": "node1",
+          "at": 2200,
+          "enter": "draw"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Slice errors by zone, shard and route",
+            "Do not hide the pattern in an average"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Pod readiness alone does not explain request failures.",
+      "narration": "In a Kubernetes lab, inspect the workload and correlate application logs with failing request identifiers. A ready pod only passed the readiness test you configured.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Inspect the workload",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "kubectl -n lab get pods\nkubectl -n lab describe pod \"$POD\"\nkubectl -n lab logs \"$POD\" \\\n  --since=5m",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Inspect what the probe actually tests",
+            "Trace the slow dependency from the caller"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Detection needs user-path evidence without creating a new outage.",
+      "narration": "Add bounded synthetic reads and caller side latency metrics. Keep liveness focused on recoverable process health; dependency failures should not trigger synchronized restart loops everywhere.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Close the gap",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "node0",
+          "type": "box",
+          "text": "Caller evidence → targeted detection",
+          "x": 15,
+          "y": 22,
+          "w": 70,
+          "h": 11,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "node1",
+          "type": "box",
+          "text": "Bounded readiness → controlled routing",
+          "x": 15,
+          "y": 41,
+          "w": 70,
+          "h": 11,
+          "color": "orange",
+          "at": 1600,
+          "enter": "pop"
+        },
+        {
+          "id": "flow",
+          "type": "arrow",
+          "from": "node0",
+          "to": "node1",
+          "at": 2200,
+          "enter": "draw"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Alert on errors and tail latency",
+            "Retest the specific partial failure"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Probe what callers actually need, from their vantage points; a green health endpoint is incomplete evidence.",
+  "sources": [
+    "https://www.microsoft.com/en-us/research/publication/gray-failure-achilles-heel-cloud-scale-systems/"
+  ]
+}

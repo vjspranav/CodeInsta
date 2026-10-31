@@ -1,0 +1,233 @@
+{
+  "version": 1,
+  "title": "The overflow guard that disappears",
+  "hook": "How does signed overflow UB make the compiler delete your bounds check?",
+  "topic": "compilers/opt/undefined-behavior-miscompile",
+  "tags": [
+    "compilers",
+    "undefined-behavior",
+    "ubsan"
+  ],
+  "level": "intermediate",
+  "series": "compilers-optimization-debugging",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 10500,
+      "caption": "The overflow occurs inside the expression meant to detect it.",
+      "narration": "This guard tries to catch increment overflow after doing the addition. For signed integers, that addition is undefined at the maximum value, so the guard fails.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The broken guard",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "c",
+          "text": "int guarded(int n) {\n  if (n + 1 < n) return -1;\n  return n + 1;\n}",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Example uses signed int",
+            "Undefined behavior is not guaranteed wrap"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "For defined executions, n + 1 is greater than n.",
+      "narration": "Emit optimized LLVM IR and inspect the function. The compiler can remove this branch because no defined signed addition makes the increment smaller than its input.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Inspect optimized IR",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "clang -O2 -S -emit-llvm \\\n  guard.c -o guard.ll\ncat guard.ll\n# Expect no overflow-check branch\n# Exact IR varies by compiler version",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 30,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "before",
+          "type": "box",
+          "text": "Signed overflow",
+          "x": 8,
+          "y": 56,
+          "w": 35,
+          "h": 11,
+          "color": "blue",
+          "at": 1800,
+          "enter": "pop"
+        },
+        {
+          "id": "after",
+          "type": "box",
+          "text": "Undefined",
+          "x": 57,
+          "y": 56,
+          "w": 35,
+          "h": 11,
+          "color": "orange",
+          "at": 2600,
+          "enter": "pop"
+        },
+        {
+          "id": "flow",
+          "type": "arrow",
+          "from": "before",
+          "to": "after",
+          "at": 3400,
+          "enter": "draw"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Look for an add with nsw",
+            "nsw expresses the no-signed-wrap condition"
+          ],
+          "x": 8,
+          "y": 76,
+          "w": 84,
+          "h": 20,
+          "color": "green",
+          "at": 4400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "UBSan reports the executed overflow path.",
+      "narration": "Compile a harness that calls guarded with INT_MAX, then run it with undefined behavior sanitization. The diagnostic identifies signed overflow when that path executes.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Catch it dynamically",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "clang -O1 -g \\\n  -fsanitize=undefined \\\n  guard.c driver.c -o guard-test\n./guard-test\n# driver.c calls guarded(INT_MAX)",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Expected diagnostic: signed overflow",
+            "A clean run covers only executed paths"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "A precondition protects the arithmetic itself.",
+      "narration": "Check the maximum value before adding. For general signed addition, use a checked arithmetic builtin or explicit range checks; unsigned wrapping alone does not validate bounds.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Check before adding",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "c",
+          "text": "#include <limits.h>\nint guarded(int n) {\n  if (n == INT_MAX) return -1;\n  return n + 1;\n}",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Test INT_MAX and nearby values",
+            "Keep error signaling explicit in real APIs"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Check the range before signed arithmetic; a guard that already overflows cannot protect you.",
+  "sources": [
+    "https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html",
+    "https://llvm.org/docs/LangRef.html"
+  ]
+}

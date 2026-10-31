@@ -1,0 +1,234 @@
+{
+  "version": 1,
+  "title": "Find the transaction holding your lock",
+  "hook": "How do you find who's blocking whom with `pg_locks` and `pg_stat_activity`?",
+  "topic": "databases/postgres/lock-contention-pg-locks",
+  "tags": [
+    "databases",
+    "postgres",
+    "locks"
+  ],
+  "level": "intermediate",
+  "series": "databases-hands-on-ops",
+  "series_index": 3,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "An uncommitted update can block another update to the same row.",
+      "narration": "In a disposable database, open two sessions. Hold an update uncommitted in session A, then update the same existing row in B to reproduce blocking.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Reproduce a wait",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sql",
+          "text": "-- Session A\nBEGIN;\nUPDATE accounts SET balance = 10\nWHERE id = 1;\n-- Session B: repeat that UPDATE.",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Create the test table and row first",
+            "Leave A open only for this experiment"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "pg_blocking_pids resolves lock blockers without a fragile self-join.",
+      "narration": "From a third session, find backends reporting lock waits and ask PostgreSQL for their blocker identifiers. Inspect the blocker chain; the waiting query is usually the victim.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Ask who blocks",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sql",
+          "text": "SELECT pid, wait_event,\n       pg_blocking_pids(pid) AS blockers\nFROM pg_stat_activity\nWHERE wait_event_type = 'Lock';",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Example result: pid 202 blocked by 201",
+            "Monitoring privileges affect query visibility"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "A blocker may be idle in transaction while still holding locks.",
+      "narration": "Look up the blocker state and transaction start time, then inspect its locks. Row conflicts often appear as transaction identifier waits, not obvious tuple rows.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Inspect the owner",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sql",
+          "text": "SELECT pid, state, xact_start, query\nFROM pg_stat_activity WHERE pid = 201;\nSELECT locktype, mode, granted\nFROM pg_locks WHERE pid IN (201, 202);\n-- Replace the illustrative PIDs.",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "idle in transaction can still block",
+            "Do not join locks on relation alone"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Canceling a query does not reliably end an idle open transaction.",
+      "narration": "End session A's transaction and confirm B resumes. Canceling a query is different from ending its transaction; fix application transaction scope to prevent repeated blocking.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Release the transaction",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sql",
+          "text": "-- Session A: discard this lab update\nROLLBACK;\n-- Session B should now finish.\n-- Recheck pg_blocking_pids afterward.",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 30,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "before",
+          "type": "box",
+          "text": "A: rollback",
+          "x": 8,
+          "y": 56,
+          "w": 35,
+          "h": 11,
+          "color": "blue",
+          "at": 1800,
+          "enter": "pop"
+        },
+        {
+          "id": "after",
+          "type": "box",
+          "text": "B: resumes",
+          "x": 57,
+          "y": 56,
+          "w": 35,
+          "h": 11,
+          "color": "orange",
+          "at": 2600,
+          "enter": "pop"
+        },
+        {
+          "id": "flow",
+          "type": "arrow",
+          "from": "before",
+          "to": "after",
+          "at": 3400,
+          "enter": "draw"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Keep transactions short",
+            "Use deliberate timeouts for lock waits"
+          ],
+          "x": 8,
+          "y": 76,
+          "w": 84,
+          "h": 20,
+          "color": "green",
+          "at": 4400,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Find blocker PIDs, inspect their transactions, and release the owning transaction rather than guessing from slow queries.",
+  "sources": [
+    "https://www.postgresql.org/docs/current/functions-info.html",
+    "https://www.postgresql.org/docs/current/view-pg-locks.html",
+    "https://www.postgresql.org/docs/current/monitoring-stats.html"
+  ]
+}

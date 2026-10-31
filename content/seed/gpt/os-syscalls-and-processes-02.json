@@ -1,0 +1,222 @@
+{
+  "version": 1,
+  "title": "See fork, exec and spawn from outside",
+  "hook": "How do `fork`, `vfork`, `exec` and `clone` flags differ, and what does `posix_spawn` skip?",
+  "topic": "os/process/fork-exec-clone-flags",
+  "tags": [
+    "os",
+    "processes",
+    "linux"
+  ],
+  "level": "intermediate",
+  "series": "os-syscalls-and-processes",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "Trace process syscalls instead of guessing which API the runtime used.",
+      "narration": "Trace a shell launching a background command. You will see process creation and exec calls; the exact syscall choice depends on the shell and libc.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Watch a launch",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "strace -f -e trace=process \\\n  sh -c 'sleep 1 & wait'\n# Look for clone/clone3/vfork\n# Then execve and wait calls",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Library names need not match syscalls",
+            "exec keeps the process ID"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "fork uses a separate address space; vfork temporarily shares one.",
+      "narration": "Fork gives the child a separate address space, usually using copy on write. Vfork shares memory and suspends the calling parent thread until exec or exit.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Copy or share?",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "node0",
+          "type": "box",
+          "text": "fork: separate address space",
+          "x": 15,
+          "y": 22,
+          "w": 70,
+          "h": 11,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "node1",
+          "type": "box",
+          "text": "vfork: shared until exec / _exit",
+          "x": 15,
+          "y": 41,
+          "w": 70,
+          "h": 11,
+          "color": "orange",
+          "at": 1600,
+          "enter": "pop"
+        },
+        {
+          "id": "flow",
+          "type": "arrow",
+          "from": "node0",
+          "to": "node1",
+          "at": 2200,
+          "enter": "draw"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Do not return from a vfork child",
+            "Avoid arbitrary work before exec"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "clone flags say which resources are shared.",
+      "narration": "For clone, inspect the flags instead of calling every child a thread. Sharing memory, descriptor tables, and thread group membership are distinct choices with constraints.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Read the flags",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "text",
+          "text": "# Selected Linux clone flags\nCLONE_VM     # address space\nCLONE_FILES  # descriptor table\nCLONE_THREAD # thread group",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "fork descriptors still share open-file state",
+            "CLONE_THREAD requires other sharing flags"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "posix_spawn avoids an unrestricted application child callback.",
+      "narration": "Posix spawn combines creation, selected file actions, and exec. Modern glibc uses shared memory with vfork semantics, avoiding fork's address space duplication work.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Spawn has a contract",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "text",
+          "text": "# Typical glibc spawn flags:\nCLONE_VM | CLONE_VFORK\n# File actions: close / dup2 / open\n# Then execute the requested program",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Implementation is libc dependent",
+            "It still creates a new process"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Creation chooses what is shared; exec replaces the image; posix_spawn packages a constrained launch.",
+  "sources": [
+    "https://man7.org/linux/man-pages/man3/posix_spawn.3.html",
+    "https://man7.org/linux/man-pages/man2/clone.2.html",
+    "https://man7.org/linux/man-pages/man2/fork.2.html"
+  ]
+}

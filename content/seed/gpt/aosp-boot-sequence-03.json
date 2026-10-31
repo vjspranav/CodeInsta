@@ -1,0 +1,220 @@
+{
+  "version": 1,
+  "title": "Why root cannot rewrite ro properties",
+  "hook": "Why does `setprop` on a `ro.` property fail, and who really owns property_service?",
+  "topic": "aosp/boot/init-property-service",
+  "tags": [
+    "aosp",
+    "properties",
+    "init"
+  ],
+  "level": "intermediate",
+  "series": "aosp-boot-sequence",
+  "series_index": 3,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "An existing ro. property cannot be overwritten with setprop.",
+      "narration": "On a disposable development device, read the build fingerprint, then attempt to replace it. Setprop fails; the exact error text depends on your Android build.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The failed write",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "adb shell getprop ro.build.fingerprint\nadb shell setprop \\\n  ro.build.fingerprint debug\n# Expected: setprop reports failure",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "This property is already initialized",
+            "Root does not make it writable"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "setprop requests a change from init's property service.",
+      "narration": "Setprop is a client. Init owns property_service, which validates the request and updates shared property storage; changing a shell environment variable never changes it.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Who owns the write?",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "node0",
+          "type": "box",
+          "text": "setprop → property socket",
+          "x": 15,
+          "y": 22,
+          "w": 70,
+          "h": 11,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "node1",
+          "type": "box",
+          "text": "init / property_service",
+          "x": 15,
+          "y": 41,
+          "w": 70,
+          "h": 11,
+          "color": "orange",
+          "at": 1600,
+          "enter": "pop"
+        },
+        {
+          "id": "flow",
+          "type": "arrow",
+          "from": "node0",
+          "to": "node1",
+          "at": 2200,
+          "enter": "draw"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Read access uses shared property data",
+            "Write requests cross a policy boundary"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Permission checks and write-once behavior are separate gates.",
+      "narration": "The caller needs permission for the property's labeled type. Even an authorized caller cannot replace an existing read only property through the normal service.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Two separate checks",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "pseudocode",
+          "text": "// property_service.cpp logic\nif (property_exists && starts_ro) {\n    return READ_ONLY_ERROR;\n}\n// Simplified, not a patch",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "SELinux controls who may set a name",
+            "ro. means write once, not root only"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Change the defining build or boot input, then boot the new image.",
+      "narration": "For a permanent change, locate the build or boot input producing the property. Rebuild and boot the appropriate image, then verify the value again.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Fix the producer",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "# AOSP checkout: locate producer\nrg 'ro.build.fingerprint' build\n# After the updated image boots:\nadb shell getprop ro.build.fingerprint",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Use a writable property for runtime state",
+            "persist. does not bypass write permissions"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "ro. properties are write-once through property_service; root does not override that rule.",
+  "sources": [
+    "https://android.googlesource.com/platform/system/core/+/refs/heads/main/init/property_service.cpp"
+  ]
+}

@@ -1,0 +1,233 @@
+{
+  "version": 1,
+  "title": "Stop logging inside signal handlers",
+  "hook": "Why are signal handlers so dangerous, and what is `signalfd` or `sigaction` safety?",
+  "topic": "os/process/signals-gotchas",
+  "tags": [
+    "os",
+    "signals",
+    "linux"
+  ],
+  "level": "intermediate",
+  "series": "os-syscalls-and-processes",
+  "series_index": 3,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "A handler can interrupt code while its internal state is inconsistent.",
+      "narration": "A service hangs during shutdown after logging inside its signal handler. The handler may have interrupted library code; calling printf or malloc there is unsafe.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "A shutdown deadlock",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "c",
+          "text": "// Unsafe handler\nvoid stop(int sig) {\n    printf(\"stopping\\\\n\");\n    /* malloc is unsafe here too */\n}",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "sigaction does not make calls safe",
+            "Avoid locks and complex cleanup"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Keep the handler minimal and perform cleanup in normal control flow.",
+      "narration": "For a simple single threaded loop, install a handler with sigaction that only sets a volatile signal atomic flag. The main loop handles cleanup.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Set a flag",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "c",
+          "text": "#include <signal.h>\nstatic volatile sig_atomic_t stop;\nstatic void on_term(int sig) {\n    stop = 1;\n}",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Initialize sigaction and its mask",
+            "A flag alone will not wake blocked I/O"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Linux signalfd moves signal handling into an ordinary read loop.",
+      "narration": "Alternatively, block the chosen signals before creating threads and read them from signalfd. Handle termination in the event loop, where ordinary cleanup is allowed.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Use an event source",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "c",
+          "text": "sigemptyset(&mask);\nsigaddset(&mask, SIGTERM);\npthread_sigmask(SIG_BLOCK, &mask, 0);\nfd = signalfd(-1, &mask, SFD_CLOEXEC);\n/* check errors; read signalfd_siginfo */",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Block these signals in every thread",
+            "Watch the descriptor with poll or epoll"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Signal delivery is not the same thing as a completed shutdown.",
+      "narration": "Send termination while the service is busy and watch it exit. Check interrupted system calls deliberately; restart behavior depends on the call and handler flags.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Exercise the shutdown",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "kill -TERM \"$pid\"\n# In the event loop:\n# read signal → stop accepting work\n# drain bounded work → exit",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 30,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "signal",
+          "type": "box",
+          "text": "SIGTERM",
+          "x": 8,
+          "y": 56,
+          "w": 35,
+          "h": 11,
+          "color": "blue",
+          "at": 1800,
+          "enter": "pop"
+        },
+        {
+          "id": "loop",
+          "type": "box",
+          "text": "Event loop",
+          "x": 57,
+          "y": 56,
+          "w": 35,
+          "h": 11,
+          "color": "orange",
+          "at": 2600,
+          "enter": "pop"
+        },
+        {
+          "id": "flow",
+          "type": "arrow",
+          "from": "signal",
+          "to": "loop",
+          "at": 3400,
+          "enter": "draw"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Test busy and idle paths",
+            "Standard signals may coalesce"
+          ],
+          "x": 8,
+          "y": 76,
+          "w": 84,
+          "h": 20,
+          "color": "green",
+          "at": 4400,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Use a minimal sigaction handler, or block signals and consume them through signalfd in normal code.",
+  "sources": [
+    "https://man7.org/linux/man-pages/man7/signal-safety.7.html",
+    "https://man7.org/linux/man-pages/man2/signalfd.2.html"
+  ]
+}

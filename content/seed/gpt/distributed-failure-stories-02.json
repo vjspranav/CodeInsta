@@ -1,0 +1,220 @@
+{
+  "version": 1,
+  "title": "Measure the retry amplification",
+  "hook": "How do naive retries turn a blip into an outage, and why is jitter essential?",
+  "topic": "distributed/failures/retry-storms-backoff-jitter",
+  "tags": [
+    "distributed",
+    "retries",
+    "jitter"
+  ],
+  "level": "intermediate",
+  "series": "distributed-failure-stories",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "Retries can multiply across layers and overload a recovering dependency.",
+      "narration": "A dependency slows down, so each layer retries. If three layers each make three attempts, one request can cause twenty seven attempts at the bottom.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "A small blip grows",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "text",
+          "text": "# Worst case: all attempts fail\nclient: 3 attempts\nservice: 3 attempts per client call\nstorage: 3 attempts per service call\n3 * 3 * 3 = 27",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Count attempts, not just logical requests",
+            "Centralize retry ownership"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Transport captures and application metrics answer different questions.",
+      "narration": "Capture the lab endpoint while injecting failures. TCP retransmissions are not application retries; use request identifiers and server counters to measure actual request amplification.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "See the traffic",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "sudo tcpdump -ni lo \\\n  'tcp port 8080' \\\n  -w retry-lab.pcap\n# Match request IDs in app logs",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Use the interface carrying lab traffic",
+            "Encrypted packets do not expose request IDs"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "Exponential backoff without jitter can synchronize clients.",
+      "narration": "Use a capped exponential window and draw a random delay within it. Bound attempts and the total deadline; backoff alone does not limit accumulated retry load.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Spread the attempts",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "pseudocode",
+          "text": "# Full-jitter policy pseudocode\nwindow = min(cap, base * 2**attempt)\ndelay = uniform(0, window)\nif delay >= deadline_remaining:\n    stop_retrying()\nelse: sleep(delay)",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Add a retry budget or token bucket",
+            "Respect applicable server retry guidance"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "A timeout does not mean the remote operation never committed.",
+      "narration": "A timed out payment may already have committed. Reuse an idempotency key and stored result; retry only appropriate failures, then compare recovery time and request counts.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Retry safely",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "node0",
+          "type": "box",
+          "text": "Timeout: outcome unknown",
+          "x": 15,
+          "y": 22,
+          "w": 70,
+          "h": 11,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "node1",
+          "type": "box",
+          "text": "Idempotency key: same logical operation",
+          "x": 15,
+          "y": 41,
+          "w": 70,
+          "h": 11,
+          "color": "orange",
+          "at": 1600,
+          "enter": "pop"
+        },
+        {
+          "id": "flow",
+          "type": "arrow",
+          "from": "node0",
+          "to": "node1",
+          "at": 2200,
+          "enter": "draw"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Test recovery under many clients",
+            "Avoid retries at every layer"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Bound retries by attempts and deadline, add jitter, and retry side effects only with idempotency.",
+  "sources": [
+    "https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/"
+  ]
+}

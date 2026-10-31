@@ -1,8 +1,8 @@
 "use client";
 import { motion, useReducedMotion } from "framer-motion";
-import { useId, useLayoutEffect, useRef, useState } from "react";
-import type { ReelElement } from "@/lib/reel-schema";
+import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { center, type Frame } from "./timeline";
+import { fitScene, labelRect, routeArrow, type Rect } from "./stage-layout";
 const palette = {
   blue: "#78b7ff",
   green: "#76e4b4",
@@ -26,167 +26,9 @@ function Code({ text }: { text: string }) {
     </pre>
   );
 }
-function Element({
-  element: e,
-  elements,
-  elapsed,
-  marker,
-  bounds,
-}: {
-  element: ReelElement;
-  elements: ReelElement[];
-  elapsed: number;
-  marker: string;
-  bounds: Record<string, { x: number; y: number; w: number; h: number }>;
-}) {
-  const reduced = useReducedMotion();
-  const position = (id: string) =>
-    bounds[id]
-      ? {
-          x: bounds[id].x + bounds[id].w / 2,
-          y: bounds[id].y + bounds[id].h / 2,
-        }
-      : center(id, elements);
-  if (elapsed < e.at) return null;
-  const color = palette[e.color ?? "blue"];
-  if (e.type === "arrow") {
-    const a = position(e.from),
-      b = position(e.to);
-    return (
-      <svg className="diagram-arrow" viewBox="0 0 100 177.778">
-        <defs>
-          <marker
-            id={marker + e.id}
-            markerWidth="5"
-            markerHeight="5"
-            refX="4"
-            refY="2.5"
-            orient="auto"
-          >
-            <path d="M0 0 L5 2.5 L0 5" fill={color} />
-          </marker>
-        </defs>
-        <motion.path
-          d={`M${a.x} ${a.y * 1.77778} L${b.x} ${b.y * 1.77778}`}
-          stroke={color}
-          strokeWidth=".6"
-          fill="none"
-          markerEnd={`url(#${marker + e.id})`}
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 0.35 }}
-        />
-        {e.label && (
-          <text
-            x={(a.x + b.x) / 2}
-            y={(a.y + b.y) * 0.88889 - 2}
-            textAnchor="middle"
-            fill={color}
-            fontSize="3"
-          >
-            {e.label}
-          </text>
-        )}
-      </svg>
-    );
-  }
-  if (e.type === "highlight") {
-    const target = elements.find((item) => item.id === e.target),
-      pos = position(e.target);
-    return (
-      <motion.div
-        className="highlight"
-        style={{
-          left: `${bounds[e.target]?.x ?? (target && "x" in target ? target.x : pos.x - 10)}%`,
-          top: `${bounds[e.target]?.y ?? (target && "y" in target ? target.y : pos.y - 5)}%`,
-          width: `${bounds[e.target]?.w ?? (target && "w" in target ? (target.w ?? 30) : 20)}%`,
-          height: `${bounds[e.target]?.h ?? (target && "h" in target ? (target.h ?? 8) : 10)}%`,
-          borderColor: color,
-        }}
-        animate={
-          reduced
-            ? { opacity: 1 }
-            : { opacity: [0.3, 1, 0.3], scale: [1, 1.05, 1] }
-        }
-        transition={{ repeat: reduced ? 0 : Infinity, duration: 1.1 }}
-      />
-    );
-  }
-  const initial =
-    e.enter === "pop"
-      ? { opacity: 0, scale: 0.75 }
-      : e.enter === "slide-up"
-        ? { opacity: 0, y: 15 }
-        : { opacity: 0 };
-  return (
-    <motion.div
-      className={`element element-${e.type}`}
-      data-element-id={e.id}
-      initial={initial}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ duration: 0.23 }}
-      style={{
-        left: `${e.x}%`,
-        top: `${e.y}%`,
-        width: `${Math.min(e.w ?? 100 - e.x, 100 - e.x)}%`,
-        ...(e.h ? { height: `${e.h}%` } : {}),
-        color,
-        borderColor: color,
-        backgroundColor: e.type === "box" ? `${color}18` : undefined,
-      }}
-    >
-      {e.type === "code" ? (
-        <>
-          <small>{e.lang}</small>
-          <Code text={e.text} />
-        </>
-      ) : e.type === "list" ? (
-        <ul>
-          {e.items.map((item, i) => (
-            <li key={i}>{item}</li>
-          ))}
-        </ul>
-      ) : (
-        e.text
-      )}
-    </motion.div>
-  );
-}
-export function Stage({ frame, elapsed }: { frame: Frame; elapsed: number }) {
-  const marker = useId().replace(/:/g, "");
-  const stage = useRef<HTMLDivElement>(null);
-  const [bounds, setBounds] = useState<
-    Record<string, { x: number; y: number; w: number; h: number }>
-  >({});
-  const visibleCount = frame.elements.filter((e) => e.at <= elapsed).length;
-  useLayoutEffect(() => {
-    const root = stage.current;
-    if (!root) return;
-    const measure = () => {
-      if (!root.clientWidth || !root.clientHeight) return;
-      const next: typeof bounds = {};
-      root
-        .querySelectorAll<HTMLElement>("[data-element-id]")
-        .forEach((node) => {
-          next[node.dataset.elementId!] = {
-            x: (node.offsetLeft / root.clientWidth) * 100,
-            y: (node.offsetTop / root.clientHeight) * 100,
-            w: (node.offsetWidth / root.clientWidth) * 100,
-            h: (node.offsetHeight / root.clientHeight) * 100,
-          };
-        });
-      setBounds((previous) =>
-        JSON.stringify(previous) === JSON.stringify(next) ? previous : next,
-      );
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(root);
-    root
-      .querySelectorAll("[data-element-id]")
-      .forEach((node) => observer.observe(node));
-    return () => observer.disconnect();
-  }, [frame, visibleCount]);
+
+function Captions({ frame, elapsed }: { frame: Frame; elapsed: number }) {
+  const root = useRef<HTMLDivElement>(null);
   const current = Math.max(
     0,
     frame.words.findIndex(
@@ -195,53 +37,315 @@ export function Stage({ frame, elapsed }: { frame: Frame; elapsed: number }) {
         (i === frame.words.length - 1 || elapsed < frame.words[i + 1].start_ms),
     ),
   );
-  const start = Math.floor(current / 7) * 7;
+  const [window, setWindow] = useState({ start: 0, end: 7 });
+  useLayoutEffect(() => {
+    const node = root.current;
+    if (!node) return;
+    const measure = () => {
+      const style = getComputedStyle(node);
+      const canvas = document.createElement("canvas").getContext("2d");
+      if (!canvas) return;
+      canvas.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+      let start = Math.max(0, current - 3),
+        end = Math.min(frame.words.length, start + 7);
+      start = Math.max(0, end - 7);
+      const fits = () => {
+        let lines = 1,
+          used = 0;
+        for (let i = start; i < end; i++) {
+          const width = canvas.measureText(frame.words[i].w + " ").width + 6;
+          if (used + width > node.clientWidth) {
+            lines++;
+            used = 0;
+          }
+          used += width;
+        }
+        return lines <= 2;
+      };
+      while (end - start > 1 && !fits()) {
+        if (current - start > end - 1 - current) start++;
+        else end--;
+      }
+      setWindow({ start, end });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [current, frame.words]);
   return (
-    <>
-      <div className="stage" ref={stage}>
-        {frame.card ? (
-          <motion.div
-            className={`hook-card ${frame.card}`}
-            initial={{ scale: 0.86, opacity: 0.5 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.22 }}
-          >
-            <span>
-              {frame.card === "hook"
-                ? "A question worth a minute"
-                : frame.card === "next"
-                  ? "Next in this series"
-                  : "Take this with you"}
-            </span>
-            <h2>{frame.text}</h2>
-            {frame.card === "takeaway" && (
-              <span className="completion">✓ Concept unlocked</span>
-            )}
-          </motion.div>
-        ) : (
-          frame.elements.map((e) => (
-            <Element
-              key={e.id}
-              element={e}
-              elements={frame.elements}
-              elapsed={elapsed}
-              marker={marker}
-              bounds={bounds}
-            />
-          ))
-        )}
-      </div>
-      <div className="captions" aria-label={frame.caption}>
-        {frame.words.slice(start, start + 7).map((word, i) => (
-          <span
-            key={start + i}
-            className={start + i === current ? "spoken" : ""}
-          >
-            {word.w}{" "}
+    <div className="captions" ref={root} aria-label={frame.caption}>
+      {frame.words.slice(window.start, window.end).map((word, i) => (
+        <span
+          key={window.start + i}
+          className={window.start + i === current ? "spoken" : ""}
+        >
+          {word.w}{" "}
+        </span>
+      ))}
+      {!frame.words.length && frame.caption}
+    </div>
+  );
+}
+export function Stage({ frame, elapsed }: { frame: Frame; elapsed: number }) {
+  const marker = useId().replace(/:/g, "");
+  const reduced = useReducedMotion();
+  const stage = useRef<HTMLDivElement>(null);
+  const [layout, setLayout] = useState<{
+    bounds: Record<string, Rect>;
+    width: number;
+    height: number;
+    labels: Record<string, number>;
+  }>({ bounds: {}, width: 0, height: 0, labels: {} });
+  useLayoutEffect(() => {
+    const root = stage.current;
+    if (!root) return;
+    const measure = () => {
+      // Measure every authored element, including later entrances, to avoid layout jumps.
+      const bounds: Record<string, Rect> = Object.create(null);
+      root
+        .querySelectorAll<HTMLElement>("[data-element-id]")
+        .forEach((node) => {
+          bounds[node.dataset.elementId!] = {
+            x: node.offsetLeft,
+            y: node.offsetTop,
+            w: node.offsetWidth,
+            h: node.offsetHeight,
+          };
+        });
+      const labels: Record<string, number> = Object.create(null);
+      root
+        .querySelectorAll<HTMLElement>("[data-arrow-label]")
+        .forEach((node) => {
+          labels[node.dataset.arrowLabel!] = node.offsetHeight;
+        });
+      const next = {
+        bounds,
+        width: root.clientWidth,
+        height: root.clientHeight,
+        labels,
+      };
+      setLayout((prev) =>
+        JSON.stringify(prev) === JSON.stringify(next) ? prev : next,
+      );
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(root);
+    root
+      .querySelectorAll("[data-element-id], [data-arrow-label]")
+      .forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
+  }, [frame]);
+  const { width, height } = layout,
+    unit = width / 100;
+  const { resolve, arrows, fit } = useMemo(() => {
+    const { bounds, width, height } = layout,
+      unit = width / 100;
+    const resolve = (id: string, visited = new Set<string>()): Rect => {
+      if (bounds[id]) return bounds[id];
+      const e = frame.elements.find((e) => e.id === id);
+      if (e?.type === "highlight" && !visited.has(id)) {
+        visited.add(id);
+        return resolve(e.target, visited);
+      }
+      const p = center(id, frame.elements);
+      return { x: (p.x * width) / 100, y: (p.y * height) / 100, w: 0, h: 0 };
+    };
+    const rects = Object.values(bounds);
+    const arrows = frame.elements
+      .filter((e) => e.type === "arrow")
+      .map((e) => {
+        const source = resolve(e.from),
+          target = resolve(e.to);
+        const route = routeArrow(
+          source,
+          target,
+          rects.filter((r) => r !== source && r !== target),
+          unit || 1,
+        );
+        const label = e.label
+          ? labelRect(
+              route.point(0.5),
+              route.normal,
+              Math.min(80, e.label.length * 1.9 + 5) * unit,
+              layout.labels[e.id] ||
+                (Math.ceil(e.label.length / 38) * 4.3 + 2) * unit,
+              rects,
+            )
+          : undefined;
+        return { e, route, label };
+      });
+    const fit = fitScene(
+      [
+        ...rects,
+        ...arrows.flatMap((a) => [
+          ...a.route.points.map((p) => ({ ...p, w: unit * 2, h: unit * 2 })),
+          ...(a.label ? [a.label] : []),
+        ]),
+      ],
+      width,
+      height,
+    );
+    return { resolve, arrows, fit };
+  }, [layout, frame.elements]);
+  return (
+    <div className="stage" ref={stage}>
+      {frame.card ? (
+        <motion.div
+          className={`hook-card ${frame.card}`}
+          initial={reduced ? false : { scale: 0.86, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.42, ease: "easeOut" }}
+        >
+          <span>
+            {frame.card === "hook"
+              ? "A question worth a minute"
+              : frame.card === "next"
+                ? "Next in this series"
+                : "Take this with you"}
           </span>
-        ))}
-        {!frame.words.length && frame.caption}
-      </div>
-    </>
+          <h2>{frame.text}</h2>
+          {frame.card === "takeaway" && (
+            <span className="completion">✓ Concept unlocked</span>
+          )}
+        </motion.div>
+      ) : (
+        <div
+          className="scene-content"
+          style={{
+            transform: `translate(${fit.x}px, ${fit.y}px) scale(${fit.scale})`,
+          }}
+        >
+          <svg
+            className="diagram-arrow"
+            width={width}
+            height={height}
+            aria-hidden="true"
+          >
+            {arrows.map(({ e, route, label }, index) => {
+              const color = palette[e.color ?? "blue"];
+              return (
+                <g
+                  key={e.id}
+                  visibility={elapsed < e.at ? "hidden" : "visible"}
+                >
+                  <defs>
+                    <marker
+                      id={marker + index}
+                      markerWidth="6"
+                      markerHeight="6"
+                      refX="6"
+                      refY="3"
+                      orient="auto"
+                    >
+                      <path d="M0 0 L6 3 L0 6 Z" fill={color} />
+                    </marker>
+                  </defs>
+                  <motion.path
+                    d={route.d}
+                    stroke={color}
+                    strokeWidth={unit * 0.55}
+                    fill="none"
+                    markerEnd={`url(#${marker + index})`}
+                    initial={false}
+                    animate={{ pathLength: elapsed < e.at ? 0 : 1 }}
+                    transition={{ duration: reduced ? 0 : 0.35 }}
+                  />
+                  {label && (
+                    <foreignObject
+                      x={label.x}
+                      y={label.y}
+                      width={label.w}
+                      height={label.h}
+                    >
+                      <div
+                        className="arrow-label"
+                        data-arrow-label={e.id}
+                        style={{ color }}
+                      >
+                        {e.label}
+                      </div>
+                    </foreignObject>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+          {frame.elements.map((e) => {
+            if (e.type === "arrow") return null;
+            const color = palette[e.color ?? "blue"],
+              visible = elapsed >= e.at;
+            if (e.type === "highlight") {
+              const r = resolve(e.target);
+              return (
+                <motion.div
+                  key={e.id}
+                  className="highlight"
+                  style={{
+                    left: r.x,
+                    top: r.y,
+                    width: r.w,
+                    height: r.h,
+                    borderColor: color,
+                    visibility: visible ? "visible" : "hidden",
+                  }}
+                  animate={
+                    reduced ? { opacity: 1 } : { opacity: [0.3, 1, 0.3] }
+                  }
+                  transition={{ repeat: reduced ? 0 : Infinity, duration: 1.1 }}
+                />
+              );
+            }
+            return (
+              <motion.div
+                key={e.id}
+                className={`element element-${e.type}`}
+                data-element-id={e.id}
+                aria-hidden={!visible}
+                initial={false}
+                animate={{
+                  opacity: visible ? 1 : 0,
+                  scale: !visible && e.enter === "pop" && !reduced ? 0.75 : 1,
+                  y: !visible && e.enter === "slide-up" && !reduced ? 15 : 0,
+                }}
+                transition={{ duration: reduced ? 0 : 0.23 }}
+                style={{
+                  left: `${e.x}%`,
+                  top: `${e.y}%`,
+                  width: `${Math.max(1, Math.min(e.w ?? 100 - e.x, 100 - e.x))}%`,
+                  minHeight:
+                    e.h && e.type !== "code" && e.type !== "list"
+                      ? `${e.h}%`
+                      : undefined,
+                  color,
+                  borderColor: color,
+                  backgroundColor:
+                    e.type === "box"
+                      ? `color-mix(in srgb, ${color} 12%, #101520)`
+                      : undefined,
+                }}
+              >
+                {e.type === "code" ? (
+                  <>
+                    <small>{e.lang}</small>
+                    <Code text={e.text} />
+                  </>
+                ) : e.type === "list" ? (
+                  <ul>
+                    {e.items.map((item, i) => (
+                      <li key={i}>{item}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  e.text
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+      <Captions frame={frame} elapsed={elapsed} />
+    </div>
   );
 }

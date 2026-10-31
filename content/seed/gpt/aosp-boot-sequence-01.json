@@ -1,0 +1,220 @@
+{
+  "version": 1,
+  "title": "Debug the verified boot chain",
+  "hook": "How does verified boot chain trust from ROM to `vbmeta` to your system image?",
+  "topic": "aosp/boot/avb-boot-chain",
+  "tags": [
+    "aosp",
+    "avb",
+    "boot"
+  ],
+  "level": "intermediate",
+  "series": "aosp-boot-sequence",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "A modified image can fail before Android starts.",
+      "narration": "Your rebuilt system image never reaches Android. Start with verified boot state when available; bootloader logs matter when the device cannot boot.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Read the boot state",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "adb shell getprop \\\n  ro.boot.verifiedbootstate\nadb shell getprop \\\n  ro.boot.vbmeta.device_state",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Record locked versus unlocked",
+            "An unlocked boot is not proof of trust"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "vbmeta describes what must be verified; it is not the system image.",
+      "narration": "On the build host, inspect vbmeta with avbtool. Follow chained partition descriptors too; system verification may be described in a different metadata image.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Inspect the metadata",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "avbtool info_image \\\n  --image vbmeta.img\n# Inspect each referenced vbmeta\n# Hash / Hashtree / Chain descriptors",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Match the flashed build artifacts",
+            "Descriptors identify verified partitions"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "ROM trust and the bootloader's accepted AVB key anchor different steps.",
+      "narration": "Device specific firmware verification reaches the bootloader. Its accepted AVB key authenticates vbmeta; signed descriptors bind images or delegate trust to another key.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Follow the trust",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "node0",
+          "type": "box",
+          "text": "ROM → verified bootloader",
+          "x": 15,
+          "y": 22,
+          "w": 70,
+          "h": 11,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "node1",
+          "type": "box",
+          "text": "Accepted key → vbmeta → images",
+          "x": 15,
+          "y": 41,
+          "w": 70,
+          "h": 11,
+          "color": "orange",
+          "at": 1600,
+          "enter": "pop"
+        },
+        {
+          "id": "flow",
+          "type": "arrow",
+          "from": "node0",
+          "to": "node1",
+          "at": 2200,
+          "enter": "draw"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Hashtrees support block verification",
+            "Rollback indexes prevent old versions"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Checking a signature is different from trusting its signer.",
+      "narration": "A signature can be mathematically valid under an untrusted key. Verify against the expected key, and compare rollback metadata with device policy before debugging init.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Verify the right claim",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "avbtool verify_image \\\n  --image vbmeta.img \\\n  --key expected.pem\n# Referenced images must be available",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Expected key is part of the check",
+            "Device rollback state still matters"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Trace the trusted key and descriptors; a valid signature alone does not establish device trust.",
+  "sources": [
+    "https://android.googlesource.com/platform/external/avb/+/master/README.md"
+  ]
+}

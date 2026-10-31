@@ -1,0 +1,220 @@
+{
+  "version": 1,
+  "title": "Find the startup wait with strace",
+  "hook": "How do you use `strace -f -T -e trace=` to find why a program hangs on startup?",
+  "topic": "os/process/strace-syscall-tracing",
+  "tags": [
+    "os",
+    "strace",
+    "linux"
+  ],
+  "level": "intermediate",
+  "series": "os-syscalls-and-processes",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "A launcher may be waiting while its child is doing the real work.",
+      "narration": "Your service hangs before its first log line. Trace the launch with child following enabled, elapsed syscall timing, and a focused syscall filter.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Trace the children",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "strace -f -T -yy \\\n  -e trace=network,read,poll,futex \\\n  -o startup.trace ./server",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "-f follows child processes",
+            "-T times completed syscalls"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "A long poll shows waiting, not necessarily the root cause.",
+      "narration": "Suppose the trace shows a poll returning after five seconds. That proves a wait, not a slow CPU loop; inspect the descriptor and surrounding calls.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Read the evidence",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "trace",
+          "text": "# Illustrative excerpt; fd varies\npoll([{fd=7, events=POLLIN}],\n     1, 5000) = 0 (Timeout)\n     <5.005123>",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "An unfinished call has no final -T yet",
+            "Use -yy to decode descriptor details"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "The syscall boundary connects the symptom to a resource.",
+      "narration": "For a still running process, inspect the descriptor through proc. A socket points toward a network dependency; a futex suggests synchronization, requiring thread stacks.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Map the descriptor",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "inspect",
+          "type": "code",
+          "lang": "sh",
+          "text": "readlink /proc/1234/fd/7\nss -tnp\n# Replace 1234 with the traced PID",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Match PID and descriptor lifetime",
+            "A futex wait alone does not prove deadlock"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Repeat the same startup path after fixing the dependency.",
+      "narration": "Fix the demonstrated dependency, then repeat the same capture. Compare waits and startup time; strace adds overhead and cannot explain every user space stall.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Confirm the repair",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 12,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "node0",
+          "type": "box",
+          "text": "Blocked syscall → dependency",
+          "x": 15,
+          "y": 22,
+          "w": 70,
+          "h": 11,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "node1",
+          "type": "box",
+          "text": "Repair → repeat identical startup",
+          "x": 15,
+          "y": 41,
+          "w": 70,
+          "h": 11,
+          "color": "orange",
+          "at": 1600,
+          "enter": "pop"
+        },
+        {
+          "id": "flow",
+          "type": "arrow",
+          "from": "node0",
+          "to": "node1",
+          "at": 2200,
+          "enter": "draw"
+        },
+        {
+          "id": "checks",
+          "type": "list",
+          "items": [
+            "Broaden the filter if evidence is missing",
+            "CPU spin? Sample stacks with perf"
+          ],
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 3400,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Follow children, identify the blocked syscall, then map its file descriptor to the dependency.",
+  "sources": [
+    "https://man7.org/linux/man-pages/man1/strace.1.html"
+  ]
+}
