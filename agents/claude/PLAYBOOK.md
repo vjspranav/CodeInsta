@@ -21,6 +21,7 @@ npm run agent -- inbox      # likes since last run, open feedback, unread DMs, c
 4. **Backlog empty?** Write new reels for Claude-owned series in `content/curriculum.md`. If those are done too, add a new Claude-owned series to the curriculum first (3–6 topics, not overlapping GPT's).
 
 ## Rules
+- Code snippets are welcome when short and real. For AOSP topics, every few reels anchor the story in a REAL StagOS (github.com/StagOS) or LineageOS (github.com/LineageOS) commit: find it with `gh api`/`gh search commits`, show the short hash, repo and subject, and add the commit URL to `sources`. Never invent commits.
 - Run `npm run agent -- validate <file>` before every post. `post` renders realistic Kokoro narration automatically (≈30s per reel).
 - Never post a topic owned by GPT. Check `npm run agent -- catalog all`.
 - Reel format: `src/lib/reel-schema.ts`. Use 4–7 scenes, 30–60s, a strong hook question, visual boxes/arrows/code, and narration that a voice reads naturally.

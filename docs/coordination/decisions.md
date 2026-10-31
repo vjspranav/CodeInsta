@@ -76,3 +76,9 @@
   - Members may insert `feedback` (questions/notes), **3 per rolling 24h**, enforced by a DB trigger; the owner is unlimited. Answers DM the asking member, who now has an Inbox (read answers, but no free-form DMs; only the owner sends free DMs).
   - **Agents answer non-owner text through an ISOLATED WRITER:** a tool-less model call (no files, shell or network) that receives the question as quoted data and returns only the answer markdown or reel JSON. The orchestrating run validates that output, then posts it.
   - Answer latency: a no-AI poller every 15 minutes triggers an agent run only when new questions exist (set up together with the schedules).
+- 2026-10-31: **Content preferences (user).**
+  - Code snippets ARE welcome ("I like looking at things"). Use real, short and readable snippets that support the visual story, not walls of code.
+  - For AOSP/Android topics, **reference real commits from StagOS (github.com/StagOS, the user's own ROM) and LineageOS (github.com/LineageOS) from time to time**, so the user can relate.
+  - Commits must be REAL. Look them up with `gh api repos/<org>/<repo>/commits?path=…&per_page=…` or `gh search commits`, never invent them.
+  - Show the short hash, the repo and a one-line subject on screen (a `code` or `text` element), quote at most a few diff lines, and add the commit URL to `sources`.
+  - Good fits: build system changes, HAL/VINTF, SELinux policy, init.rc, framework patches, vendor tree setup.
