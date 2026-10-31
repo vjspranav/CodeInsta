@@ -1,0 +1,257 @@
+{
+  "version": 1,
+  "title": "TAGE branch prediction",
+  "hook": "How do TAGE-style predictors guess branches with 95%+ accuracy?",
+  "topic": "architecture/cpu/branch-prediction",
+  "tags": [
+    "architecture",
+    "cpu",
+    "branch-prediction"
+  ],
+  "level": "advanced",
+  "series": "architecture-cpu-internals",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 12500,
+      "caption": "A deep pipeline can't wait: a mispredict flushes roughly 15-20 cycles of work.",
+      "narration": "Branches resolve late in a deep pipeline, so the front end guesses and keeps fetching. A wrong guess flushes the pipeline and costs on the order of fifteen to twenty cycles.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Why prediction matters",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "g",
+          "type": "box",
+          "text": "Predict taken / not",
+          "x": 8,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "f",
+          "type": "box",
+          "text": "Fetch ahead",
+          "x": 56,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "green",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "c",
+          "type": "text",
+          "text": "Wrong guess: flush and refetch.",
+          "x": 8,
+          "y": 43.2,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "red"
+        },
+        {
+          "id": "g-f",
+          "type": "arrow",
+          "from": "g",
+          "to": "f",
+          "at": 1200,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Simple predictors use a table of 2-bit saturating counters indexed by PC.",
+      "narration": "The baseline is a table of two-bit counters indexed by the branch address. It handles biased branches but can't see correlations between nearby branches.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The bimodal baseline",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "s",
+          "type": "list",
+          "items": [
+            "00, 01: predict not taken",
+            "10, 11: predict taken",
+            "Taken: +1, saturate at 11",
+            "Not taken: -1, saturate at 00"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "purple"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "TAGE adds several tagged tables indexed by PC hashed with global history of geometric lengths.",
+      "narration": "TAGE keeps a base predictor plus several tagged tables. Each is indexed by the PC hashed with a different length of global branch history, with lengths forming a geometric series.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Tagged geometric history",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "base",
+          "type": "box",
+          "text": "Base: bimodal by PC",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "h": 11,
+          "color": "gray",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "t1",
+          "type": "box",
+          "text": "T1: short history, tagged",
+          "x": 8,
+          "y": 40.0,
+          "w": 84,
+          "h": 11,
+          "color": "blue",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "t2",
+          "type": "box",
+          "text": "T2..Tn: longer history, tagged",
+          "x": 8,
+          "y": 60.0,
+          "w": 84,
+          "h": 11,
+          "color": "green",
+          "at": 3200,
+          "enter": "pop"
+        },
+        {
+          "id": "base-t1",
+          "type": "arrow",
+          "from": "base",
+          "to": "t1",
+          "at": 2500,
+          "enter": "draw"
+        },
+        {
+          "id": "t1-t2",
+          "type": "arrow",
+          "from": "t1",
+          "to": "t2",
+          "at": 3800,
+          "enter": "draw",
+          "label": "longer"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11500,
+      "caption": "The longest table whose tag matches provides the prediction.",
+      "narration": "On lookup, every table is checked in parallel. The matching entry with the longest history wins and provides the prediction, so rare, long patterns override the simple default.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Longest match wins",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "code",
+          "lang": "text",
+          "text": "hash(PC, hist[0..L]) -> index, tag\nprovider = longest tag match\nelse base predictor",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl-l",
+          "type": "highlight",
+          "target": "l",
+          "at": 2300
+        }
+      ]
+    },
+    {
+      "duration_ms": 13000,
+      "caption": "On a mispredict, TAGE allocates an entry in a longer-history table.",
+      "narration": "When the provider is wrong, the predictor allocates a new entry in a table with longer history, so the next occurrence of that pattern can be learned. Useful bits guard good entries.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Learning",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "u",
+          "type": "list",
+          "items": [
+            "Provider wrong: allocate longer table",
+            "Counter updated on outcome",
+            "Useful bit protects good entries"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "orange"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Targets: BTB. Returns: RAS.",
+          "x": 8,
+          "y": 51.6,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "gray"
+        }
+      ]
+    }
+  ],
+  "takeaway": "TAGE predicts using the longest history that has proved reliable, so it captures both simple biases and long correlations."
+}

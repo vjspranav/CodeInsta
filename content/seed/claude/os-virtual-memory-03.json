@@ -1,0 +1,265 @@
+{
+  "version": 1,
+  "title": "Anatomy of a page fault",
+  "hook": "What exactly happens, step by step, on a minor vs major page fault?",
+  "topic": "os/memory/page-fault-lifecycle",
+  "tags": [
+    "os",
+    "memory",
+    "page-fault",
+    "linux"
+  ],
+  "level": "intermediate",
+  "series": "os-virtual-memory",
+  "series_index": 3,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "The CPU raises #PF (vector 14), puts the address in CR2, and Linux enters exc_page_fault.",
+      "narration": "An access with no usable translation raises a page fault. The address lands in CR2, and Linux enters exc_page_fault.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "From faulting access to handler",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 13,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "acc",
+          "type": "box",
+          "text": "load/store, no valid PTE",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 9,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "pf",
+          "type": "box",
+          "text": "#PF: CR2 = address",
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "h": 9,
+          "color": "red",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "acc",
+          "to": "pf",
+          "at": 2000,
+          "enter": "draw"
+        },
+        {
+          "id": "call",
+          "type": "code",
+          "lang": "c",
+          "text": "exc_page_fault()\n -> do_user_addr_fault()\n -> handle_mm_fault()",
+          "x": 8,
+          "y": 56,
+          "w": 84,
+          "h": 16.2,
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "The handler finds the VMA covering the address; no VMA or wrong permissions means SIGSEGV.",
+      "narration": "First the kernel looks up the VMA covering the address. If none exists, or the access violates its permissions, the process gets SIGSEGV.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Is this access legal?",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "chk",
+          "type": "list",
+          "items": [
+            "Find the VMA covering the address",
+            "No VMA: SIGSEGV (SEGV_MAPERR)",
+            "Write to read-only VMA: SEGV_ACCERR",
+            "Stack VMA may grow downward"
+          ],
+          "x": 8,
+          "y": 24,
+          "w": 84,
+          "h": 34.4,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "chk",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "handle_pte_fault dispatches on the PTE's state.",
+      "narration": "Otherwise handle_pte_fault inspects the PTE. Empty entries are demand-zero or file-backed, swap entries are read back, and write-protected ones are copy-on-write.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "handle_pte_fault dispatch",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "cases",
+          "type": "list",
+          "items": [
+            "pte_none, anonymous: do_anonymous_page (zeroed page)",
+            "pte_none, file VMA: do_fault, then do_read_fault",
+            "swap entry: do_swap_page",
+            "write to read-only PTE: do_wp_page"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 38.8,
+          "at": 500,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Minor: page already in RAM, just fix the PTE. Major: wait for disk or swap I/O.",
+      "narration": "A minor fault finds the page already in memory and only fixes the PTE. A major fault must wait for disk or swap I/O.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Minor vs major",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "min",
+          "type": "box",
+          "text": "Minor: page in RAM, map it, no I/O",
+          "x": 8,
+          "y": 24,
+          "w": 40,
+          "h": 20,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "maj",
+          "type": "box",
+          "text": "Major: read from disk or swap, task sleeps",
+          "x": 52,
+          "y": 24,
+          "w": 40,
+          "h": 20,
+          "color": "orange",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "cnt",
+          "type": "text",
+          "text": "Counted as ru_minflt and ru_majflt in getrusage.",
+          "x": 8,
+          "y": 54,
+          "w": 84,
+          "h": 10.8,
+          "at": 5500,
+          "enter": "fade",
+          "color": "gray"
+        },
+        {
+          "id": "perf",
+          "type": "code",
+          "lang": "bash",
+          "text": "perf stat -e minor-faults,major-faults",
+          "x": 8,
+          "y": 70,
+          "w": 84,
+          "h": 11.8,
+          "at": 7500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "After the PTE is set the faulting instruction re-executes and the access succeeds.",
+      "narration": "The handler returns, the same instruction runs again, and this time the page walk finds a valid entry.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Retry the instruction",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "fin",
+          "type": "list",
+          "items": [
+            "Set PTE: present, accessed, dirty if write",
+            "Return from the exception",
+            "Faulting instruction re-executes",
+            "Walk succeeds, TLB is filled"
+          ],
+          "x": 8,
+          "y": 24,
+          "w": 84,
+          "h": 34.4,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "fin",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "A page fault is a kernel lookup: validate the VMA, populate the PTE, then retry. Only major faults pay for I/O.",
+  "sources": [
+    "https://docs.kernel.org/mm/process_addrs.html"
+  ]
+}

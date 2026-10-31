@@ -1,0 +1,299 @@
+{
+  "version": 1,
+  "title": "execve and ELF loading",
+  "hook": "What does the kernel do with an ELF on `execve`, and who runs `ld.so`?",
+  "topic": "linkers/loader/execve-elf-loading",
+  "tags": [
+    "linkers",
+    "kernel",
+    "execve"
+  ],
+  "level": "advanced",
+  "series": "linkers-elf-internals",
+  "series_index": 6,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "execve reaches load_elf_binary through the binfmt handler list.",
+      "narration": "The execve syscall builds a linux_binprm, reads the first bytes, and asks each registered binary format handler. The ELF handler is load_elf_binary in fs/binfmt_elf.c.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "From syscall to handler",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "sys",
+          "type": "box",
+          "text": "execve",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "h": 11,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "bp",
+          "type": "box",
+          "text": "bprm_execve, search_binary_handler",
+          "x": 8,
+          "y": 40.0,
+          "w": 84,
+          "h": 11,
+          "color": "orange",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "elf",
+          "type": "box",
+          "text": "load_elf_binary()",
+          "x": 8,
+          "y": 60.0,
+          "w": 84,
+          "h": 11,
+          "color": "green",
+          "at": 3200,
+          "enter": "pop"
+        },
+        {
+          "id": "sys-bp",
+          "type": "arrow",
+          "from": "sys",
+          "to": "bp",
+          "at": 2500,
+          "enter": "draw"
+        },
+        {
+          "id": "bp-elf",
+          "type": "arrow",
+          "from": "bp",
+          "to": "elf",
+          "at": 3800,
+          "enter": "draw",
+          "label": "magic 0x7f ELF"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "The kernel maps each PT_LOAD, sets up the brk, and maps the PT_INTERP too.",
+      "narration": "It tears down the old address space and maps each PT_LOAD with the right permissions. If there's a PT_INTERP, such as ld-linux, it maps that interpreter as well.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "What load_elf_binary does",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "st",
+          "type": "list",
+          "items": [
+            "Read ELF + program headers",
+            "begin_new_exec: drop old mm",
+            "Map every PT_LOAD, zero .bss",
+            "Open and map PT_INTERP",
+            "create_elf_tables on stack"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "blue"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "The new stack holds argc, argv, envp and the auxiliary vector.",
+      "narration": "On the new stack the kernel pushes argc, argv and envp, followed by the auxiliary vector. AT_PHDR, AT_ENTRY and AT_BASE tell ld.so where everything is.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Initial stack",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "stk",
+          "type": "code",
+          "lang": "text",
+          "text": "argc | argv[] | envp[]\nAT_PHDR  program headers\nAT_ENTRY program entry\nAT_BASE  ld.so base",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "dbg",
+          "type": "text",
+          "text": "LD_SHOW_AUXV=1 ./a.out",
+          "x": 8,
+          "y": 47.6,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "gray"
+        },
+        {
+          "id": "hl-stk",
+          "type": "highlight",
+          "target": "stk",
+          "at": 3600
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Userspace begins at the interpreter's entry, not at your _start.",
+      "narration": "With an interpreter present, the kernel starts the thread at ld.so's entry point. It relocates itself, mmaps each DT_NEEDED library, and applies relocations.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Who runs ld.so",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "k",
+          "type": "box",
+          "text": "Kernel: start_thread",
+          "x": 8,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "ld",
+          "type": "box",
+          "text": "ld.so entry",
+          "x": 56,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "green",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "w",
+          "type": "text",
+          "text": "ld.so: self-relocate, load DT_NEEDED, relocate, run init arrays.",
+          "x": 8,
+          "y": 43.2,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade"
+        },
+        {
+          "id": "k-ld",
+          "type": "arrow",
+          "from": "k",
+          "to": "ld",
+          "at": 1200,
+          "enter": "draw",
+          "label": "IP = ld.so"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Finally ld.so jumps to AT_ENTRY: _start, __libc_start_main, main.",
+      "narration": "When everything is bound, ld.so jumps to the program's entry from AT_ENTRY. That's _start, which calls __libc_start_main, which finally calls main.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Handoff to your program",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "a",
+          "type": "box",
+          "text": "ld.so jumps to AT_ENTRY",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "h": 11,
+          "color": "green",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "_start -> __libc_start_main",
+          "x": 8,
+          "y": 40.0,
+          "w": 84,
+          "h": 11,
+          "color": "purple",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "main(argc, argv)",
+          "x": 8,
+          "y": 60.0,
+          "w": 84,
+          "h": 11,
+          "color": "blue",
+          "at": 3200,
+          "enter": "pop"
+        },
+        {
+          "id": "a-b",
+          "type": "arrow",
+          "from": "a",
+          "to": "b",
+          "at": 2500,
+          "enter": "draw"
+        },
+        {
+          "id": "b-c",
+          "type": "arrow",
+          "from": "b",
+          "to": "c",
+          "at": 3800,
+          "enter": "draw"
+        }
+      ]
+    }
+  ],
+  "takeaway": "The kernel maps segments and the interpreter; ld.so, running in userspace, finishes dynamic linking before main.",
+  "sources": [
+    "https://man7.org/linux/man-pages/man2/execve.2.html",
+    "https://man7.org/linux/man-pages/man8/ld.so.8.html"
+  ]
+}

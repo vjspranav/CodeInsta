@@ -1,0 +1,271 @@
+{
+  "version": 1,
+  "title": "SCHED_FIFO, SCHED_RR and SCHED_DEADLINE",
+  "hook": "How do SCHED_FIFO, SCHED_RR and SCHED_DEADLINE differ, and how does admission control work?",
+  "topic": "os/scheduling/realtime-fifo-deadline",
+  "tags": [
+    "os",
+    "scheduling",
+    "real-time",
+    "deadline"
+  ],
+  "level": "advanced",
+  "series": "os-scheduling",
+  "series_index": 3,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "Scheduling classes are strictly ordered: deadline, then RT (FIFO/RR), then fair, then idle.",
+      "narration": "The kernel checks scheduling classes in strict order: deadline first, then real-time FIFO and RR, then the fair class, and finally idle.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Class order",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "dl",
+          "type": "box",
+          "text": "SCHED_DEADLINE",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 9,
+          "color": "red",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "rt",
+          "type": "box",
+          "text": "SCHED_FIFO / SCHED_RR",
+          "x": 8,
+          "y": 37,
+          "w": 84,
+          "h": 9,
+          "color": "orange",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "fa",
+          "type": "box",
+          "text": "SCHED_NORMAL (fair)",
+          "x": 8,
+          "y": 52,
+          "w": 84,
+          "h": 9,
+          "color": "blue",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "dl",
+          "to": "rt",
+          "at": 3500,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "rt",
+          "to": "fa",
+          "at": 4500,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "SCHED_FIFO: fixed priority 1-99; runs until it blocks, yields or a higher priority arrives.",
+      "narration": "SCHED_FIFO has static priorities from one to ninety-nine. A task runs until it blocks, yields, or a higher-priority task becomes runnable. No timeslice.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "SCHED_FIFO",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "bash",
+          "text": "chrt -f 50 ./task",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 7.4,
+          "at": 500,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "list",
+          "items": [
+            "Priorities 1-99, higher wins",
+            "No timeslice: runs until it blocks",
+            "Same priority: FIFO queue order"
+          ],
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "h": 28.5,
+          "at": 3500,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "SCHED_RR adds a timeslice to FIFO so equal priorities rotate; RT throttling caps total RT time.",
+      "narration": "SCHED_RR adds a time slice so equal-priority tasks rotate, by default one hundred milliseconds. RT throttling normally caps real-time runtime at ninety-five percent.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "SCHED_RR and RT throttling",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "r",
+          "type": "list",
+          "items": [
+            "RR: FIFO plus a slice, default 100 ms",
+            "sched_rt_runtime_us = 950000",
+            "sched_rt_period_us = 1000000"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 24.1,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "r",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "SCHED_DEADLINE gives each task (runtime, deadline, period); EDF picks the earliest absolute deadline.",
+      "narration": "SCHED_DEADLINE declares runtime, deadline and period per task. The kernel runs earliest-deadline-first and a constant bandwidth server stops overruns.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "SCHED_DEADLINE",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "s",
+          "type": "code",
+          "lang": "c",
+          "text": "struct sched_attr {\n  u64 sched_runtime;\n  u64 sched_deadline;\n  u64 sched_period;\n};",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 25,
+          "at": 500,
+          "enter": "fade"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Set with sched_setattr(); EDF plus constant bandwidth server.",
+          "x": 8,
+          "y": 60,
+          "w": 84,
+          "h": 15.2,
+          "at": 4500,
+          "enter": "fade",
+          "color": "gray"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Admission control: sched_setattr fails with EBUSY if total runtime/period would exceed capacity.",
+      "narration": "Admission control checks that the sum of runtime over period fits the available capacity. A task that would overload it is rejected with EBUSY.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Admission control",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "a",
+          "type": "list",
+          "items": [
+            "Need runtime <= deadline <= period",
+            "Sum of runtime/period <= RT limit x CPUs",
+            "Over budget: sched_setattr -> EBUSY"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 32.9,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "ex",
+          "type": "text",
+          "text": "Example: 3 ms every 10 ms reserves 30% of a CPU.",
+          "x": 8,
+          "y": 62,
+          "w": 84,
+          "h": 10.8,
+          "at": 5500,
+          "enter": "fade",
+          "color": "green"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "ex",
+          "at": 7500,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "FIFO and RR trust you with priorities; DEADLINE makes you declare a budget and refuses what the machine cannot guarantee.",
+  "sources": [
+    "https://docs.kernel.org/scheduler/sched-deadline.html",
+    "https://man7.org/linux/man-pages/man7/sched.7.html"
+  ]
+}

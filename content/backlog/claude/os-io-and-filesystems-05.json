@@ -1,0 +1,256 @@
+{
+  "version": 1,
+  "title": "Why epoll scales",
+  "hook": "Why does epoll scale to 100k sockets when select and poll don't?",
+  "topic": "os/io/epoll-readiness-model",
+  "tags": [
+    "os",
+    "io",
+    "epoll",
+    "networking"
+  ],
+  "level": "intermediate",
+  "series": "os-io-and-filesystems",
+  "series_index": 5,
+  "scenes": [
+    {
+      "duration_ms": 12000,
+      "caption": "select and poll pass the whole set on each call and the kernel scans all of it: O(n) per wait.",
+      "narration": "With select and poll, you hand the kernel the entire descriptor set on every call, and it scans all of it. Cost grows with the number of sockets, not activity.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The select/poll problem",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "p",
+          "type": "list",
+          "items": [
+            "Whole fd set copied in each call",
+            "Kernel polls every fd: O(n)",
+            "select: FD_SETSIZE caps at 1024",
+            "Result: scan to find the few ready"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 38.8,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "p",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "epoll splits registering from waiting: add each fd once, then wait many times.",
+      "narration": "epoll splits registration from waiting. You create an instance, add each descriptor once, and then call wait repeatedly without resending anything.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Register once, wait often",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "c",
+          "text": "ep = epoll_create1(0);\nepoll_ctl(ep, EPOLL_CTL_ADD,\n          fd, &ev);\nepoll_wait(ep, evs, max, -1);",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 20.6,
+          "at": 500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "struct eventpoll keeps an rbtree of watched fds and a ready list filled by wakeup callbacks.",
+      "narration": "Inside, struct eventpoll holds an rbtree of watched files and a ready list. When data arrives, ep_poll_callback moves that epitem onto the ready list.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Inside eventpoll",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "socket gets data",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 9,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "cb",
+          "type": "box",
+          "text": "ep_poll_callback()",
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "h": 9,
+          "color": "purple",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "rl",
+          "type": "box",
+          "text": "epitem on rdllist",
+          "x": 8,
+          "y": 54,
+          "w": 84,
+          "h": 9,
+          "color": "green",
+          "at": 4500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "s",
+          "to": "cb",
+          "at": 2000,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "cb",
+          "to": "rl",
+          "at": 4000,
+          "enter": "draw"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "rbtree (rbr) tracks all watched fds.",
+          "x": 8,
+          "y": 70,
+          "w": 84,
+          "h": 10.8,
+          "at": 6500,
+          "enter": "fade",
+          "color": "gray"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "epoll_wait returns only ready events, so cost tracks activity, not registered descriptors.",
+      "narration": "epoll_wait just drains the ready list, so cost tracks the number of active sockets. You can pick level-triggered or edge-triggered delivery.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "O(ready), not O(registered)",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "o",
+          "type": "list",
+          "items": [
+            "epoll_wait drains the ready list",
+            "Level-triggered: default",
+            "EPOLLET: edge-triggered",
+            "EPOLLONESHOT, EPOLLEXCLUSIVE"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 30,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "o",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Gotchas: no regular files, edge-triggered needs nonblocking reads until EAGAIN, thundering herds.",
+      "narration": "Gotchas: epoll rejects regular files, edge-triggered mode needs nonblocking reads until EAGAIN, and shared instances can cause thundering herds.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Gotchas",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "g",
+          "type": "list",
+          "items": [
+            "Regular files: epoll_ctl gives EPERM",
+            "EPOLLET: read until EAGAIN",
+            "Shared epoll fd: thundering herd",
+            "Completion model: see io_uring"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34.4,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "g",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "epoll keeps interest in the kernel and wakes it by callback, so you pay per ready socket instead of per registered one.",
+  "sources": [
+    "https://man7.org/linux/man-pages/man7/epoll.7.html"
+  ]
+}

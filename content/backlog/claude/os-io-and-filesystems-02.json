@@ -1,0 +1,262 @@
+{
+  "version": 1,
+  "title": "Page cache, writeback and fsync",
+  "hook": "How does the page cache decide when dirty pages hit disk, and what does `fsync` force?",
+  "topic": "os/io/page-cache-writeback",
+  "tags": [
+    "os",
+    "filesystems",
+    "page-cache",
+    "fsync"
+  ],
+  "level": "intermediate",
+  "series": "os-io-and-filesystems",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "write() copies into page cache pages and marks them dirty; it returns without disk I/O.",
+      "narration": "A write copies your data into page cache pages and marks them dirty. It returns long before anything reaches the disk.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "write() hits RAM first",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "w",
+          "type": "box",
+          "text": "write(fd, buf, n)",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 9,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "p",
+          "type": "box",
+          "text": "page cache folio: dirty",
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "h": 9,
+          "color": "orange",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "d",
+          "type": "box",
+          "text": "disk, later",
+          "x": 8,
+          "y": 54,
+          "w": 84,
+          "h": 9,
+          "color": "gray",
+          "at": 4500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "w",
+          "to": "p",
+          "label": "copy",
+          "at": 2000,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "p",
+          "to": "d",
+          "label": "writeback",
+          "at": 4000,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Dirtiness is tracked per page and tagged in the address_space's xarray.",
+      "narration": "Each dirty page is flagged and also tagged in the file's address_space xarray, so the flusher can find dirty pages without scanning everything.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Tracking dirty pages",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "t",
+          "type": "list",
+          "items": [
+            "PG_dirty flag on the folio",
+            "PAGECACHE_TAG_DIRTY in i_pages",
+            "Per-device flusher threads (wb_workfn)"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 24.1,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "t",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Background writeback starts at dirty_background_ratio, writers are throttled at dirty_ratio.",
+      "narration": "Flushers start at the background ratio, ten percent by default. At twenty percent writers are throttled, and pages older than thirty seconds get written.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "When pages are written",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "v",
+          "type": "list",
+          "items": [
+            "dirty_background_ratio = 10",
+            "dirty_ratio = 20: throttle writers",
+            "dirty_expire_centisecs = 3000",
+            "dirty_writeback_centisecs = 500"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34.4,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "v",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "fsync writes the file's dirty data and metadata, flushes the device cache, and waits.",
+      "narration": "fsync forces the file's dirty pages and needed metadata out, issues a device cache flush, and blocks until the device confirms. fdatasync skips unneeded metadata.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "What fsync forces",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "list",
+          "items": [
+            "Write file's dirty pages",
+            "Commit metadata via the journal",
+            "Flush the device write cache (FUA/flush)",
+            "Wait for completion"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34.4,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "ext4_sync_file() is the ext4 entry.",
+          "x": 8,
+          "y": 66,
+          "w": 84,
+          "h": 10.8,
+          "at": 6500,
+          "enter": "fade",
+          "color": "gray"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Write errors surface once through errseq_t, so check fsync's return value.",
+      "narration": "Background writeback errors are reported once, through errseq_t, at fsync. Ignoring its return value can silently lose data.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Failure semantics",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "e",
+          "type": "list",
+          "items": [
+            "errseq_t reports error per open file",
+            "Check fsync's return value",
+            "O_DIRECT bypasses the cache",
+            "/proc/meminfo: Dirty, Writeback"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34.4,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "e",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "A successful write() only means the data is in RAM; durability needs fsync and a checked return value.",
+  "sources": [
+    "https://docs.kernel.org/admin-guide/sysctl/vm.html",
+    "https://man7.org/linux/man-pages/man2/fsync.2.html"
+  ]
+}

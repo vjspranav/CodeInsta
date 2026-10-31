@@ -1,0 +1,342 @@
+{
+  "version": 1,
+  "title": "Why fork() of 10 GB is instant",
+  "hook": "How can `fork()` of a 10 GB process be instant?",
+  "topic": "os/memory/copy-on-write-fork",
+  "tags": [
+    "os",
+    "memory",
+    "fork",
+    "copy-on-write"
+  ],
+  "level": "intermediate",
+  "series": "os-virtual-memory",
+  "series_index": 4,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "fork() copies VMAs and page tables, not the data pages.",
+      "narration": "fork copies the page tables and VMAs, not the data. Parent and child point at the very same physical frames.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "fork copies mappings, not memory",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 13,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "par",
+          "type": "box",
+          "text": "Parent PTEs",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "chi",
+          "type": "box",
+          "text": "Child PTEs",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "at": 1000,
+          "enter": "pop"
+        },
+        {
+          "id": "frm",
+          "type": "box",
+          "text": "Same physical frames",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 10,
+          "color": "orange",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "par",
+          "to": "frm",
+          "at": 2500,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "chi",
+          "to": "frm",
+          "at": 3000,
+          "enter": "draw"
+        },
+        {
+          "id": "fn",
+          "type": "text",
+          "text": "dup_mmap() -> copy_page_range()",
+          "x": 8,
+          "y": 66,
+          "w": 84,
+          "h": 10.8,
+          "at": 5000,
+          "enter": "fade",
+          "color": "gray"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Writable private PTEs are write-protected in both processes and page refcounts are bumped.",
+      "narration": "For private writable mappings, both PTEs are made read-only and the page's reference and map counts go up. Cost scales with page tables, not data.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Share, but read-only",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "st",
+          "type": "list",
+          "items": [
+            "Private writable PTEs: write-protected in parent and child",
+            "struct page refcount and mapcount incremented",
+            "Cost tracks page-table size, not data size",
+            "File-backed VMAs with no anon pages can be refaulted"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 43.2,
+          "at": 500,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "A write to a read-only PTE faults, and handle_pte_fault routes it to do_wp_page.",
+      "narration": "Later, either process writes. The PTE is present but read-only, so the CPU faults and the kernel calls do_wp_page.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The first write faults",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "wr",
+          "type": "box",
+          "text": "child writes to shared page",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 9,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "pf",
+          "type": "box",
+          "text": "#PF: present, write, read-only PTE",
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "h": 14,
+          "color": "red",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "wp",
+          "type": "box",
+          "text": "do_wp_page()",
+          "x": 8,
+          "y": 60,
+          "w": 84,
+          "h": 9,
+          "color": "purple",
+          "at": 4500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "wr",
+          "to": "pf",
+          "at": 2000,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "pf",
+          "to": "wp",
+          "at": 4000,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "do_wp_page reuses the page if only one process owns it; otherwise wp_page_copy copies it.",
+      "narration": "If the page is exclusively owned, the kernel just makes the PTE writable. If it is still shared, wp_page_copy allocates, copies, and remaps.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Reuse or copy",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "ex",
+          "type": "box",
+          "text": "Exclusive owner",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 14,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "sh",
+          "type": "box",
+          "text": "Shared with other process",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 14,
+          "color": "orange",
+          "at": 1000,
+          "enter": "pop"
+        },
+        {
+          "id": "re",
+          "type": "box",
+          "text": "Make PTE writable",
+          "x": 8,
+          "y": 44,
+          "w": 40,
+          "h": 14,
+          "color": "green",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "cp",
+          "type": "box",
+          "text": "wp_page_copy: alloc, copy, remap",
+          "x": 52,
+          "y": 44,
+          "w": 40,
+          "h": 18,
+          "color": "orange",
+          "at": 4500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "ex",
+          "to": "re",
+          "at": 2500,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "sh",
+          "to": "cp",
+          "at": 4000,
+          "enter": "draw"
+        },
+        {
+          "id": "ae",
+          "type": "text",
+          "text": "Since Linux 5.19, PageAnonExclusive marks exclusively owned anon pages.",
+          "x": 8,
+          "y": 70,
+          "w": 84,
+          "h": 15.2,
+          "at": 6500,
+          "enter": "fade",
+          "color": "gray"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Fork is cheap up front; the cost moves to later write faults.",
+      "narration": "So fork is fast now and pays later. Redis snapshotting is the classic case: writes during BGSAVE copy pages and memory use grows.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Where the cost went",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "list",
+          "items": [
+            "fork: copy page tables, scales with mapped memory",
+            "First write to each shared page: copy 4 KiB",
+            "Redis BGSAVE: parent writes make memory grow",
+            "exec after fork discards the copies entirely"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 43.2,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Copy-on-write defers the copying until a write proves it is needed, so fork pays for page tables, not data.",
+  "sources": [
+    "https://man7.org/linux/man-pages/man2/fork.2.html"
+  ]
+}

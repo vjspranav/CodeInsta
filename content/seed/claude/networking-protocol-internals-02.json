@@ -1,0 +1,311 @@
+{
+  "version": 1,
+  "title": "Why TCP has TIME_WAIT",
+  "hook": "Why does TCP have TIME_WAIT, and what does it protect?",
+  "topic": "networking/tcp/state-machine-time-wait",
+  "tags": [
+    "networking",
+    "tcp",
+    "linux"
+  ],
+  "level": "intermediate",
+  "series": "networking-protocol-internals",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "The closer ends in TIME_WAIT for 2 x MSL before the 4-tuple is free.",
+      "narration": "The side that sends the first FIN walks through FIN_WAIT_1 and FIN_WAIT_2, and finally sits in TIME_WAIT after sending the last ACK.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Active close",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "e",
+          "type": "box",
+          "text": "ESTABLISHED",
+          "x": 8,
+          "y": 20,
+          "w": 38,
+          "h": 8,
+          "color": "gray",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "f1",
+          "type": "box",
+          "text": "FIN_WAIT_1",
+          "x": 54,
+          "y": 20,
+          "w": 38,
+          "h": 8,
+          "color": "blue",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "f2",
+          "type": "box",
+          "text": "FIN_WAIT_2",
+          "x": 8,
+          "y": 40,
+          "w": 38,
+          "h": 8,
+          "color": "blue",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "tw",
+          "type": "box",
+          "text": "TIME_WAIT",
+          "x": 54,
+          "y": 40,
+          "w": 38,
+          "h": 8,
+          "color": "orange",
+          "at": 3500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "e",
+          "to": "f1",
+          "at": 1500,
+          "enter": "draw",
+          "label": "send FIN"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "f1",
+          "to": "f2",
+          "at": 2500,
+          "enter": "draw",
+          "label": "recv ACK"
+        },
+        {
+          "id": "a3",
+          "type": "arrow",
+          "from": "f2",
+          "to": "tw",
+          "at": 3500,
+          "enter": "draw",
+          "label": "FIN, send ACK"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Reason 1: the final ACK may be lost, and the peer will resend FIN.",
+      "narration": "If our last ACK is lost, the peer retransmits its FIN from LAST_ACK. We must still exist to answer, or it gets a reset.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Protection 1",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "a",
+          "type": "box",
+          "text": "Closer: TIME_WAIT",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 10,
+          "color": "orange",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "Peer: LAST_ACK",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "last ACK  ---X  (lost)\nFIN again ----->\nACK again <-----",
+          "x": 8,
+          "y": 42,
+          "w": 84,
+          "at": 2500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Without the state, the peer sees RST and an error.",
+          "x": 8,
+          "y": 68,
+          "w": 84,
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Reason 2: late packets from the old connection must not hit a new one.",
+      "narration": "A delayed segment from the old connection could arrive after a new connection reuses the same 4-tuple. Waiting twice the maximum segment lifetime lets it expire.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Protection 2",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "(src ip, src port,\n dst ip, dst port)",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "A delayed old segment with matching sequence numbers could be accepted by a new connection on the same tuple.",
+          "x": 8,
+          "y": 42,
+          "w": 84,
+          "at": 3000,
+          "enter": "fade",
+          "color": "red"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 5000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "On Linux the timer is a fixed 60 seconds; ss lists the sockets.",
+      "narration": "Linux fixes TIME_WAIT at sixty seconds, a compile-time constant. You can count the sockets with ss.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "On Linux",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "ss -tan state time-wait | wc -l\n# TCP_TIMEWAIT_LEN = 60*HZ",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Burns the 4-tuple, not much memory",
+            "Ports run out on busy clients",
+            "Server-side TIME_WAIT is usually harmless"
+          ],
+          "x": 8,
+          "y": 42,
+          "w": 84,
+          "at": 3500,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "tcp_tw_reuse lets outgoing connects reuse them safely using timestamps.",
+      "narration": "For clients that exhaust ports, tcp_tw_reuse allows reusing a TIME_WAIT socket for new outgoing connections, relying on TCP timestamps to reject old segments.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Mitigations",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "net.ipv4.tcp_tw_reuse",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Needs TCP timestamps enabled",
+            "Applies to outgoing connections",
+            "Better: connection pooling"
+          ],
+          "x": 8,
+          "y": 36,
+          "w": 84,
+          "at": 3000,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "TIME_WAIT keeps the closer around for 2 x MSL so a lost final ACK can be re-sent and stray old segments cannot corrupt a new connection.",
+  "sources": [
+    "https://www.rfc-editor.org/rfc/rfc9293"
+  ]
+}

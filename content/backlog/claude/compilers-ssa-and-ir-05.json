@@ -1,0 +1,285 @@
+{
+  "version": 1,
+  "title": "Leaving SSA: lost copy and swap",
+  "hook": "What are the 'lost copy' and 'swap' problems when leaving SSA form?",
+  "topic": "compilers/ssa/out-of-ssa-lost-copy",
+  "tags": [
+    "compilers",
+    "ssa",
+    "backend"
+  ],
+  "level": "advanced",
+  "series": "compilers-ssa-and-ir",
+  "series_index": 5,
+  "scenes": [
+    {
+      "duration_ms": 11000,
+      "caption": "Hardware has no phi, so leaving SSA turns each phi into copies on the incoming edges.",
+      "narration": "Hardware has no phi. To leave SSA, a phi becomes a copy at the end of each predecessor block, and naive versions of this go wrong.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Eliminating phis",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "p",
+          "type": "code",
+          "lang": "text",
+          "text": "x3 = phi(x1 : A, x2 : B)",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "at": 1300
+        },
+        {
+          "id": "a",
+          "type": "box",
+          "text": "A: ... x3 = x1",
+          "x": 6,
+          "y": 34,
+          "w": 40,
+          "h": 10,
+          "color": "blue",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "B: ... x3 = x2",
+          "x": 54,
+          "y": 34,
+          "w": 40,
+          "h": 10,
+          "color": "blue",
+          "enter": "pop",
+          "at": 2900
+        },
+        {
+          "id": "j",
+          "type": "box",
+          "text": "join: use x3",
+          "x": 30,
+          "y": 54,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "enter": "pop",
+          "at": 3700
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "a",
+          "to": "j",
+          "enter": "draw",
+          "at": 4500
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "b",
+          "to": "j",
+          "enter": "draw",
+          "at": 5300
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "Lost copy: a copy inserted at the end of the loop body overwrites a value still needed after the exit.",
+      "narration": "Lost copy: the phi's copy lands at the end of the loop body. When the loop exits, x2 already holds x3, so the later use reads the wrong value.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Lost copy",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "code",
+          "lang": "text",
+          "text": "L: x2 = phi(x1, x3)\n   x3 = x2 + 1\n   x2 = x3     ; copy on back edge\n   if c goto L\nuse(x2)  ; wants OLD x2",
+          "x": 6,
+          "y": 18,
+          "w": 88,
+          "enter": "slide-up",
+          "at": 1300
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "The copy clobbers x2 on the exit path too.",
+          "x": 8,
+          "y": 48,
+          "w": 84,
+          "enter": "fade",
+          "color": "red",
+          "at": 2100
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "Swap: phis are parallel, but sequential copies make the second one read an overwritten value.",
+      "narration": "Swap: two phis read each other's old values simultaneously. Emitting them sequentially makes both equal b2, destroying the swap.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Swap problem",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "code",
+          "lang": "text",
+          "text": "L: a2 = phi(a1, b2)\n   b2 = phi(b1, a2)",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "at": 1300
+        },
+        {
+          "id": "bad",
+          "type": "code",
+          "lang": "text",
+          "text": "a2 = b2\nb2 = a2   ; reads new a2!",
+          "x": 8,
+          "y": 36,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "red",
+          "at": 2100
+        },
+        {
+          "id": "ok",
+          "type": "code",
+          "lang": "text",
+          "text": "t = a2\na2 = b2\nb2 = t",
+          "x": 8,
+          "y": 54,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "green",
+          "at": 2900
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "The fixes: split critical edges, treat phis as one parallel copy, and break cycles with a temporary.",
+      "narration": "Split critical edges so copies get their own block, treat a block's phis as one parallel copy, and break cycles with a temporary.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "The fixes",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Split critical edges: copies get a safe home",
+            "Phis of a block = one parallel copy",
+            "Sequentialize it; a cycle needs a temp",
+            "Or copy phi results into fresh temps first"
+          ],
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "purple",
+          "at": 1300
+        }
+      ]
+    },
+    {
+      "duration_ms": 9500,
+      "caption": "LLVM's PHIElimination pass lowers phis in machine IR, and the register allocator coalesces most copies away.",
+      "narration": "In LLVM, the PHIElimination pass does this on machine IR, splitting critical edges as needed. Register coalescing later removes many inserted copies.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "In LLVM",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "p",
+          "type": "box",
+          "text": "PHIElimination",
+          "x": 8,
+          "y": 20,
+          "w": 40,
+          "h": 10,
+          "color": "purple",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "r",
+          "type": "box",
+          "text": "Coalescing",
+          "x": 52,
+          "y": 20,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "p",
+          "to": "r",
+          "enter": "draw",
+          "label": "copies",
+          "at": 2900
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "llvm/lib/CodeGen/PHIElimination.cpp",
+          "x": 8,
+          "y": 44,
+          "w": 84,
+          "enter": "fade",
+          "color": "gray",
+          "at": 3700
+        }
+      ]
+    }
+  ],
+  "takeaway": "Lowering phis is a parallel copy, not a sequence of independent assignments, which is why critical edges must be split and cycles broken with temporaries.",
+  "sources": [
+    "https://llvm.org/docs/CodeGenerator.html"
+  ]
+}

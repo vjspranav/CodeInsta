@@ -1,0 +1,262 @@
+{
+  "version": 1,
+  "title": "EPT and the two-dimensional page walk",
+  "hook": "How do EPT or NPT make a two-dimensional page walk and what is the cost?",
+  "topic": "virtualization/memory/ept-nested-paging",
+  "tags": [
+    "virtualization",
+    "ept",
+    "memory"
+  ],
+  "level": "advanced",
+  "series": "virtualization-internals",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 12000,
+      "caption": "Two translations: the guest maps GVA to GPA, the hypervisor maps GPA to HPA.",
+      "narration": "A guest OS thinks its physical addresses are real. With EPT, the guest page tables give a guest physical address, and a second table set maps that to host physical.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Two stages",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "gva",
+          "type": "box",
+          "text": "Guest virtual address",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "h": 11,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "gpa",
+          "type": "box",
+          "text": "Guest physical address",
+          "x": 8,
+          "y": 40.0,
+          "w": 84,
+          "h": 11,
+          "color": "purple",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "hpa",
+          "type": "box",
+          "text": "Host physical address",
+          "x": 8,
+          "y": 60.0,
+          "w": 84,
+          "h": 11,
+          "color": "green",
+          "at": 3200,
+          "enter": "pop"
+        },
+        {
+          "id": "gva-gpa",
+          "type": "arrow",
+          "from": "gva",
+          "to": "gpa",
+          "at": 2500,
+          "enter": "draw",
+          "label": "guest CR3"
+        },
+        {
+          "id": "gpa-hpa",
+          "type": "arrow",
+          "from": "gpa",
+          "to": "hpa",
+          "at": 3800,
+          "enter": "draw",
+          "label": "EPTP"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "Every guest page-table pointer is itself a GPA that needs its own EPT walk.",
+      "narration": "The hard part is that guest page tables hold guest physical addresses. Each of the four guest levels must be translated through the EPT before it can even be read.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Why it nests",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "n",
+          "type": "list",
+          "items": [
+            "Guest L4 entry: a GPA, walk EPT",
+            "Guest L3 entry: a GPA, walk EPT",
+            "Guest L2, L1: same again",
+            "Final data GPA: walk EPT once more"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "orange"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11500,
+      "caption": "Worst case with 4 levels each: 24 memory references for one TLB miss.",
+      "narration": "With four guest levels and four EPT levels, each guest step costs four EPT reads plus its own read. Five steps of five, minus one, is twenty-four references.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The cost",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "m",
+          "type": "code",
+          "lang": "text",
+          "text": "(4 + 1) * (4 + 1) - 1 = 24",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "c",
+          "type": "text",
+          "text": "Native 4-level walk: 4 references.",
+          "x": 8,
+          "y": 35.9,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "gray"
+        },
+        {
+          "id": "hl-m",
+          "type": "highlight",
+          "target": "m",
+          "at": 3600
+        }
+      ]
+    },
+    {
+      "duration_ms": 11500,
+      "caption": "TLBs cache the combined GVA to HPA result; huge pages shorten both walks.",
+      "narration": "In practice, the TLB caches the final combined translation, and paging-structure caches skip upper levels. Backing guests with 2 MiB or 1 GiB pages shortens the EPT walk.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Taming the walk",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "t",
+          "type": "list",
+          "items": [
+            "TLB holds GVA -> HPA directly",
+            "Paging-structure caches skip levels",
+            "2M/1G EPT pages: fewer levels"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12500,
+      "caption": "A missing EPT entry raises an EPT violation exit; the host fills it lazily.",
+      "narration": "If the EPT has no mapping, the CPU takes an EPT violation exit. KVM's MMU allocates or faults in the host page and resumes. The same trap mechanism powers dirty logging.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "EPT violations",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "gpf",
+          "type": "box",
+          "text": "Guest touches unmapped GPA",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "h": 11,
+          "color": "red",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "kv",
+          "type": "box",
+          "text": "EPT violation exit -> KVM maps host page",
+          "x": 8,
+          "y": 40.0,
+          "w": 84,
+          "h": 14.2,
+          "color": "blue",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "d",
+          "type": "text",
+          "text": "AMD calls it NPT, with nCR3.",
+          "x": 8,
+          "y": 63.2,
+          "w": 84,
+          "at": 3200,
+          "enter": "fade",
+          "color": "gray"
+        },
+        {
+          "id": "gpf-kv",
+          "type": "arrow",
+          "from": "gpf",
+          "to": "kv",
+          "at": 2500,
+          "enter": "draw",
+          "label": "exit"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Nested paging removes shadow page tables but makes a TLB miss up to 24 loads, so TLBs and huge pages carry the performance.",
+  "sources": [
+    "https://www.kernel.org/doc/html/latest/virt/kvm/x86/mmu.html"
+  ]
+}

@@ -1,0 +1,240 @@
+{
+  "version": 1,
+  "title": "Paxos prepare and accept",
+  "hook": "How do Paxos prepare and accept phases choose exactly one value?",
+  "topic": "distributed/consensus/paxos-single-decree",
+  "tags": [
+    "distributed",
+    "paxos",
+    "consensus"
+  ],
+  "level": "advanced",
+  "series": "distributed-consensus",
+  "series_index": 3,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "Proposers suggest values, acceptors vote, and a value is chosen once a majority accepts it.",
+      "narration": "Single-decree Paxos picks one value. Proposers send numbered proposals, and a value is chosen once a majority of acceptors accept it.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Roles",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "p",
+          "type": "box",
+          "text": "Proposer",
+          "x": 8,
+          "y": 20,
+          "w": 34,
+          "h": 10,
+          "color": "blue",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "a",
+          "type": "box",
+          "text": "Acceptors (2f+1)",
+          "x": 52,
+          "y": 20,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "p",
+          "to": "a",
+          "enter": "draw",
+          "label": "proposals n",
+          "at": 2900
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Safe with any failures; live while a majority is up.",
+          "x": 8,
+          "y": 44,
+          "w": 84,
+          "enter": "fade",
+          "color": "gray",
+          "at": 3700
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Phase 1: a promise to ignore lower-numbered proposals, plus any value already accepted.",
+      "narration": "In phase one the proposer sends Prepare n. An acceptor promises to ignore lower numbers, and reports the highest proposal it already accepted.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Prepare / Promise",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "on Prepare(n):\n  if n > promised:\n    promised = n\n    reply Promise(n,\n      acceptedN, acceptedV)",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "at": 1300
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Phase 2: the proposer must re-propose the highest accepted value reported, if any.",
+      "narration": "With a majority of promises, the proposer must propose the highest-numbered accepted value reported. Only if there is none may it choose its own.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Accept",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "v = value of highest acceptedN\n    among promises, else own\nsend Accept(n, v)\n\non Accept(n, v):\n  if n >= promised:\n    accept; reply Accepted",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "at": 1300
+        }
+      ]
+    },
+    {
+      "duration_ms": 8500,
+      "caption": "Any two majorities overlap, so a later proposal always sees a chosen value.",
+      "narration": "Any two majorities share an acceptor. A later prepare quorum must include one that accepted the chosen value, forcing re-proposal.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Quorum overlap",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "a1",
+          "type": "box",
+          "text": "A1: accepted v",
+          "x": 8,
+          "y": 18,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "a2",
+          "type": "box",
+          "text": "A2: accepted v",
+          "x": 52,
+          "y": 18,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "a3",
+          "type": "box",
+          "text": "A3: empty",
+          "x": 30,
+          "y": 38,
+          "w": 40,
+          "h": 10,
+          "color": "gray",
+          "enter": "pop",
+          "at": 2900
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Any 2 of 3 include A1 or A2, so v survives.",
+          "x": 8,
+          "y": 58,
+          "w": 84,
+          "enter": "fade",
+          "color": "orange",
+          "at": 3700
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "a2",
+          "at": 4500
+        }
+      ]
+    },
+    {
+      "duration_ms": 9500,
+      "caption": "Dueling proposers can livelock, so real systems elect a distinguished proposer.",
+      "narration": "Safety never depends on timing, but liveness does. Dueling proposers can livelock, so systems elect a leader. Acceptors persist state before replying.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Liveness",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Safety holds under any message loss",
+            "Dueling proposers can livelock",
+            "Fix: one distinguished proposer",
+            "Acceptors fsync promised/accepted first"
+          ],
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "purple",
+          "at": 1300
+        }
+      ]
+    }
+  ],
+  "takeaway": "Prepare blocks stale proposals and discovers earlier accepts; accept must reuse the highest accepted value, so quorum overlap guarantees only one value is ever chosen.",
+  "sources": [
+    "https://lamport.azurewebsites.net/pubs/paxos-simple.pdf"
+  ]
+}

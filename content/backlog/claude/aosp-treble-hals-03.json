@@ -1,0 +1,287 @@
+{
+  "version": 1,
+  "title": "HIDL versus stable AIDL",
+  "hook": "Why did Google deprecate HIDL for stable AIDL HALs?",
+  "topic": "aosp/hal/hidl-vs-aidl",
+  "tags": [
+    "aosp",
+    "hal",
+    "aidl",
+    "hidl"
+  ],
+  "level": "intermediate",
+  "series": "aosp-treble-hals",
+  "series_index": 3,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "HIDL had its own language, compiler, transport and service manager.",
+      "narration": "HIDL was a separate stack. Interfaces were written in dot hal files, compiled by hidl-gen, and spoke over hwbinder to a dedicated hwservicemanager.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The HIDL stack",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "h",
+          "type": "box",
+          "text": "IFoo.hal",
+          "x": 15,
+          "y": 20,
+          "w": 70,
+          "h": 9,
+          "color": "orange",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "g",
+          "type": "box",
+          "text": "hidl-gen",
+          "x": 15,
+          "y": 36,
+          "w": 70,
+          "h": 9,
+          "color": "orange",
+          "at": 1800,
+          "enter": "pop"
+        },
+        {
+          "id": "t",
+          "type": "box",
+          "text": "/dev/hwbinder",
+          "x": 15,
+          "y": 52,
+          "w": 70,
+          "h": 9,
+          "color": "orange",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "m",
+          "type": "box",
+          "text": "hwservicemanager",
+          "x": 15,
+          "y": 68,
+          "w": 70,
+          "h": 9,
+          "color": "orange",
+          "at": 4200,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "h",
+          "to": "g",
+          "at": 1500,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "g",
+          "to": "t",
+          "at": 2700,
+          "enter": "draw"
+        },
+        {
+          "id": "a3",
+          "type": "arrow",
+          "from": "t",
+          "to": "m",
+          "at": 3900,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Stable AIDL reuses the same language and binder driver that apps and the framework already use.",
+      "narration": "Stable AIDL reuses the language, compiler and /dev/binder that Android already uses. Marking an interface vintf stable makes it a HAL.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Stable AIDL",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "java",
+          "text": "@VintfStability\ninterface IFoo {\n    int bar();\n}",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 18,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "t",
+          "type": "box",
+          "text": "/dev/binder + servicemanager",
+          "x": 15,
+          "y": 46,
+          "w": 70,
+          "h": 10,
+          "color": "green",
+          "at": 3500,
+          "enter": "pop"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 2500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "AIDL versions are frozen as API snapshots built with aidl_interface.",
+      "narration": "An aidl_interface module in Android.bp declares the interface. Freezing it saves a snapshot under aidl_api, and later versions may only append compatibly.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Versioning",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "aidl_interface {\n    name: \"android.hardware.foo\",\n    srcs: [\"IFoo.aidl\"],\n    stability: \"vintf\",\n    backend: {\n        ndk: { enabled: true },\n    },\n}",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 30,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 4000,
+          "enter": "fade"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Frozen versions live in aidl_api/",
+          "x": 8,
+          "y": 54,
+          "w": 84,
+          "h": 10,
+          "color": "gray",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "AIDL offers Java, C++, NDK and Rust backends; HIDL's tooling was a dead end.",
+      "narration": "With AIDL, one interface gets Java, NDK and Rust bindings, and there is only one IPC stack to maintain. HIDL stopped receiving new features.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Why migrate",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "one IPC stack, one toolchain",
+            "NDK and Rust backends",
+            "stable ABI, frozen versions",
+            "HIDL: no new features"
+          ],
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 32,
+          "color": "green",
+          "at": 500,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 7000,
+      "caption": "New HALs should be AIDL; HIDL is kept for old releases.",
+      "narration": "In practice that means new HALs use stable AIDL, and HIDL survives only for older interfaces.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Direction",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "a",
+          "type": "box",
+          "text": "New HALs: stable AIDL",
+          "x": 15,
+          "y": 24,
+          "w": 70,
+          "h": 10,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "h",
+          "type": "box",
+          "text": "Legacy HALs: HIDL",
+          "x": 15,
+          "y": 44,
+          "w": 70,
+          "h": 10,
+          "color": "orange",
+          "at": 1500,
+          "enter": "pop"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Stable AIDL unified HALs with the framework's IPC stack, adding frozen, versioned interfaces and multi-language bindings, so HIDL was retired.",
+  "sources": [
+    "https://source.android.com/docs/core/architecture/aidl/stable-aidl",
+    "https://source.android.com/docs/core/architecture/hidl"
+  ]
+}

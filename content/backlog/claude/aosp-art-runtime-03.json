@@ -1,0 +1,350 @@
+{
+  "version": 1,
+  "title": "Interpreter, JIT and profiles",
+  "hook": "How does ART mix interpreter, JIT and profile-guided AOT after an app install?",
+  "topic": "aosp/art/jit-profile-guided-compilation",
+  "tags": [
+    "aosp",
+    "art",
+    "jit",
+    "profiles"
+  ],
+  "level": "advanced",
+  "series": "aosp-art-runtime",
+  "series_index": 3,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "After install, the first launches run in the interpreter, counting method hotness.",
+      "narration": "After install the app has little or no compiled code. The first launches run in the interpreter, which counts how often each method runs.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Cold start",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "i",
+          "type": "box",
+          "text": "Install: verify only",
+          "x": 15,
+          "y": 20,
+          "w": 70,
+          "h": 10,
+          "color": "gray",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "box",
+          "text": "Interpreter (nterp)",
+          "x": 15,
+          "y": 38,
+          "w": 70,
+          "h": 10,
+          "color": "blue",
+          "at": 2000,
+          "enter": "pop"
+        },
+        {
+          "id": "h",
+          "type": "box",
+          "text": "hotness counters per method",
+          "x": 15,
+          "y": 56,
+          "w": 70,
+          "h": 10,
+          "color": "orange",
+          "at": 3500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "i",
+          "to": "n",
+          "at": 1800,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "n",
+          "to": "h",
+          "at": 3300,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Hot methods are queued to the JIT and installed in the JIT code cache.",
+      "narration": "When a counter crosses a threshold, the method is queued to the JIT. Its code goes into the JIT code cache for later calls.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "JIT",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "i",
+          "type": "box",
+          "text": "Interpreter",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "j",
+          "type": "box",
+          "text": "JIT compiler",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "orange",
+          "at": 1300,
+          "enter": "pop"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "JIT code cache",
+          "x": 25,
+          "y": 46,
+          "w": 50,
+          "h": 10,
+          "color": "green",
+          "at": 3500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "i",
+          "to": "j",
+          "at": 2000,
+          "enter": "draw",
+          "label": "hot"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "j",
+          "to": "c",
+          "at": 3200,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "A profile saver records hot methods and classes to primary.prof on disk.",
+      "narration": "A profile saver thread periodically writes the hot methods and classes it observed to primary.prof, so the knowledge survives a process restart.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Saving profiles",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "j",
+          "type": "box",
+          "text": "hot methods + classes",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "orange",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "f",
+          "type": "box",
+          "text": "primary.prof",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "purple",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "j",
+          "to": "f",
+          "at": 2500,
+          "enter": "draw",
+          "label": "ProfileSaver"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "/data/misc/profiles/cur/<user>/<pkg>/",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 10,
+          "color": "gray",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "While idle and charging, a background job runs dex2oat with speed-profile.",
+      "narration": "While the phone is idle and charging, a background dexopt job merges the profiles and runs dex2oat with speed-profile, writing optimized code for the next launch.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Background dexopt",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "p",
+          "type": "box",
+          "text": "merged profile",
+          "x": 15,
+          "y": 20,
+          "w": 70,
+          "h": 9,
+          "color": "purple",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "d",
+          "type": "box",
+          "text": "dex2oat speed-profile",
+          "x": 15,
+          "y": 36,
+          "w": 70,
+          "h": 9,
+          "color": "orange",
+          "at": 2000,
+          "enter": "pop"
+        },
+        {
+          "id": "o",
+          "type": "box",
+          "text": "base.odex used next launch",
+          "x": 15,
+          "y": 52,
+          "w": 70,
+          "h": 9,
+          "color": "green",
+          "at": 3500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "p",
+          "to": "d",
+          "at": 1800,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "d",
+          "to": "o",
+          "at": 3300,
+          "enter": "draw"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Condition: idle + charging",
+          "x": 8,
+          "y": 68,
+          "w": 84,
+          "h": 8,
+          "color": "gray",
+          "at": 5000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "Baseline profiles skip the wait by shipping a profile inside the APK.",
+      "narration": "Baseline profiles skip the learning phase. The app ships a profile in its APK, so install-time compilation can start from it.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Baseline profile",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "assets/dexopt/baseline.prof",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 8,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Installed by the profile installer, then compiled",
+          "x": 8,
+          "y": 36,
+          "w": 84,
+          "h": 12,
+          "color": "green",
+          "at": 3000,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "ART starts interpreted, uses the JIT to find hot code, saves profiles, and later recompiles exactly those methods ahead of time.",
+  "sources": [
+    "https://source.android.com/docs/core/runtime/jit-compiler",
+    "https://developer.android.com/topic/performance/baselineprofiles/overview"
+  ]
+}

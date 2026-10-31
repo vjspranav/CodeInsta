@@ -1,0 +1,266 @@
+{
+  "version": 1,
+  "title": "EEVDF: lag and virtual deadlines",
+  "hook": "Why did Linux 6.6 replace CFS with EEVDF, and what is 'lag'?",
+  "topic": "os/scheduling/eevdf-lag-and-deadlines",
+  "tags": [
+    "os",
+    "scheduling",
+    "eevdf",
+    "linux"
+  ],
+  "level": "advanced",
+  "series": "os-scheduling",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "CFS only said who was owed the most; latency needs relied on sleeper bonuses and wakeup heuristics.",
+      "narration": "CFS knew who was owed the most, but latency control relied on heuristics like sleeper bonuses and wakeup granularity. Linux 6.6 replaced it with EEVDF.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Why replace CFS",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "why",
+          "type": "list",
+          "items": [
+            "Fairness: smallest vruntime first",
+            "Latency: heuristics, tunables, sleeper bonus",
+            "6.6: EEVDF, from the 1995 Stoica paper"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 32.9,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "why",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Lag is the service a task is owed: ideal fluid share minus what it actually received.",
+      "narration": "Lag is what a task is owed: the service an ideal fluid scheduler would give it, minus what it received. Positive lag means it is behind.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Lag",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "lag",
+          "type": "code",
+          "lang": "text",
+          "text": "lag_i = V - v_i",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 7.4,
+          "at": 500,
+          "enter": "fade"
+        },
+        {
+          "id": "v",
+          "type": "text",
+          "text": "V is the weighted average vruntime, computed by avg_vruntime().",
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "h": 15.2,
+          "at": 3000,
+          "enter": "fade",
+          "color": "gray"
+        },
+        {
+          "id": "pos",
+          "type": "text",
+          "text": "lag >= 0: task is eligible to run.",
+          "x": 8,
+          "y": 56,
+          "w": 84,
+          "h": 10.8,
+          "at": 5500,
+          "enter": "fade",
+          "color": "green"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "pos",
+          "at": 7000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Among eligible tasks pick the earliest virtual deadline: vruntime plus slice over weight.",
+      "narration": "Eligibility decides who may run; deadlines decide who runs first. A task's virtual deadline is its vruntime plus its slice scaled by weight, and the earliest wins.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Eligible, then earliest deadline",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 13,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "el",
+          "type": "box",
+          "text": "Filter: lag >= 0",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 9,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "dl",
+          "type": "box",
+          "text": "Pick: min virtual deadline",
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "h": 9,
+          "color": "purple",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "el",
+          "to": "dl",
+          "at": 2000,
+          "enter": "draw"
+        },
+        {
+          "id": "d",
+          "type": "code",
+          "lang": "text",
+          "text": "deadline = vruntime\n   + slice / weight",
+          "x": 8,
+          "y": 54,
+          "w": 84,
+          "h": 11.8,
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "A shorter slice means an earlier deadline, so latency is tunable without a bigger CPU share.",
+      "narration": "Latency now has a direct knob. A shorter slice gives an earlier deadline and quicker service, without changing the task's long-run share of CPU.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Latency from slice, not share",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "sl",
+          "type": "list",
+          "items": [
+            "Share: set by weight, from nice",
+            "Latency: set by slice length",
+            "base_slice_ns in debugfs",
+            "Linux 6.12+: per-task slice via sched_attr"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34.4,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "sl",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "An augmented rbtree finds the earliest eligible deadline in O(log n); lag survives sleep.",
+      "narration": "The tree is keyed by deadline, and each subtree tracks its minimum vruntime, so the earliest eligible entry is found in log time. Lag survives sleep.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Data structure",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "ds",
+          "type": "list",
+          "items": [
+            "rbtree ordered by deadline",
+            "Each subtree stores min vruntime",
+            "Descent finds earliest eligible entity",
+            "Lag saved on dequeue, restored on enqueue"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 38.8,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "ds",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "EEVDF replaces fairness-plus-heuristics with a rule: run the earliest-deadline task among those not ahead of their share.",
+  "sources": [
+    "https://lwn.net/Articles/925371/"
+  ]
+}

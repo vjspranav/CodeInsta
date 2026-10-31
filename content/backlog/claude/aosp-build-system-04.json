@@ -1,0 +1,298 @@
+{
+  "version": 1,
+  "title": "How ninja rebuilds only what changed",
+  "hook": "How does ninja know exactly what to rebuild after you touch one header?",
+  "topic": "aosp/build/ninja-incremental",
+  "tags": [
+    "aosp",
+    "ninja",
+    "build"
+  ],
+  "level": "intermediate",
+  "series": "aosp-build-system",
+  "series_index": 4,
+  "scenes": [
+    {
+      "duration_ms": 8000,
+      "caption": "Ninja compares file mtimes along the dependency graph; touching foo.h makes it newer than its objects.",
+      "narration": "Ninja compares modification times along the graph. Touch foo.h and it becomes newer than every object that included it.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Touch one header",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "h",
+          "type": "box",
+          "text": "foo.h (touched)",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "red",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "o",
+          "type": "box",
+          "text": "foo.o (older)",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "orange",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "h",
+          "to": "o",
+          "at": 2500,
+          "enter": "draw",
+          "label": "newer than"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "mtime(input) > mtime(output) => dirty",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 10,
+          "color": "gray",
+          "at": 4000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "But who told ninja that foo.o depends on foo.h? The compiler, via a depfile.",
+      "narration": "The rule has the compiler write a depfile. With deps equals gcc, ninja parses it and stores the header list in its binary deps log.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Discovered deps",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "rule cc\n  command = clang -MD -MF $out.d ...\n  depfile = $out.d\n  deps = gcc",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 18,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 4500,
+          "enter": "fade"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Headers are recorded in .ninja_deps, not re-parsed from makefiles",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 14,
+          "color": "green",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": ".ninja_log stores a hash of each command, so changed flags also trigger a rebuild.",
+      "narration": "The ninja log stores a hash of each command line per output. Change a compiler flag and the hash differs, so the edge rebuilds.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Dirty checks",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "output missing",
+            "input newer than output",
+            "command hash changed",
+            "deps log: header newer"
+          ],
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 28,
+          "color": "red",
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Logs: out/.ninja_log and out/.ninja_deps",
+          "x": 8,
+          "y": 54,
+          "w": 84,
+          "h": 10,
+          "color": "gray",
+          "at": 5000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Dirtiness propagates downstream; restat stops it when an output did not actually change.",
+      "narration": "Dirty marks propagate along edges to dependents. With the restat flag, ninja re-checks the output timestamp after the command and skips downstream work if nothing changed.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Propagation",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "a",
+          "type": "box",
+          "text": "foo.h",
+          "x": 8,
+          "y": 22,
+          "w": 25,
+          "h": 9,
+          "color": "red",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "foo.o",
+          "x": 38,
+          "y": 22,
+          "w": 25,
+          "h": 9,
+          "color": "red",
+          "at": 1800,
+          "enter": "pop"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "libfoo.so",
+          "x": 68,
+          "y": 22,
+          "w": 24,
+          "h": 9,
+          "color": "red",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "a",
+          "to": "b",
+          "at": 1500,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "b",
+          "to": "c",
+          "at": 2700,
+          "enter": "draw"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "restat: unchanged output means downstream stays clean",
+          "x": 8,
+          "y": 44,
+          "w": 84,
+          "h": 14,
+          "color": "green",
+          "at": 4200,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 7000,
+      "caption": "Ask ninja why: -d explain, and -t deps for a given object.",
+      "narration": "Explain mode prints why each edge is dirty, and the deps tool shows recorded dependencies.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "See it yourself",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "bash",
+          "text": "ninja -d explain <target>\nninja -t deps out/foo.o",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 12,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 3000,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Ninja rebuilds from mtimes, a compiler-written depfile log and per-command hashes, so one touched header dirties exactly its dependents.",
+  "sources": [
+    "https://ninja-build.org/manual.html"
+  ]
+}

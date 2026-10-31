@@ -1,0 +1,208 @@
+{
+  "version": 1,
+  "title": "Hindley-Milner inference",
+  "hook": "How does Hindley-Milner infer types with unification and no annotations?",
+  "topic": "compilers/frontend/hindley-milner-inference",
+  "tags": [
+    "compilers",
+    "types",
+    "unification"
+  ],
+  "level": "advanced",
+  "series": "compilers-frontend-theory",
+  "series_index": 4,
+  "scenes": [
+    {
+      "duration_ms": 11000,
+      "caption": "Every unknown gets a fresh type variable, and each operator contributes constraints.",
+      "narration": "To infer fun x arrow x plus one, give x a fresh type variable alpha. Plus has type int to int to int, which constrains alpha.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Constraints",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "fun x -> x + 1\n\nx   : alpha\n(+) : int -> int -> int\nalpha ~ int",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "at": 1300
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Result: int -> int",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "enter": "fade",
+          "color": "green",
+          "at": 2100
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Unification solves constraints: variables bind to types, and constructors must match structurally.",
+      "narration": "Unification solves the equations. A variable binds to a type, matching constructors unify argument by argument, and int against bool is a type error.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Unify",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "unify(a, t):    bind a := t\nunify(T a.., T b..):\n  unify each pair\nunify(int, bool):\n  type error",
+          "x": 6,
+          "y": 18,
+          "w": 88,
+          "enter": "slide-up",
+          "at": 1300
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "The occurs check rejects infinite types such as alpha = alpha -> beta.",
+      "narration": "Before binding a variable, the occurs check ensures it is absent from the other type. That rejects x applied to x, which needs alpha equal to alpha arrow beta.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Occurs check",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "fun x -> x x\n\nx : alpha\nalpha ~ alpha -> beta",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "at": 1300
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "alpha occurs in alpha -> beta: reject.",
+          "x": 8,
+          "y": 42,
+          "w": 84,
+          "enter": "fade",
+          "color": "red",
+          "at": 2100
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "Let-bound names are generalized to polymorphic schemes and instantiated freshly at each use.",
+      "narration": "At a let, free type variables are generalized, so id is polymorphic. Each use instantiates fresh variables, so id one and id true both typecheck.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Let-polymorphism",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "let id = fun x -> x in\n(id 1, id true)   (* ok *)",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "green",
+          "at": 1300
+        },
+        {
+          "id": "bad",
+          "type": "code",
+          "lang": "text",
+          "text": "fun f -> (f 1, f true)\n(* error: f is monomorphic *)",
+          "x": 8,
+          "y": 36,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "red",
+          "at": 2100
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Lambda-bound variables are never generalized.",
+          "x": 8,
+          "y": 56,
+          "w": 84,
+          "enter": "fade",
+          "color": "gray",
+          "at": 2900
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Algorithm W infers principal types; implementations use union-find and levels for speed.",
+      "narration": "Algorithm W yields the principal, most general type. Implementations use union-find for variables and levels for cheap generalization. This core underlies ML and OCaml.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "In practice",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Principal type: most general",
+            "Union-find for type variables",
+            "Levels make generalization cheap",
+            "Worst case is exponential, rare in practice"
+          ],
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "purple",
+          "at": 1300
+        }
+      ]
+    }
+  ],
+  "takeaway": "Hindley-Milner assigns type variables, solves equality constraints by unification with an occurs check, and generalizes at let to infer principal types without annotations."
+}

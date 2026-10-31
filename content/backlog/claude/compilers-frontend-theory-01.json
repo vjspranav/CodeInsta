@@ -1,0 +1,256 @@
+{
+  "version": 1,
+  "title": "From regex to DFA lexing",
+  "hook": "How does a lexer turn a regex into an NFA and then a DFA?",
+  "topic": "compilers/frontend/regex-to-dfa-lexing",
+  "tags": [
+    "compilers",
+    "lexing",
+    "automata"
+  ],
+  "level": "intermediate",
+  "series": "compilers-frontend-theory",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "A lexer is a list of regexes plus two rules: take the longest match, and break ties by rule order.",
+      "narration": "A lexer is one regex per token kind. At each position it takes the longest match, and on a tie the earlier rule wins.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Lexer rules",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "IDENT  [a-z]+",
+            "NUM    [0-9]+",
+            "IF     if   (listed before IDENT)",
+            "Longest match, then rule order"
+          ],
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "blue",
+          "at": 1300
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "Thompson construction builds an NFA from a regex using epsilon transitions for choice and loops.",
+      "narration": "Thompson's construction builds an NFA piece by piece: concatenation chains fragments, alternation splits with epsilon edges, and a star adds a loop. Here, a then b or c, starred.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Regex to NFA: a(b|c)*",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "start",
+          "x": 8,
+          "y": 20,
+          "w": 34,
+          "h": 9,
+          "color": "gray",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "q",
+          "type": "box",
+          "text": "q1",
+          "x": 58,
+          "y": 20,
+          "w": 34,
+          "h": 9,
+          "color": "blue",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "l",
+          "type": "box",
+          "text": "(b|c)* loop",
+          "x": 8,
+          "y": 42,
+          "w": 34,
+          "h": 9,
+          "color": "purple",
+          "enter": "pop",
+          "at": 2900
+        },
+        {
+          "id": "f",
+          "type": "box",
+          "text": "accept",
+          "x": 58,
+          "y": 42,
+          "w": 34,
+          "h": 9,
+          "color": "green",
+          "enter": "pop",
+          "at": 3700
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "s",
+          "to": "q",
+          "enter": "draw",
+          "label": "a",
+          "at": 4500
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "q",
+          "to": "l",
+          "enter": "draw",
+          "label": "eps",
+          "at": 5300
+        },
+        {
+          "id": "a3",
+          "type": "arrow",
+          "from": "l",
+          "to": "f",
+          "enter": "draw",
+          "label": "eps",
+          "at": 6100
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Subset construction makes each DFA state a set of NFA states, using epsilon-closure and move.",
+      "narration": "Subset construction removes nondeterminism. Each DFA state is a set of NFA states, found by following a character and taking the epsilon closure.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Subset construction",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "S0 = eclosure({start})\nfor each DFA state S, char c:\n  T = eclosure(move(S, c))\n  if T is new: add it\n  delta[S][c] = T",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "at": 1300
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Worst case: 2^n DFA states.",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "enter": "fade",
+          "color": "orange",
+          "at": 2100
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Matching runs the DFA, remembering the last accepting position to get the longest match.",
+      "narration": "Running the DFA costs one table lookup per character. Keep scanning until the dead state, remembering the last accepting position for the longest match.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Maximal munch",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "state = 0; last = none\nfor each char c at pos:\n  state = delta[state][c]\n  if state == DEAD: break\n  if accepting[state]:\n    last = pos\nemit token up to last",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "at": 1300
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Tools like flex and re2c do this at build time and emit a ready-made scanner.",
+      "narration": "Generators do this offline. Flex turns a rules file into lex.yy.c with compressed tables, and the DFA can be minimized to cut states.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "In practice",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "bash",
+          "text": "flex scanner.l   # -> lex.yy.c",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "at": 1300
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "flex: compressed transition tables",
+            "re2c: direct-coded switch/goto",
+            "Minimize DFA (Hopcroft)"
+          ],
+          "x": 8,
+          "y": 32,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "green",
+          "at": 2100
+        }
+      ]
+    }
+  ],
+  "takeaway": "A lexer compiles regexes to an NFA, determinizes it by subset construction, and then scans in linear time with longest-match semantics.",
+  "sources": [
+    "https://westes.github.io/flex/manual/",
+    "https://re2c.org/"
+  ]
+}

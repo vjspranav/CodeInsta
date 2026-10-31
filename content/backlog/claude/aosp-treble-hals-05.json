@@ -1,0 +1,228 @@
+{
+  "version": 1,
+  "title": "VNDK and linker namespaces",
+  "hook": "How does the VNDK keep vendor code from linking against private system libraries?",
+  "topic": "aosp/treble/vndk-linker-namespaces",
+  "tags": [
+    "aosp",
+    "treble",
+    "vndk",
+    "linker"
+  ],
+  "level": "advanced",
+  "series": "aosp-treble-hals",
+  "series_index": 5,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "If vendor code links a private system library, a system update can silently break it.",
+      "narration": "If a vendor library links a private system library, any system update that changes it can break the vendor image, which Treble must prevent.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The problem",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "v",
+          "type": "box",
+          "text": "vendor libfoo.so",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "orange",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "system libprivate.so",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "red",
+          "at": 1200,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "v",
+          "to": "s",
+          "at": 2200,
+          "enter": "draw",
+          "label": "DT_NEEDED"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "System update changes libprivate and breaks vendor",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 12,
+          "color": "red",
+          "at": 4000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "The VNDK is the set of system libraries vendor code may use, versioned with the vendor image.",
+      "narration": "The VNDK is a curated set of system libraries vendor code may use. LL-NDK libraries like libc and liblog stay in place; the rest ship in vndk directories.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "What vendor may link",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "LL-NDK: libc, libm, libdl, liblog",
+            "VNDK: /system/lib64/vndk-<ver>",
+            "vendor's own /vendor/lib64"
+          ],
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Everything else in /system/lib64 is private",
+          "x": 8,
+          "y": 52,
+          "w": 84,
+          "h": 10,
+          "color": "red",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "At runtime the dynamic linker resolves libraries per namespace from /linkerconfig/ld.config.txt.",
+      "narration": "At runtime the linker resolves libraries per namespace. A config file lists search paths and which libraries each namespace may reach through links.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Linker namespaces",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "ini",
+          "text": "[vendor]\nnamespace.default.search.paths =\n  /vendor/${LIB}\nnamespace.default.links = system\nnamespace.default.link.system.\n  shared_libs = libc.so:libm.so:...",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 26,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 4500,
+          "enter": "fade"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Config lives at /linkerconfig/ld.config.txt",
+          "x": 8,
+          "y": 52,
+          "w": 84,
+          "h": 10,
+          "color": "gray",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Soong also enforces it at build time with vendor_available, vndk and vendor properties.",
+      "narration": "Soong enforces the same rule at build time. A vendor module can only link libraries marked vendor available or VNDK, otherwise the build fails.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Build-time wall",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "cc_library {\n    name: \"libshared\",\n    vendor_available: true,\n    vndk: { enabled: true },\n}",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 20,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 3500,
+          "enter": "fade"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "vendor: true modules link only these libraries",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 12,
+          "color": "green",
+          "at": 5000,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Treble enforces library boundaries twice: Soong rejects illegal links at build time and linker namespaces refuse them at runtime.",
+  "sources": [
+    "https://source.android.com/docs/core/architecture/vndk"
+  ]
+}

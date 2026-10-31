@@ -1,0 +1,238 @@
+{
+  "version": 1,
+  "title": "How a planner picks a scan",
+  "hook": "How does a query planner use statistics to choose between a seq scan and an index?",
+  "topic": "databases/query/planner-cost-model",
+  "tags": [
+    "databases",
+    "postgres",
+    "query-planner"
+  ],
+  "level": "intermediate",
+  "series": "databases-storage-engines",
+  "series_index": 5,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "ANALYZE samples tables into pg_statistic, visible as pg_stats.",
+      "narration": "ANALYZE samples each table and stores per-column statistics: distinct count, most common values with frequencies, a histogram, and physical correlation.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Statistics",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "ANALYZE orders;\nSELECT * FROM pg_stats\nWHERE tablename='orders';",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "n_distinct",
+            "most_common_vals / freqs",
+            "histogram_bounds, correlation"
+          ],
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "at": 3500,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Selectivity turns a predicate into an estimated row count.",
+      "narration": "For a predicate such as status equals open, the planner looks up its frequency in the most common values. Multiply by total rows to estimate the output.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Selectivity",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "WHERE status = 'open'\nmcv freq = 0.02\nreltuples = 1,000,000",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "r",
+          "type": "box",
+          "text": "rows = 20,000",
+          "x": 8,
+          "y": 50,
+          "w": 84,
+          "h": 10,
+          "color": "green",
+          "at": 4000,
+          "enter": "pop"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "r",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Seq scan cost counts every page and every tuple.",
+      "narration": "A sequential scan costs the number of pages times seq_page_cost plus the number of tuples times cpu_tuple_cost. By default that is 1.0 per page and 0.01 per tuple.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Seq scan cost",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "cost = pages * seq_page_cost\n     + rows * cpu_tuple_cost\n  (1.0 per page, 0.01 per row)",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Independent of selectivity: it reads everything.",
+          "x": 8,
+          "y": 54,
+          "w": 84,
+          "at": 5000,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 7500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "Index scans pay random_page_cost per heap fetch: good only if selective.",
+      "narration": "An index scan fetches heap pages at random_page_cost, 4.0 by default. Few matching rows favor the index, many favor a seq scan, and a bitmap scan sits in between.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Index vs seq",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Few rows: index scan",
+            "Medium: bitmap heap scan",
+            "Many rows: seq scan"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "random_page_cost = 4.0 by default",
+          "x": 8,
+          "y": 50,
+          "w": 84,
+          "at": 5000,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "n",
+          "at": 7500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Wrong plans usually mean stale or insufficient statistics, or a bad cost setting.",
+      "narration": "When plans go wrong, check the estimate in EXPLAIN. Stale stats call for ANALYZE, and on SSDs lowering random_page_cost often helps.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Fixing bad plans",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "EXPLAIN SELECT ...;\nANALYZE orders;\nSET random_page_cost = 1.1;",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "The planner multiplies column statistics into row estimates, prices each access path in cost units, and runs the cheapest.",
+  "sources": [
+    "https://www.postgresql.org/docs/current/planner-stats.html",
+    "https://www.postgresql.org/docs/current/runtime-config-query.html"
+  ]
+}

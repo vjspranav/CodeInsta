@@ -1,0 +1,300 @@
+{
+  "version": 1,
+  "title": "B-tree vs LSM-tree",
+  "hook": "When does an LSM-tree beat a B-tree, and what is write amplification?",
+  "topic": "databases/storage/btree-vs-lsm",
+  "tags": [
+    "databases",
+    "lsm",
+    "btree",
+    "rocksdb"
+  ],
+  "level": "advanced",
+  "series": "databases-storage-engines",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "A B-tree updates pages in place: a tiny change rewrites a whole page.",
+      "narration": "A B-tree finds the leaf page and modifies it in place. Changing a few bytes still writes the whole page, plus a write-ahead log record.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "B-tree write path",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "k",
+          "type": "box",
+          "text": "Find leaf page",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "p",
+          "type": "box",
+          "text": "Rewrite 4-16 KB page",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 10,
+          "color": "orange",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "k",
+          "to": "p",
+          "at": 1500,
+          "enter": "draw",
+          "label": "random write"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Plus WAL. Random I/O on every update.",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "An LSM-tree buffers writes in a memtable and flushes sorted, immutable files.",
+      "narration": "An LSM-tree appends to a WAL and a memtable. When full, the memtable is flushed as an immutable sorted SSTable, which compaction later merges into deeper levels.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "LSM write path",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "m",
+          "type": "box",
+          "text": "WAL + memtable",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 9,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "l0",
+          "type": "box",
+          "text": "L0 SSTables",
+          "x": 8,
+          "y": 36,
+          "w": 84,
+          "h": 9,
+          "color": "green",
+          "at": 2000,
+          "enter": "pop"
+        },
+        {
+          "id": "l1",
+          "type": "box",
+          "text": "L1 .. Ln sorted levels",
+          "x": 8,
+          "y": 52,
+          "w": 84,
+          "h": 9,
+          "color": "purple",
+          "at": 3500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "m",
+          "to": "l0",
+          "at": 2500,
+          "enter": "draw",
+          "label": "flush"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "l0",
+          "to": "l1",
+          "at": 4000,
+          "enter": "draw",
+          "label": "compaction"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "All writes are sequential.",
+          "x": 8,
+          "y": 70,
+          "w": 84,
+          "at": 7000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Write amplification = bytes written to storage / bytes written by the app.",
+      "narration": "Write amplification is physical bytes written divided by logical bytes. LSM compaction rewrites data once per level, so leveled compaction can cost ten or more.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Write amplification",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "WA = bytes_to_disk\n     / bytes_from_app",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "B-tree: whole page per update",
+            "LSM leveled: ~size ratio per level",
+            "RocksDB size ratio default: 10"
+          ],
+          "x": 8,
+          "y": 42,
+          "w": 84,
+          "at": 3500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 7500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Reads pay the price: check the memtable and every level, guided by Bloom filters.",
+      "narration": "LSM reads may check several sorted runs. Bloom filters skip files that cannot contain the key, but range scans still merge many runs.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Read amplification",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Probe memtable, then L0..Ln",
+            "Bloom filter skips most files",
+            "B-tree: one root-to-leaf path"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "LSM wins on write-heavy ingest; B-trees win on reads and predictable latency.",
+      "narration": "Choose LSM for heavy ingest and sequential writes. Choose a B-tree for read-heavy workloads and steady tail latency, since compaction causes background spikes.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Rule of thumb",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "box",
+          "text": "LSM: write-heavy,\nlogs, ingest",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 14,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "B-tree: reads,\nlow tail latency",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 14,
+          "color": "blue",
+          "at": 1000,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Compaction trades background I/O for sequential writes.",
+          "x": 8,
+          "y": 48,
+          "w": 84,
+          "at": 4000,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "LSM-trees turn random writes into sequential ones at the cost of compaction rewrites and extra read work; B-trees do the opposite.",
+  "sources": [
+    "https://github.com/facebook/rocksdb/wiki/Leveled-Compaction"
+  ]
+}

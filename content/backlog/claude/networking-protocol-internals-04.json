@@ -1,0 +1,267 @@
+{
+  "version": 1,
+  "title": "How BGP picks a path",
+  "hook": "How does BGP pick a path, and how did a leak take down a continent's traffic?",
+  "topic": "networking/routing/bgp-path-selection",
+  "tags": [
+    "networking",
+    "bgp",
+    "routing"
+  ],
+  "level": "advanced",
+  "series": "networking-protocol-internals",
+  "series_index": 4,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "Before any attribute: the longest matching prefix always wins.",
+      "narration": "Forwarding picks the longest matching prefix before BGP attributes matter. A more specific route beats everything else.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Prefix length first",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "203.0.113.0/22   via A\n203.0.113.0/24   via B",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Traffic for 203.0.113.5 goes via B, the /24.",
+          "x": 8,
+          "y": 44,
+          "w": 84,
+          "at": 3500,
+          "enter": "fade",
+          "color": "orange"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "Among routes to the same prefix, a fixed tie-break ladder decides.",
+      "narration": "For the same prefix, the decision process compares highest LOCAL_PREF, shortest AS_PATH, lowest ORIGIN, lowest MED, eBGP over iBGP, lowest IGP cost, and finally router ID.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Decision ladder",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "1 highest LOCAL_PREF",
+            "2 shortest AS_PATH",
+            "3 lowest ORIGIN, then MED",
+            "4 eBGP over iBGP",
+            "5 lowest IGP cost to next hop",
+            "6 lowest router ID"
+          ],
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 8000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "LOCAL_PREF encodes business: customer routes beat peers beat providers.",
+      "narration": "Operators set LOCAL_PREF per neighbour, so money decides first: prefer customers, then peers, then paid transit. AS_PATH length is only the second tiebreaker.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Policy first",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "customer route\nLOCAL_PREF 300",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 12,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "p",
+          "type": "box",
+          "text": "peer route\nLOCAL_PREF 200",
+          "x": 8,
+          "y": 42,
+          "w": 84,
+          "h": 12,
+          "color": "blue",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "t",
+          "type": "box",
+          "text": "transit route\nLOCAL_PREF 100",
+          "x": 8,
+          "y": 62,
+          "w": 84,
+          "h": 12,
+          "color": "gray",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "A leak re-announces routes it should not; unfiltered neighbours accept them.",
+      "narration": "A leak or hijack announces routes the origin never authorised. In 2008 Pakistan Telecom announced a more specific YouTube prefix, and longest prefix match pulled traffic in.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Hijacks and leaks",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "o",
+          "type": "box",
+          "text": "Legit /22",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 10,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "Bogus /24",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 10,
+          "color": "red",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "The /24 wins by longest-prefix match, then spreads upstream if nobody filters it.",
+          "x": 8,
+          "y": 42,
+          "w": 84,
+          "at": 3500,
+          "enter": "fade"
+        },
+        {
+          "id": "m",
+          "type": "text",
+          "text": "Leaks need an unfiltered upstream to spread.",
+          "x": 8,
+          "y": 66,
+          "w": 84,
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Defences: RPKI origin validation, ROA maxLength, and strict prefix filters.",
+      "narration": "Defences are RPKI route origin validation, tight maxLength in ROAs, and prefix filters on customers. They only work if upstream networks enforce them.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Defences",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "RPKI ROV: reject invalid origin",
+            "ROA maxLength: block /24 hijacks",
+            "Customer prefix-list filters"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "BGP prefers the longest prefix, then LOCAL_PREF policy, then path length; a leak succeeds when someone upstream skips filtering.",
+  "sources": [
+    "https://www.rfc-editor.org/rfc/rfc4271",
+    "https://www.rfc-editor.org/rfc/rfc7908"
+  ]
+}

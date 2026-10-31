@@ -1,0 +1,257 @@
+{
+  "version": 1,
+  "title": "oneway and async buffers",
+  "hook": "What does `oneway` change, and why can async binder transactions exhaust the buffer?",
+  "topic": "aosp/binder/oneway-async-buffers",
+  "tags": [
+    "aosp",
+    "binder",
+    "oneway"
+  ],
+  "level": "advanced",
+  "series": "aosp-binder-ipc",
+  "series_index": 5,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "A normal call blocks until the reply; oneway returns as soon as the transaction is queued.",
+      "narration": "A synchronous call blocks until the reply arrives. A oneway call returns as soon as the driver has queued the transaction for the target.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Sync versus oneway",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "sync: caller waits for reply",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "o",
+          "type": "box",
+          "text": "oneway: caller continues now",
+          "x": 8,
+          "y": 42,
+          "w": 84,
+          "h": 10,
+          "color": "green",
+          "at": 2000,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "TF_ONE_WAY flag in binder_transaction_data",
+          "x": 8,
+          "y": 62,
+          "w": 84,
+          "h": 10,
+          "color": "gray",
+          "at": 4000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "In AIDL a oneway method cannot return a value or out parameters.",
+      "narration": "In AIDL, mark a method oneway and it can have no return value and no out parameters, since nobody is waiting.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "In AIDL",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "java",
+          "text": "interface IFoo {\n  oneway void notify(in Bundle b);\n  int query();\n}",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 18,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 3500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Per binder node, oneway calls are serialized: one runs while the rest wait in async_todo.",
+      "narration": "For each binder node, the driver runs one oneway transaction at a time and keeps the rest queued. That preserves their order, but queued calls pile up.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Per-node queue",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "r",
+          "type": "box",
+          "text": "running oneway call",
+          "x": 15,
+          "y": 20,
+          "w": 70,
+          "h": 9,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "q1",
+          "type": "box",
+          "text": "queued: async_todo",
+          "x": 15,
+          "y": 36,
+          "w": 70,
+          "h": 9,
+          "color": "orange",
+          "at": 2000,
+          "enter": "pop"
+        },
+        {
+          "id": "q2",
+          "type": "box",
+          "text": "queued: async_todo",
+          "x": 15,
+          "y": 52,
+          "w": 70,
+          "h": 9,
+          "color": "orange",
+          "at": 2700,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Order is preserved per node",
+          "x": 8,
+          "y": 68,
+          "w": 84,
+          "h": 10,
+          "color": "gray",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Every queued call holds buffer space in the receiver's small mmap'd region.",
+      "narration": "Every pending transaction holds a buffer in the receiver's roughly one megabyte mapping. Oneway calls are capped to about half of it, so a slow receiver fills it fast.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The buffer budget",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "receiver mmap about 1 MB total",
+            "async share capped near half",
+            "slow handler = buffers stay held"
+          ],
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 24,
+          "color": "red",
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Buffers return only after the receiver finishes",
+          "x": 8,
+          "y": 52,
+          "w": 84,
+          "h": 12,
+          "color": "gray",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Exhaustion surfaces as failed transactions or TransactionTooLargeException.",
+      "narration": "When space runs out, transactions fail. Mitigate by batching, sending large data through shared memory, and not flooding a slow service.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Mitigations",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "batch updates",
+            "pass big data via fd/ashmem",
+            "avoid flooding slow services"
+          ],
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 500,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "oneway removes the wait but not the cost: queued calls hold limited receiver buffer, so a slow service plus a chatty client can exhaust it.",
+  "sources": [
+    "https://developer.android.com/reference/android/os/TransactionTooLargeException"
+  ]
+}

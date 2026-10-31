@@ -1,0 +1,303 @@
+{
+  "version": 1,
+  "title": "Lamport clocks: ordering without a clock",
+  "hook": "How do Lamport clocks order events, and what can't they tell you?",
+  "topic": "distributed/time/lamport-clocks",
+  "tags": [
+    "distributed",
+    "clocks",
+    "causality"
+  ],
+  "level": "intermediate",
+  "series": "distributed-time-and-consistency",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 8000,
+      "caption": "Each process keeps one integer; every message carries it.",
+      "narration": "With no shared clock, each process keeps a single integer counter and stamps every message it sends.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Lamport clocks",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "rules",
+          "type": "list",
+          "items": [
+            "Each process keeps a counter L",
+            "Local event: L = L + 1",
+            "Send: L = L + 1, attach L",
+            "Receive: L = max(L, m.L) + 1"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "rules",
+          "at": 3500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "On receive, the clock jumps past the sender's stamp.",
+      "narration": "P1 sends a message stamped three. P2 was at one, so it takes the max, adds one, and moves to four.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Receive rule",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "p1",
+          "type": "box",
+          "text": "P1: L = 3",
+          "x": 8,
+          "y": 24,
+          "w": 38,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "p2",
+          "type": "box",
+          "text": "P2: L = 1",
+          "x": 54,
+          "y": 24,
+          "w": 38,
+          "h": 10,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "m",
+          "type": "arrow",
+          "from": "p1",
+          "to": "p2",
+          "at": 1500,
+          "enter": "draw",
+          "label": "msg(L=3)"
+        },
+        {
+          "id": "p2b",
+          "type": "box",
+          "text": "P2 after: L = 4",
+          "x": 54,
+          "y": 48,
+          "w": 38,
+          "h": 10,
+          "color": "green",
+          "at": 4000,
+          "enter": "pop"
+        },
+        {
+          "id": "u",
+          "type": "arrow",
+          "from": "p2",
+          "to": "p2b",
+          "at": 4500,
+          "enter": "draw",
+          "label": "max(1,3)+1"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "The receiver can never stay behind the stamp it just saw.",
+          "x": 8,
+          "y": 68,
+          "w": 84,
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "If a happened before b, then L(a) < L(b).",
+      "narration": "This gives the clock condition: whenever event a causally precedes event b, the first timestamp is strictly smaller.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "The guarantee",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "on send(m):\n  L = L + 1\n  m.L = L\non receive(m):\n  L = max(L, m.L) + 1",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "g",
+          "type": "text",
+          "text": "a -> b implies L(a) < L(b)",
+          "x": 8,
+          "y": 52,
+          "w": 84,
+          "at": 3500,
+          "enter": "fade",
+          "color": "green"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "g",
+          "at": 5000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "The converse fails: a smaller stamp does not mean \"caused\".",
+      "narration": "But the reverse is false. Two events on different processes can have ordered stamps without any message linking them.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "What it cannot tell",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "e1",
+          "type": "box",
+          "text": "e1 on P1: L = 2",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "e2",
+          "type": "box",
+          "text": "e2 on P3: L = 5",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 10,
+          "color": "orange",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "x",
+          "type": "text",
+          "text": "L(e1) < L(e2), yet no message ever connected them.",
+          "x": 8,
+          "y": 40,
+          "w": 84,
+          "at": 2500,
+          "enter": "fade",
+          "color": "red"
+        },
+        {
+          "id": "y",
+          "type": "text",
+          "text": "L(a) < L(b) does NOT imply a -> b.",
+          "x": 8,
+          "y": 56,
+          "w": 84,
+          "at": 4500,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "y",
+          "at": 6000,
+          "enter": "fade"
+        },
+        {
+          "id": "z",
+          "type": "text",
+          "text": "Break ties with process id to get a total order.",
+          "x": 8,
+          "y": 70,
+          "w": 84,
+          "at": 7500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "To detect concurrency you need more than one integer per event.",
+      "narration": "Lamport clocks give a cheap total order, but cannot flag concurrent writes. That is what vector clocks add next.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Choosing a clock",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Total order, cheap: Lamport + process id",
+            "Detect concurrent events: vector clocks",
+            "Stay near wall time: hybrid logical clocks"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "A Lamport clock yields an order consistent with causality, but a smaller timestamp never proves one event caused another.",
+  "sources": [
+    "https://lamport.azurewebsites.net/pubs/time-clocks.pdf"
+  ]
+}

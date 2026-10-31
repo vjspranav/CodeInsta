@@ -1,0 +1,310 @@
+{
+  "version": 1,
+  "title": "Spanner: TrueTime and commit-wait",
+  "hook": "How does Spanner use TrueTime uncertainty and commit-wait for external consistency?",
+  "topic": "distributed/time/truetime-spanner",
+  "tags": [
+    "distributed",
+    "spanner",
+    "truetime"
+  ],
+  "level": "advanced",
+  "series": "distributed-time-and-consistency",
+  "series_index": 4,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "TrueTime returns an interval, not a point: real time is inside it.",
+      "narration": "TrueTime does not return a timestamp. TT.now returns an interval, and absolute time is guaranteed to lie inside it.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "TrueTime API",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "TT.now()    -> [earliest,\n               latest]\nTT.after(t)  -> t passed?\nTT.before(t) -> t not yet?",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Width of the interval is the uncertainty, epsilon.",
+          "x": 8,
+          "y": 52,
+          "w": 84,
+          "at": 4000,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "GPS and atomic-clock time masters keep epsilon to a few milliseconds.",
+      "narration": "Time masters with GPS receivers and atomic clocks serve each datacenter. Epsilon grows between polls and shrinks on each sync.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Where epsilon comes from",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "m",
+          "type": "box",
+          "text": "Time masters\nGPS + atomic clocks",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 14,
+          "color": "purple",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "d",
+          "type": "box",
+          "text": "Timeslave daemon\non every machine",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 14,
+          "color": "blue",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "m",
+          "to": "d",
+          "at": 2500,
+          "enter": "draw",
+          "label": "poll"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Paper: epsilon is typically 1 to 7 ms.",
+          "x": 8,
+          "y": 68,
+          "w": 84,
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "A write picks its commit timestamp s >= TT.now().latest.",
+      "narration": "When a transaction is ready to commit, the leader picks a commit timestamp s no smaller than TT.now latest.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Pick the timestamp",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "s = TT.now().latest\n// s >= every earlier commit\n// the leader could have seen",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "But s may still be in the future of some clocks.",
+          "x": 8,
+          "y": 50,
+          "w": 84,
+          "at": 4000,
+          "enter": "fade",
+          "color": "orange"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Commit-wait: hold the result until TT.after(s) is true.",
+      "narration": "Before releasing locks and acknowledging, the leader waits until s is definitely in the past. After that, any later transaction gets a larger timestamp.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Commit-wait",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "p",
+          "type": "box",
+          "text": "Prepare, pick s",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "w",
+          "type": "box",
+          "text": "wait until TT.after(s)",
+          "x": 8,
+          "y": 40,
+          "w": 84,
+          "h": 10,
+          "color": "orange",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "r",
+          "type": "box",
+          "text": "Release locks, reply",
+          "x": 8,
+          "y": 58,
+          "w": 84,
+          "h": 10,
+          "color": "green",
+          "at": 5000,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "p",
+          "to": "w",
+          "at": 3000,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "w",
+          "to": "r",
+          "at": 5500,
+          "enter": "draw"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Wait length tracks epsilon.",
+          "x": 8,
+          "y": 76,
+          "w": 84,
+          "at": 7500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "If T1 commits before T2 starts, then s1 < s2: external consistency.",
+      "narration": "The result is external consistency: if T1 finishes before T2 begins in real time, the first timestamp is smaller. Spanner is strictly serializable.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "External consistency",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "t1",
+          "type": "box",
+          "text": "T1 commits: s1",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 12,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "t2",
+          "type": "box",
+          "text": "T2 starts later: s2",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 12,
+          "color": "blue",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "t1",
+          "to": "t2",
+          "at": 2500,
+          "enter": "draw",
+          "label": "real time"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "s1 < s2 for every such pair",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "at": 4500,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "n",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Spanner bounds clock uncertainty explicitly, then waits it out at commit so timestamp order matches real-time order.",
+  "sources": [
+    "https://www.usenix.org/system/files/conference/osdi12/osdi12-final-16.pdf"
+  ]
+}

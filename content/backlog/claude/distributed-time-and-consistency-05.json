@@ -1,0 +1,253 @@
+{
+  "version": 1,
+  "title": "Linearizability vs serializability",
+  "hook": "What is the difference between linearizability and serializability?",
+  "topic": "distributed/consistency/linearizability-vs-serializability",
+  "tags": [
+    "distributed",
+    "consistency",
+    "transactions"
+  ],
+  "level": "advanced",
+  "series": "distributed-time-and-consistency",
+  "series_index": 5,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "Two guarantees from two communities, often confused.",
+      "narration": "Linearizability is about a single object and real time. Serializability is about multi-object transactions and an equivalent serial order.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Two different ideas",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "box",
+          "text": "Linearizability\none object, real time",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 16,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "Serializability\nmany objects, any serial order",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 16,
+          "color": "purple",
+          "at": 1000,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Distributed systems vs database theory.",
+          "x": 8,
+          "y": 50,
+          "w": 84,
+          "at": 3500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Linearizable: each op takes effect at one point between call and return.",
+      "narration": "In a linearizable register, every operation appears to take effect instantly between its invocation and response, so a read after a completed write must see it.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Linearizability",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "w(x=1) starts -------- ok\n                r(x) starts\nr(x) must return 1",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Single object, any operations",
+            "Respects real-time order",
+            "Recency: no stale reads"
+          ],
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "at": 3500,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Serializable: results equal some serial order, but not necessarily the real-time one.",
+      "narration": "Serializability only requires some serial order of whole transactions. It may place a later-starting transaction first, so a stale read can be legal.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Serializability",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "T1: x = 1; commit\nT2: read x   (starts after)\nT2 sees 0?",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Legal if the serial order is T2, then T1.",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "at": 3500,
+          "enter": "fade",
+          "color": "orange"
+        },
+        {
+          "id": "m",
+          "type": "text",
+          "text": "Not linearizable: the write had completed.",
+          "x": 8,
+          "y": 62,
+          "w": 84,
+          "at": 5500,
+          "enter": "fade",
+          "color": "red"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "m",
+          "at": 7500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Strict serializability requires both: serial order that matches real time.",
+      "narration": "Combine them and you get strict serializability: transactions in a serial order that also respects real time. Spanner calls this external consistency.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Putting them together",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Linearizable: per object, real time",
+            "Serializable: per transaction, any order",
+            "Strict serializable: both"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 5000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "etcd reads are linearizable by default; WithSerializable() opts out.",
+      "narration": "In etcd, reads go through the leader and are linearizable by default. Passing WithSerializable lets a follower answer from its local, possibly stale state.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "In practice",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "clientv3.WithSerializable()\n// etcdctl --consistency=s",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Cheaper reads, but possibly stale: you chose weaker recency.",
+          "x": 8,
+          "y": 40,
+          "w": 84,
+          "at": 4000,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Linearizability orders operations on one object by real time; serializability orders whole transactions in any serial order; strict serializability gives both.",
+  "sources": [
+    "https://jepsen.io/consistency"
+  ]
+}

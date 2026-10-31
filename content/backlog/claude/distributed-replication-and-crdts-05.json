@@ -1,0 +1,347 @@
+{
+  "version": 1,
+  "title": "Merkle trees for anti-entropy",
+  "hook": "How do Merkle trees find divergent replicas by exchanging only hashes?",
+  "topic": "distributed/replication/anti-entropy-merkle-trees",
+  "tags": [
+    "distributed",
+    "merkle-tree",
+    "repair"
+  ],
+  "level": "intermediate",
+  "series": "distributed-replication-and-crdts",
+  "series_index": 5,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "Replicas drift: hinted handoff and read repair miss some keys.",
+      "narration": "Replicas drift apart when writes get lost. Copying every key to compare them would cost far too much bandwidth.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Anti-entropy",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "a",
+          "type": "box",
+          "text": "Replica A\nmillions of keys",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 14,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "Replica B\nmillions of keys",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 14,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Which few keys differ? Do not ship them all to find out.",
+          "x": 8,
+          "y": 50,
+          "w": 84,
+          "at": 3500,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "n",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "Leaves hash key ranges; each parent hashes its children.",
+      "narration": "Each replica builds a hash tree over a key range. A leaf hashes the data in a sub-range, and each parent hashes its two children, up to a root.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Build the tree",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "root",
+          "type": "box",
+          "text": "root = H(h1, h2)",
+          "x": 24,
+          "y": 20,
+          "w": 52,
+          "h": 10,
+          "color": "purple",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "h1",
+          "type": "box",
+          "text": "h1 = H(l1,l2)",
+          "x": 8,
+          "y": 40,
+          "w": 38,
+          "h": 10,
+          "color": "blue",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "h2",
+          "type": "box",
+          "text": "h2 = H(l3,l4)",
+          "x": 54,
+          "y": 40,
+          "w": 38,
+          "h": 10,
+          "color": "blue",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "root",
+          "to": "h1",
+          "at": 2500,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "root",
+          "to": "h2",
+          "at": 2500,
+          "enter": "draw"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Leaves: l1..l4 hash key sub-ranges.",
+          "x": 8,
+          "y": 62,
+          "w": 84,
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Compare roots first: equal roots means the whole range matches.",
+      "narration": "Replicas swap root hashes. If they match, the ranges are identical, and one hash proved it.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Compare roots",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "a",
+          "type": "box",
+          "text": "A root: 9f3c",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "B root: 9f3c",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 10,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Equal: stop. One hash replaced millions of comparisons.",
+          "x": 8,
+          "y": 44,
+          "w": 84,
+          "at": 3000,
+          "enter": "fade",
+          "color": "green"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "n",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "If roots differ, descend only into the children whose hashes differ.",
+      "narration": "When roots differ, compare the children and recurse only into the mismatching branch. Cost is the tree depth in hashes, not the key count.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Descend",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "root",
+          "type": "box",
+          "text": "roots differ",
+          "x": 28,
+          "y": 20,
+          "w": 44,
+          "h": 10,
+          "color": "red",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "h1",
+          "type": "box",
+          "text": "h1 equal: skip",
+          "x": 8,
+          "y": 40,
+          "w": 38,
+          "h": 10,
+          "color": "gray",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "h2",
+          "type": "box",
+          "text": "h2 differs: go in",
+          "x": 54,
+          "y": 40,
+          "w": 38,
+          "h": 10,
+          "color": "orange",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "root",
+          "to": "h1",
+          "at": 2500,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "root",
+          "to": "h2",
+          "at": 2500,
+          "enter": "draw"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Repeat until differing leaf ranges are found.",
+          "x": 8,
+          "y": 62,
+          "w": 84,
+          "at": 5000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Only the differing ranges are streamed and merged.",
+      "narration": "Only the mismatching leaf ranges are streamed and reconciled. The Cassandra nodetool repair command builds Merkle trees this way before streaming differences.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Repair",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "nodetool repair",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Replicas build Merkle trees",
+            "Trees compared by hash",
+            "Only differing ranges stream"
+          ],
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "at": 3000,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Trees must be rebuilt when data changes.",
+          "x": 8,
+          "y": 68,
+          "w": 84,
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Merkle trees let replicas locate divergent key ranges by exchanging a logarithmic number of hashes instead of the data.",
+  "sources": [
+    "https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf"
+  ]
+}

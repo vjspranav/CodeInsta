@@ -1,0 +1,283 @@
+{
+  "version": 1,
+  "title": "dex2oat compiler filters",
+  "hook": "What do `verify`, `speed-profile` and `everything` actually compile?",
+  "topic": "aosp/art/dex2oat-compiler-filters",
+  "tags": [
+    "aosp",
+    "art",
+    "dex2oat"
+  ],
+  "level": "advanced",
+  "series": "aosp-art-runtime",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 11000,
+      "caption": "Compiler filters trade compile time and disk size against startup speed.",
+      "narration": "The compiler filter tells dex2oat how much to compile ahead of time. More compilation means faster startup but longer install and larger files.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The filter ladder",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "v",
+          "type": "box",
+          "text": "verify: no compilation",
+          "x": 15,
+          "y": 20,
+          "w": 70,
+          "h": 9,
+          "color": "gray",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "sp",
+          "type": "box",
+          "text": "speed-profile: hot methods",
+          "x": 15,
+          "y": 36,
+          "w": 70,
+          "h": 9,
+          "color": "orange",
+          "at": 2000,
+          "enter": "pop"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "speed: all methods",
+          "x": 15,
+          "y": 52,
+          "w": 70,
+          "h": 9,
+          "color": "blue",
+          "at": 3500,
+          "enter": "pop"
+        },
+        {
+          "id": "e",
+          "type": "box",
+          "text": "everything: no limits",
+          "x": 15,
+          "y": 68,
+          "w": 70,
+          "h": 9,
+          "color": "red",
+          "at": 5000,
+          "enter": "pop"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "verify only checks bytecode; the app then runs in the interpreter and JIT.",
+      "narration": "With verify, dex2oat only verifies bytecode into a vdex file. No native code exists, so the interpreter and JIT do the work.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "verify",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "d",
+          "type": "box",
+          "text": "dex bytecode",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "vd",
+          "type": "box",
+          "text": "base.vdex (verified)",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "gray",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "d",
+          "to": "vd",
+          "at": 2500,
+          "enter": "draw",
+          "label": "verify only"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "No native code is generated",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 10,
+          "color": "gray",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "speed-profile compiles only methods listed in the app's profile.",
+      "narration": "With speed-profile, dex2oat reads the profile and compiles just the hot and startup methods. Everything else stays interpreted or JIT-compiled.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "speed-profile",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "p",
+          "type": "box",
+          "text": "primary.prof",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "purple",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "o",
+          "type": "box",
+          "text": "base.odex (hot methods)",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "p",
+          "to": "o",
+          "at": 2500,
+          "enter": "draw",
+          "label": "compile listed"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Profile data lives under /data/misc/profiles",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 12,
+          "color": "gray",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "speed and everything compile all methods; everything also ignores size limits.",
+      "narration": "The speed filter compiles every method, which makes odex files big. Everything goes further and also ignores size limits that normally skip huge methods.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "speed and everything",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "speed: all methods compiled",
+            "everything: also ignores size limits",
+            "cost: bigger odex, longer install"
+          ],
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 24,
+          "color": "red",
+          "at": 500,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "You can force a filter with cmd package compile.",
+      "narration": "You can try each filter yourself by forcing a recompile with cmd package compile, giving the filter and package name.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Try it",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "bash",
+          "text": "adb shell cmd package compile \\\n  -m speed-profile -f com.example",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 12,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 3000,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "A compiler filter picks how much dex2oat compiles: verify none, speed-profile only profiled methods, speed everything, and everything ignores limits too.",
+  "sources": [
+    "https://source.android.com/docs/core/runtime/configure"
+  ]
+}

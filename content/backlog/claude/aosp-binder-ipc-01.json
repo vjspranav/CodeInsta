@@ -1,0 +1,363 @@
+{
+  "version": 1,
+  "title": "transact() to onTransact()",
+  "hook": "What really happens in the kernel between `transact()` and `onTransact()`?",
+  "topic": "aosp/binder/driver-transaction",
+  "tags": [
+    "aosp",
+    "binder",
+    "kernel"
+  ],
+  "level": "advanced",
+  "series": "aosp-binder-ipc",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "User space packs a Parcel and issues one ioctl on /dev/binder.",
+      "narration": "IPCThreadState wraps your Parcel in a binder_transaction_data and writes BC_TRANSACTION through a single BINDER_WRITE_READ ioctl on /dev/binder.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Down to the ioctl",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "c",
+          "text": "ioctl(fd, BINDER_WRITE_READ, &bwr);\n// write_buffer: BC_TRANSACTION\n//   + binder_transaction_data",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 16,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 3000,
+          "enter": "fade"
+        },
+        {
+          "id": "p",
+          "type": "box",
+          "text": "Parcel -> IPCThreadState",
+          "x": 15,
+          "y": 46,
+          "w": 70,
+          "h": 10,
+          "color": "blue",
+          "at": 4500,
+          "enter": "pop"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "binder_transaction() resolves the handle to a node, then its owning process.",
+      "narration": "In the kernel, binder_transaction resolves the handle to a binder_ref, then a binder_node, which names the target process and its thread pool.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Resolve the target",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "h",
+          "type": "box",
+          "text": "handle",
+          "x": 8,
+          "y": 22,
+          "w": 25,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "r",
+          "type": "box",
+          "text": "binder_ref",
+          "x": 38,
+          "y": 22,
+          "w": 25,
+          "h": 10,
+          "color": "purple",
+          "at": 1800,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "box",
+          "text": "binder_node",
+          "x": 68,
+          "y": 22,
+          "w": 24,
+          "h": 10,
+          "color": "purple",
+          "at": 3100,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "h",
+          "to": "r",
+          "at": 1500,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "r",
+          "to": "n",
+          "at": 2800,
+          "enter": "draw"
+        },
+        {
+          "id": "pr",
+          "type": "box",
+          "text": "target binder_proc",
+          "x": 25,
+          "y": 46,
+          "w": 50,
+          "h": 10,
+          "color": "orange",
+          "at": 4500,
+          "enter": "pop"
+        },
+        {
+          "id": "a3",
+          "type": "arrow",
+          "from": "n",
+          "to": "pr",
+          "at": 4200,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "The payload is copied once, straight into the target's mmap'd buffer.",
+      "narration": "Binder then allocates a buffer in the target's mmap region and copies the payload there once with copy_from_user. The receiver reads it with no second copy.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "One copy",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "sender user memory",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "t",
+          "type": "box",
+          "text": "target mmap buffer",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "s",
+          "to": "t",
+          "at": 2500,
+          "enter": "draw",
+          "label": "copy_from_user"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Buffer is allocated by binder_alloc in binder_alloc.c",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 12,
+          "color": "gray",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "The work item is queued and a target thread wakes up from its read.",
+      "narration": "The driver queues a binder_work on the target's todo list and wakes a thread. Its binder_thread_read returns BR_TRANSACTION, and IPCThreadState runs the call.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Wake the target",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "q",
+          "type": "box",
+          "text": "target todo list",
+          "x": 15,
+          "y": 20,
+          "w": 70,
+          "h": 9,
+          "color": "purple",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "w",
+          "type": "box",
+          "text": "binder_thread_read: BR_TRANSACTION",
+          "x": 15,
+          "y": 36,
+          "w": 70,
+          "h": 9,
+          "color": "orange",
+          "at": 2000,
+          "enter": "pop"
+        },
+        {
+          "id": "e",
+          "type": "box",
+          "text": "IPCThreadState::executeCommand",
+          "x": 15,
+          "y": 52,
+          "w": 70,
+          "h": 9,
+          "color": "blue",
+          "at": 3500,
+          "enter": "pop"
+        },
+        {
+          "id": "o",
+          "type": "box",
+          "text": "BBinder::transact -> onTransact",
+          "x": 15,
+          "y": 68,
+          "w": 70,
+          "h": 9,
+          "color": "green",
+          "at": 5000,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "q",
+          "to": "w",
+          "at": 1800,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "w",
+          "to": "e",
+          "at": 3300,
+          "enter": "draw"
+        },
+        {
+          "id": "a3",
+          "type": "arrow",
+          "from": "e",
+          "to": "o",
+          "at": 4800,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "The reply travels back as BC_REPLY and BR_REPLY while the caller stays blocked.",
+      "narration": "The result returns as BC_REPLY, which the driver delivers to the blocked caller as BR_REPLY, completing the synchronous call.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Reply",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "caller blocked in read",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "service writes BC_REPLY",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "s",
+          "to": "c",
+          "at": 2500,
+          "enter": "draw",
+          "label": "BR_REPLY"
+        }
+      ]
+    }
+  ],
+  "takeaway": "A binder call is one ioctl, a handle lookup, a single copy into the target's mapped buffer, and a thread wake-up, so the caller blocks until BR_REPLY.",
+  "sources": [
+    "https://source.android.com/docs/core/architecture/hidl/binder-ipc"
+  ]
+}

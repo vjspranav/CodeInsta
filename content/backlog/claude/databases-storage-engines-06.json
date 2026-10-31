@@ -1,0 +1,305 @@
+{
+  "version": 1,
+  "title": "B+tree page splits",
+  "hook": "How does a B+tree split pages, and why do random UUID keys hurt?",
+  "topic": "databases/indexing/btree-page-splits",
+  "tags": [
+    "databases",
+    "btree",
+    "postgres",
+    "indexing"
+  ],
+  "level": "advanced",
+  "series": "databases-storage-engines",
+  "series_index": 6,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "Internal pages route; leaf pages hold entries and link to siblings.",
+      "narration": "A B+tree has internal pages with separator keys and child pointers, and leaf pages holding the entries. Leaves are linked, which makes range scans cheap.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "B+tree layout",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "r",
+          "type": "box",
+          "text": "root: separators",
+          "x": 28,
+          "y": 20,
+          "w": 44,
+          "h": 9,
+          "color": "purple",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "l1",
+          "type": "box",
+          "text": "leaf",
+          "x": 8,
+          "y": 42,
+          "w": 26,
+          "h": 9,
+          "color": "blue",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "l2",
+          "type": "box",
+          "text": "leaf",
+          "x": 37,
+          "y": 42,
+          "w": 26,
+          "h": 9,
+          "color": "blue",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "l3",
+          "type": "box",
+          "text": "leaf",
+          "x": 66,
+          "y": 42,
+          "w": 26,
+          "h": 9,
+          "color": "blue",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "r",
+          "to": "l1",
+          "at": 2500,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "r",
+          "to": "l2",
+          "at": 2500,
+          "enter": "draw"
+        },
+        {
+          "id": "a3",
+          "type": "arrow",
+          "from": "r",
+          "to": "l3",
+          "at": 2500,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "When a leaf is full, allocate a new page and move about half the entries.",
+      "narration": "Inserting into a full leaf allocates a new page, moves roughly half of the entries there, and then inserts the new key.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Leaf split",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Leaf full, new key arrives",
+            "Allocate new right sibling",
+            "Move upper entries to it",
+            "Insert the new key"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "The split posts a separator to the parent, which may split too.",
+      "narration": "The split inserts a separator key into the parent. If the parent is full, it splits as well, and a root split makes the tree one level taller.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Cascading splits",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "p",
+          "type": "box",
+          "text": "parent gets separator",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 10,
+          "color": "purple",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "parent full: split again",
+          "x": 8,
+          "y": 42,
+          "w": 84,
+          "h": 10,
+          "color": "orange",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "rt",
+          "type": "box",
+          "text": "root splits: height + 1",
+          "x": 8,
+          "y": 62,
+          "w": 84,
+          "h": 10,
+          "color": "red",
+          "at": 4500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "p",
+          "to": "s",
+          "at": 3000,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "s",
+          "to": "rt",
+          "at": 5000,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Sequential keys fill the rightmost leaf; random keys split everywhere.",
+      "narration": "With increasing keys, inserts hit the rightmost leaf and leave full pages behind. With random UUIDs, inserts land on random leaves and split pages about half full.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Why UUIDs hurt",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Sequential: rightmost leaf, dense pages",
+            "Random UUIDv4: random leaves, ~half-full pages",
+            "Whole index stays hot in cache",
+            "More page writes into WAL"
+          ],
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 8000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Prefer time-ordered keys, and check leaf density with pgstatindex.",
+      "narration": "Time-ordered keys such as UUIDv7 or a bigserial restore locality. You can check leaf density with the pgstattuple extension.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Fixes",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "bigserial or UUIDv7",
+            "Tune index fillfactor"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "SELECT avg_leaf_density\nFROM pgstatindex('idx');",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "at": 4000,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 7000,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "B+tree leaf splits cascade upward, and random keys scatter inserts so pages stay half full; time-ordered keys keep the tree dense.",
+  "sources": [
+    "https://www.postgresql.org/docs/current/btree.html"
+  ]
+}

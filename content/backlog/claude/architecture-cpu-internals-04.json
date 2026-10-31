@@ -1,0 +1,215 @@
+{
+  "version": 1,
+  "title": "x86 TSO versus ARM memory ordering",
+  "hook": "Why does code that works on x86 TSO break on ARM's weaker memory model?",
+  "topic": "architecture/memory/memory-ordering-tso-vs-arm",
+  "tags": [
+    "architecture",
+    "memory-model",
+    "arm64",
+    "x86"
+  ],
+  "level": "advanced",
+  "series": "architecture-cpu-internals",
+  "series_index": 4,
+  "scenes": [
+    {
+      "duration_ms": 12000,
+      "caption": "x86-TSO only lets a later load pass an earlier store, via the store buffer.",
+      "narration": "x86 provides total store order. Loads aren't reordered with loads, stores aren't reordered with stores, and the only visible reordering is a load passing an older store to another address.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "x86 TSO",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "t",
+          "type": "list",
+          "items": [
+            "Load -> Load: kept",
+            "Store -> Store: kept",
+            "Load -> Store: kept",
+            "Store -> Load: may reorder"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "blue"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "ARM64 allows loads and stores to be reordered with each other unless ordered by dependency or barrier.",
+      "narration": "ARM is weakly ordered. Independent loads and stores may become visible in any order, so the same lock-free code can behave differently, unless you add barriers or acquire and release.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "ARM weak ordering",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "a",
+          "type": "list",
+          "items": [
+            "Load/Load may reorder",
+            "Store/Store may reorder",
+            "Order only via deps or barriers",
+            "dmb, ldar, stlr restore order"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "orange"
+        }
+      ]
+    },
+    {
+      "duration_ms": 13000,
+      "caption": "Message passing: data then flag works on x86 but can read stale data on ARM.",
+      "narration": "Consider a writer that stores data then sets a flag. On x86 the reader that sees the flag always sees the data. On ARM the stores can become visible out of order.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The broken pattern",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "mp",
+          "type": "code",
+          "lang": "c",
+          "text": "// T1            // T2\ndata = 42;       while (!flag);\nflag = 1;        use(data);  // stale?",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Plain C: a data race on both.",
+          "x": 8,
+          "y": 43.7,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "red"
+        },
+        {
+          "id": "hl-mp",
+          "type": "highlight",
+          "target": "mp",
+          "at": 3600
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "Fix: release-store the flag and acquire-load it with C11 atomics.",
+      "narration": "The portable fix is release on the flag store and acquire on the flag load. The compiler emits nothing special on x86, but on ARM64 it emits stlr and ldar.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Acquire and release",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "fx",
+          "type": "code",
+          "lang": "c",
+          "text": "atomic_store_explicit(&flag, 1,\n    memory_order_release);\nwhile (!atomic_load_explicit(&flag,\n    memory_order_acquire));",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl-fx",
+          "type": "highlight",
+          "target": "fx",
+          "at": 2300
+        }
+      ]
+    },
+    {
+      "duration_ms": 13500,
+      "caption": "x86 compiles these to plain mov; ARM64 uses stlr and ldar, and full fences need dmb ish.",
+      "narration": "The same source maps to different instructions. x86 uses ordinary mov for release and acquire, while ARM64 uses stlr and ldar. A sequentially consistent fence is mfence on x86, dmb ish on ARM.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "What the compiler emits",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "x",
+          "type": "box",
+          "text": "x86-64: mov, mov",
+          "x": 8,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "box",
+          "text": "ARM64: stlr, ldar",
+          "x": 56,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "green",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "f",
+          "type": "text",
+          "text": "Full fence: mfence vs dmb ish",
+          "x": 8,
+          "y": 43.2,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "gray"
+        }
+      ]
+    }
+  ],
+  "takeaway": "x86 hides ordering bugs behind a strong model; on ARM you must state your intent with acquire, release or barriers."
+}

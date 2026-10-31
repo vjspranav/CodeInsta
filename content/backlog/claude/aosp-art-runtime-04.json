@@ -1,0 +1,281 @@
+{
+  "version": 1,
+  "title": "ART's concurrent copying GC",
+  "hook": "How does ART's concurrent copying collector avoid long pauses with a read barrier?",
+  "topic": "aosp/art/concurrent-copying-gc",
+  "tags": [
+    "aosp",
+    "art",
+    "gc"
+  ],
+  "level": "advanced",
+  "series": "aosp-art-runtime",
+  "series_index": 4,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "The collector copies live objects from from-space regions into fresh to-space regions.",
+      "narration": "The concurrent copying collector evacuates live objects from regions of the heap into fresh regions, which lets it reclaim and defragment memory.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Copying GC",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "box",
+          "text": "from-space regions",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "orange",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "t",
+          "type": "box",
+          "text": "to-space regions",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "f",
+          "to": "t",
+          "at": 2500,
+          "enter": "draw",
+          "label": "copy live objects"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "art/runtime/gc/collector/concurrent_copying.cc",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 12,
+          "color": "gray",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Only two short pauses: one to flip thread roots, one to finish.",
+      "narration": "Almost everything happens while the app runs. There is a short pause to flip thread roots, concurrent marking and copying, and a short pause to finish.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Phases",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "pause 1: flip thread roots",
+            "concurrent: mark and copy",
+            "pause 2: finish",
+            "free from-space regions"
+          ],
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 32,
+          "color": "purple",
+          "at": 500,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "A read barrier fixes up references as the app loads them.",
+      "narration": "While the collector runs, apps may load references to objects not yet copied. A read barrier on each reference load fixes those up on the spot.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Read barrier",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "ref = obj->field;\nif (obj is gray)   // lock word\n  ref = Mark(ref);\nuse(ref);",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 18,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 4000,
+          "enter": "fade"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Mark returns the to-space reference",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 10,
+          "color": "gray",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Mutators and the GC race safely: a forwarding address in the lock word picks one winner.",
+      "narration": "If the app and the collector both try to copy an object, they race with a compare-and-swap. The winner's forwarding address, stored in the lock word, wins.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Copy races",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "m",
+          "type": "box",
+          "text": "mutator thread",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "g",
+          "type": "box",
+          "text": "GC thread",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "orange",
+          "at": 900,
+          "enter": "pop"
+        },
+        {
+          "id": "l",
+          "type": "box",
+          "text": "forwarding address in lock word",
+          "x": 15,
+          "y": 46,
+          "w": 70,
+          "h": 10,
+          "color": "green",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "m",
+          "to": "l",
+          "at": 2000,
+          "enter": "draw",
+          "label": "CAS"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "g",
+          "to": "l",
+          "at": 2300,
+          "enter": "draw",
+          "label": "CAS"
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "The price is a barrier on every reference load; the payoff is short pauses.",
+      "narration": "The cost is a barrier on reference loads and some memory. In return, pauses stay short regardless of heap size.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Tradeoff",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "cost: barrier on loads",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "red",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "g",
+          "type": "box",
+          "text": "gain: short pauses",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "at": 1500,
+          "enter": "pop"
+        }
+      ]
+    }
+  ],
+  "takeaway": "ART's concurrent copying GC moves objects while the app runs, with a read barrier keeping every loaded reference pointing at the right copy.",
+  "sources": [
+    "https://source.android.com/docs/core/runtime"
+  ]
+}

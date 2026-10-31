@@ -1,0 +1,268 @@
+{
+  "version": 1,
+  "title": "LL vs LR parsing",
+  "hook": "Why can LR parse more grammars than LL, and what is a shift-reduce conflict?",
+  "topic": "compilers/frontend/ll-vs-lr-parsing",
+  "tags": [
+    "compilers",
+    "parsing",
+    "grammar"
+  ],
+  "level": "advanced",
+  "series": "compilers-frontend-theory",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 12000,
+      "caption": "LL parses top-down and must predict a production from the next token, so left recursion breaks it.",
+      "narration": "LL parsers build top-down and must pick a production from the next token. Left-recursive rules like E goes to E plus T loop forever, so the grammar needs rewriting.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "LL(1)",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "bad",
+          "type": "code",
+          "lang": "text",
+          "text": "E -> E + T | T",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "red",
+          "at": 1300
+        },
+        {
+          "id": "ok",
+          "type": "code",
+          "lang": "text",
+          "text": "E  -> T E'\nE' -> + T E' | eps",
+          "x": 8,
+          "y": 32,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "green",
+          "at": 2100
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Rewrite: remove left recursion, left-factor.",
+          "x": 8,
+          "y": 52,
+          "w": 84,
+          "enter": "fade",
+          "color": "gray",
+          "at": 2900
+        }
+      ]
+    },
+    {
+      "duration_ms": 9500,
+      "caption": "LR parses bottom-up with a stack, shifting tokens and reducing completed right-hand sides.",
+      "narration": "LR parsers build bottom-up. They shift tokens onto a stack, and when the top matches a complete right-hand side, they reduce it.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Shift and reduce",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "stack: E + T",
+          "x": 8,
+          "y": 20,
+          "w": 40,
+          "h": 10,
+          "color": "blue",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "r",
+          "type": "box",
+          "text": "reduce E->E+T",
+          "x": 52,
+          "y": 20,
+          "w": 40,
+          "h": 10,
+          "color": "purple",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "n",
+          "type": "box",
+          "text": "stack: E",
+          "x": 30,
+          "y": 42,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "enter": "pop",
+          "at": 2900
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "s",
+          "to": "r",
+          "enter": "draw",
+          "label": "next is )",
+          "at": 3700
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "r",
+          "to": "n",
+          "enter": "draw",
+          "at": 4500
+        }
+      ]
+    },
+    {
+      "duration_ms": 11500,
+      "caption": "LR decides after seeing a whole right-hand side, while LL must commit before seeing it.",
+      "narration": "LR waits until a whole right-hand side is seen, plus lookahead, before deciding. LL commits at the start. So every LL(k) grammar is LR(k), not the reverse.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Why LR is stronger",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "LL: commit when rule starts",
+            "LR: decide after full RHS + lookahead",
+            "Left recursion is fine in LR",
+            "LL(k) grammars are a subset of LR(k)"
+          ],
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "purple",
+          "at": 1300
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "A shift-reduce conflict is when the table allows both actions, as in the dangling else.",
+      "narration": "A shift-reduce conflict means the table allows both actions. In the dangling else, seeing else could shift or reduce. Yacc and Bison shift by default.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Dangling else",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "stmt -> if e then stmt\n      | if e then stmt else stmt",
+          "x": 6,
+          "y": 18,
+          "w": 88,
+          "enter": "slide-up",
+          "at": 1300
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "State: if e then stmt . else\nshift else, or reduce?",
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "enter": "fade",
+          "color": "red",
+          "at": 2100
+        },
+        {
+          "id": "d",
+          "type": "text",
+          "text": "Default: shift, so else binds to the nearest if.",
+          "x": 8,
+          "y": 54,
+          "w": 84,
+          "enter": "fade",
+          "color": "green",
+          "at": 2900
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "Bison builds LALR(1) tables and reports conflicts; precedence declarations resolve them.",
+      "narration": "Bison builds LALR(1) tables and reports conflicts, and percent-left style declarations resolve many. Clang instead uses hand-written recursive descent.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "In practice",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "bash",
+          "text": "bison -Wcounterexamples gram.y",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "at": 1300
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "%left '+' '-' ; %left '*'",
+            "Reduce/reduce: ambiguous grammar",
+            "Clang: hand-written recursive descent"
+          ],
+          "x": 8,
+          "y": 32,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "blue",
+          "at": 2100
+        }
+      ]
+    }
+  ],
+  "takeaway": "LR can wait to see an entire right-hand side before reducing, which handles grammars LL cannot, and conflicts mark spots where the grammar is ambiguous.",
+  "sources": [
+    "https://www.gnu.org/software/bison/manual/bison.html"
+  ]
+}

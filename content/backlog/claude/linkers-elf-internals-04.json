@@ -1,0 +1,192 @@
+{
+  "version": 1,
+  "title": "Strong, weak and COMMON symbols",
+  "hook": "How does the linker resolve duplicate symbols, weak definitions and COMMON?",
+  "topic": "linkers/elf/symbol-resolution-weak-strong",
+  "tags": [
+    "linkers",
+    "elf",
+    "symbols"
+  ],
+  "level": "advanced",
+  "series": "linkers-elf-internals",
+  "series_index": 4,
+  "scenes": [
+    {
+      "duration_ms": 10500,
+      "caption": "Every symbol has a binding in .symtab: GLOBAL (strong), WEAK, or COMMON.",
+      "narration": "The symbol table tags each global with a binding. Functions and initialized variables are strong. Weak must be requested, and uninitialized C globals may be COMMON.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Symbol binding",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "kinds",
+          "type": "list",
+          "items": [
+            "STB_GLOBAL: strong definition",
+            "STB_WEAK: __attribute__((weak))",
+            "SHN_COMMON: int buf[10]; with -fcommon"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "blue"
+        },
+        {
+          "id": "nm",
+          "type": "text",
+          "text": "nm shows T, W, C",
+          "x": 8,
+          "y": 51.6,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "gray"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Two strong definitions of one name is a hard link error.",
+      "narration": "The first rule is simple. If two object files each define the same strong symbol, the linker stops with multiple definition of x.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Rule 1: strong vs strong",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "c",
+          "text": "/* a.c */ int x = 1;\n/* b.c */ int x = 2;",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "e",
+          "type": "text",
+          "text": "ld: multiple definition of `x'",
+          "x": 8,
+          "y": 39.8,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "red"
+        },
+        {
+          "id": "hl-e",
+          "type": "highlight",
+          "target": "e",
+          "at": 3600
+        }
+      ]
+    },
+    {
+      "duration_ms": 11500,
+      "caption": "A strong definition beats weak ones; among weaks any one wins.",
+      "narration": "If one definition is strong and others are weak, the strong one is chosen silently. Several weak definitions are fine too, and the linker takes one of them.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Rule 2 and 3: weak loses",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "w",
+          "type": "code",
+          "lang": "c",
+          "text": "__attribute__((weak)) int f(void);\n/* libA: weak f */\n/* app:  strong f -> chosen */",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Undefined weak symbols resolve to 0.",
+          "x": 8,
+          "y": 43.7,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11500,
+      "caption": "COMMON merges to the largest size silently: a classic type-mismatch bug.",
+      "narration": "With COMMON, same-named uninitialized globals are merged, and the largest size wins. A 40-byte buf and a 400-byte buf quietly share one object. GCC 10 defaults to fno-common.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "COMMON symbols",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "cm",
+          "type": "code",
+          "lang": "c",
+          "text": "/* a.c */ int buf[10];\n/* b.c */ int buf[100];\n/* -fcommon: one 400-byte buf */",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "fix",
+          "type": "text",
+          "text": "Use ld --warn-common or -fno-common.",
+          "x": 8,
+          "y": 43.7,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "orange"
+        },
+        {
+          "id": "hl-cm",
+          "type": "highlight",
+          "target": "cm",
+          "at": 3600
+        }
+      ]
+    }
+  ],
+  "takeaway": "Strong beats weak, two strongs collide, and COMMON takes the largest size: know the rules before blaming the linker.",
+  "sources": [
+    "https://sourceware.org/binutils/docs/ld/Options.html"
+  ]
+}

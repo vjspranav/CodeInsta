@@ -1,0 +1,294 @@
+{
+  "version": 1,
+  "title": "Strict 2PL and deadlocks",
+  "hook": "How does strict 2PL guarantee serializability, and how are deadlocks detected?",
+  "topic": "databases/txn/two-phase-locking-deadlocks",
+  "tags": [
+    "databases",
+    "locking",
+    "transactions",
+    "deadlock"
+  ],
+  "level": "advanced",
+  "series": "databases-storage-engines",
+  "series_index": 4,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "Shared locks allow many readers; exclusive locks allow one writer.",
+      "narration": "Transactions take shared locks to read and exclusive locks to write. Shared is compatible with shared, and exclusive conflicts with everything.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Lock modes",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "      S    X\n  S   ok   wait\n  X   wait wait",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Conflicting requests queue until release.",
+          "x": 8,
+          "y": 48,
+          "w": 84,
+          "at": 4000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Strict 2PL: acquire as you go, release everything only at commit or abort.",
+      "narration": "Under strict two-phase locking, a transaction acquires locks as it needs them and holds all of them until commit or abort. That prevents dirty reads and cascading aborts.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Strict 2PL",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "g",
+          "type": "box",
+          "text": "Growing: acquire locks",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "Commit or abort",
+          "x": 8,
+          "y": 40,
+          "w": 84,
+          "h": 10,
+          "color": "purple",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "r",
+          "type": "box",
+          "text": "Release all locks at once",
+          "x": 8,
+          "y": 58,
+          "w": 84,
+          "h": 10,
+          "color": "green",
+          "at": 4500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "g",
+          "to": "c",
+          "at": 3000,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "c",
+          "to": "r",
+          "at": 5000,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "Why it is serializable: lock order makes the conflict graph acyclic.",
+      "narration": "If two transactions conflict, the one that locked first finishes with it first. So conflict edges follow lock-point order, the graph has no cycles, and a serial order exists.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Why serializable",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Conflicts ordered by lock acquisition",
+            "Precedence graph has no cycle",
+            "Equivalent to a serial order"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Phantoms need range or predicate locks.",
+          "x": 8,
+          "y": 60,
+          "w": 84,
+          "at": 5000,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 7000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Waiting can form a cycle: T1 waits for T2 and T2 waits for T1.",
+      "narration": "T1 holds a lock on A and wants B. T2 holds B and wants A. Neither can proceed, which is a deadlock.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Deadlock",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "t1",
+          "type": "box",
+          "text": "T1 holds A",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "t2",
+          "type": "box",
+          "text": "T2 holds B",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 10,
+          "color": "orange",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "t1",
+          "to": "t2",
+          "at": 2500,
+          "enter": "draw",
+          "label": "wants B"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "t2",
+          "to": "t1",
+          "at": 4000,
+          "enter": "draw",
+          "label": "wants A"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Cycle in the waits-for graph.",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "at": 6000,
+          "enter": "fade",
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Detect the cycle, abort a victim; Postgres checks after deadlock_timeout.",
+      "narration": "The lock manager finds cycles in the waits-for graph and aborts one victim. Postgres starts checking after deadlock_timeout, one second by default, and raises error 40P01.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Detection",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "deadlock_timeout = 1s\nERROR: deadlock detected\nSQLSTATE 40P01",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Victim aborts and retries",
+            "Or prevent: wait-die, wound-wait"
+          ],
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "at": 4500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 7500,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Strict 2PL holds all locks until commit so conflicts follow a serial order; deadlocks are detected as cycles in the waits-for graph.",
+  "sources": [
+    "https://www.postgresql.org/docs/current/explicit-locking.html"
+  ]
+}

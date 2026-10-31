@@ -1,0 +1,293 @@
+{
+  "version": 1,
+  "title": "Priority inversion and Mars Pathfinder",
+  "hook": "How did priority inversion break Mars Pathfinder, and how does priority inheritance fix it?",
+  "topic": "os/scheduling/priority-inversion",
+  "tags": [
+    "os",
+    "scheduling",
+    "priority-inversion",
+    "real-time"
+  ],
+  "level": "intermediate",
+  "series": "os-scheduling",
+  "series_index": 5,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "Pathfinder (1997): a high-priority bus task waited on a mutex held by a low-priority task.",
+      "narration": "On Mars Pathfinder, running VxWorks, a high-priority bus management task needed a mutex held by a low-priority meteorological task.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Three tasks, one mutex",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "h",
+          "type": "box",
+          "text": "High: bus management, blocked",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 12,
+          "color": "red",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "m",
+          "type": "box",
+          "text": "Medium: runs freely",
+          "x": 8,
+          "y": 40,
+          "w": 84,
+          "h": 9,
+          "color": "blue",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "l",
+          "type": "box",
+          "text": "Low: holds mutex, preempted",
+          "x": 8,
+          "y": 55,
+          "w": 84,
+          "h": 12,
+          "color": "green",
+          "at": 4500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "h",
+          "to": "l",
+          "label": "waits",
+          "at": 6000,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "A medium-priority task preempts the low one, so the mutex stays held and the high task waits indefinitely.",
+      "narration": "A medium-priority task preempted the low one. The mutex stayed locked, the high task kept waiting, and a watchdog finally reset the computer.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "How the inversion unfolds",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "t",
+          "type": "list",
+          "items": [
+            "1. Low locks the mutex",
+            "2. High wakes, blocks on it",
+            "3. Medium wakes, preempts Low",
+            "4. Low cannot run, High waits unbounded"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 30,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "wd",
+          "type": "text",
+          "text": "Watchdog timer fired: system reset.",
+          "x": 8,
+          "y": 66,
+          "w": 84,
+          "h": 10.8,
+          "at": 6500,
+          "enter": "fade",
+          "color": "red"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "wd",
+          "at": 8000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Priority inheritance: the lock owner temporarily runs at the highest waiter's priority.",
+      "narration": "Priority inheritance fixes it. While High waits, Low temporarily runs at High's priority, so Medium can no longer preempt it.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Priority inheritance",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "Low boosted to High's priority",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 12,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "box",
+          "text": "Medium cannot preempt it",
+          "x": 8,
+          "y": 40,
+          "w": 84,
+          "h": 9,
+          "color": "blue",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "r",
+          "type": "box",
+          "text": "Unlock: priority restored",
+          "x": 8,
+          "y": 55,
+          "w": 84,
+          "h": 9,
+          "color": "gray",
+          "at": 5000,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "b",
+          "to": "n",
+          "at": 2800,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "n",
+          "to": "r",
+          "at": 4800,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Linux implements this with rt_mutex and PI futexes; POSIX exposes PTHREAD_PRIO_INHERIT.",
+      "narration": "Linux implements it with rt_mutex and priority-inheritance futexes. In user space you request it with the PTHREAD_PRIO_INHERIT protocol.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Priority inheritance in Linux",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "c",
+          "text": "pthread_mutexattr_setprotocol(\n  &attr, PTHREAD_PRIO_INHERIT);",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 16.2,
+          "at": 500,
+          "enter": "fade"
+        },
+        {
+          "id": "k",
+          "type": "list",
+          "items": [
+            "Kernel: rt_mutex, FUTEX_LOCK_PI",
+            "PREEMPT_RT builds spinlocks on rt_mutex"
+          ],
+          "x": 8,
+          "y": 44,
+          "w": 84,
+          "h": 22.6,
+          "at": 4000,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Alternatives: priority ceiling, short critical sections, and never sharing locks across priorities.",
+      "narration": "Alternatives include priority ceilings, keeping critical sections tiny, and avoiding locks shared between real-time and background work. Pathfinder was fixed by enabling inheritance.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Beyond inheritance",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "a",
+          "type": "list",
+          "items": [
+            "Ceiling: PTHREAD_PRIO_PROTECT",
+            "Keep critical sections tiny",
+            "Avoid RT/non-RT shared locks",
+            "Pathfinder fix: turn inheritance on"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 30,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "a",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Priority inversion lets a medium task starve a high one through a lock; inheritance bounds the wait to the critical section.",
+  "sources": [
+    "https://man7.org/linux/man-pages/man3/pthread_mutexattr_setprotocol.3.html",
+    "https://docs.kernel.org/locking/rt-mutex-design.html"
+  ]
+}

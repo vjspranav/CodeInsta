@@ -1,0 +1,330 @@
+{
+  "version": 1,
+  "title": "Inside a .dex file",
+  "hook": "Why is dex register-based, and what is in a .dex file's string, type and method tables?",
+  "topic": "aosp/art/dex-bytecode-format",
+  "tags": [
+    "aosp",
+    "art",
+    "dex"
+  ],
+  "level": "advanced",
+  "series": "aosp-art-runtime",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "d8 converts many .class files into one classes.dex with a shared constant pool.",
+      "narration": "The d8 tool converts many class files into a single classes.dex. All classes share one pool of strings, types and method references.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "From .class to .dex",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "many .class files",
+          "x": 15,
+          "y": 20,
+          "w": 70,
+          "h": 10,
+          "color": "orange",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "d8",
+          "type": "box",
+          "text": "d8",
+          "x": 30,
+          "y": 38,
+          "w": 40,
+          "h": 10,
+          "color": "purple",
+          "at": 1800,
+          "enter": "pop"
+        },
+        {
+          "id": "dex",
+          "type": "box",
+          "text": "classes.dex (shared pools)",
+          "x": 15,
+          "y": 56,
+          "w": 70,
+          "h": 10,
+          "color": "green",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "c",
+          "to": "d8",
+          "at": 1500,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "d8",
+          "to": "dex",
+          "at": 2700,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "The header holds size and offset pairs pointing to each id table.",
+      "narration": "The header, with magic dex newline 035 or later, stores a size and offset for each table: strings, types, protos, fields, methods and class definitions.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Header and tables",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "h",
+          "type": "box",
+          "text": "header",
+          "x": 8,
+          "y": 20,
+          "w": 40,
+          "h": 9,
+          "color": "purple",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "string_ids",
+          "x": 52,
+          "y": 20,
+          "w": 40,
+          "h": 9,
+          "color": "blue",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "t",
+          "type": "box",
+          "text": "type_ids",
+          "x": 8,
+          "y": 36,
+          "w": 40,
+          "h": 9,
+          "color": "blue",
+          "at": 2300,
+          "enter": "pop"
+        },
+        {
+          "id": "p",
+          "type": "box",
+          "text": "proto_ids",
+          "x": 52,
+          "y": 36,
+          "w": 40,
+          "h": 9,
+          "color": "blue",
+          "at": 3100,
+          "enter": "pop"
+        },
+        {
+          "id": "m",
+          "type": "box",
+          "text": "method_ids",
+          "x": 8,
+          "y": 52,
+          "w": 40,
+          "h": 9,
+          "color": "blue",
+          "at": 3900,
+          "enter": "pop"
+        },
+        {
+          "id": "cd",
+          "type": "box",
+          "text": "class_defs",
+          "x": 52,
+          "y": 52,
+          "w": 40,
+          "h": 9,
+          "color": "green",
+          "at": 4700,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Everything is addressed by index into these tables",
+          "x": 8,
+          "y": 68,
+          "w": 84,
+          "h": 12,
+          "color": "gray",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "A method_id is three indexes: class type, prototype and name string.",
+      "narration": "A method_id is just three indexes: a type for the class, a proto for the signature, and a string for the name. Types are descriptors like Ljava/lang/String.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Resolving a method",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "method_id {\n  class_idx -> type_ids\n  proto_idx -> proto_ids\n  name_idx  -> string_ids\n}",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 20,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 4000,
+          "enter": "fade"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "proto_id: shorty, return type, parameters",
+          "x": 8,
+          "y": 48,
+          "w": 84,
+          "h": 12,
+          "color": "gray",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Register machines need fewer instructions than stack machines: no push and pop copies.",
+      "narration": "JVM bytecode shuffles operands through a stack. Dex instructions name registers directly, so one add-int replaces four stack instructions.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Registers vs stack",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "j",
+          "type": "code",
+          "lang": "text",
+          "text": "; JVM\niload_1\niload_2\niadd\nistore_3",
+          "x": 8,
+          "y": 20,
+          "w": 40,
+          "h": 20,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "d",
+          "type": "code",
+          "lang": "text",
+          "text": "# dex\nadd-int v3, v1, v2",
+          "x": 52,
+          "y": 20,
+          "w": 40,
+          "h": 10,
+          "at": 2500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Fewer dispatches in the interpreter",
+          "x": 8,
+          "y": 48,
+          "w": 84,
+          "h": 10,
+          "color": "green",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "Invoke instructions use 16-bit method indexes, hence multidex at 65,536 methods.",
+      "narration": "Many instructions use a 16-bit method index, which caps one dex file at 65,536 method references and is why multidex exists.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The 64K limit",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "16-bit method index in invoke",
+            "65,536 methods per dex file",
+            "multidex: classes2.dex ..."
+          ],
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 24,
+          "color": "red",
+          "at": 500,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Dex is a compact register-based format: shared string, type and method tables indexed from a header, with instructions that name registers directly.",
+  "sources": [
+    "https://source.android.com/docs/core/runtime/dex-format",
+    "https://source.android.com/docs/core/runtime/dalvik-bytecode"
+  ]
+}

@@ -1,0 +1,267 @@
+{
+  "version": 1,
+  "title": "The reorder buffer",
+  "hook": "How does an out-of-order core use the reorder buffer to keep in-order retirement?",
+  "topic": "architecture/cpu/out-of-order-reorder-buffer",
+  "tags": [
+    "architecture",
+    "cpu",
+    "out-of-order"
+  ],
+  "level": "advanced",
+  "series": "architecture-cpu-internals",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 12000,
+      "caption": "Instructions are fetched in order, executed out of order, and retired in order.",
+      "narration": "An out-of-order core runs instructions as soon as operands are ready, but the program must look sequential. So the pipeline is in-order at both ends and flexible in the middle.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "In-order, out-of-order, in-order",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "fe",
+          "type": "box",
+          "text": "Fetch, decode, rename",
+          "x": 8,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "ex",
+          "type": "box",
+          "text": "Issue and execute",
+          "x": 56,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "orange",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "rt",
+          "type": "box",
+          "text": "Commit from ROB head",
+          "x": 8,
+          "y": 43.2,
+          "w": 84,
+          "h": 11,
+          "color": "green",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "fe-ex",
+          "type": "arrow",
+          "from": "fe",
+          "to": "ex",
+          "at": 1200,
+          "enter": "draw",
+          "label": "any order"
+        },
+        {
+          "id": "ex-rt",
+          "type": "arrow",
+          "from": "ex",
+          "to": "rt",
+          "at": 2500,
+          "enter": "draw",
+          "label": "writeback"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Renaming maps architectural registers onto a larger physical register file.",
+      "narration": "Rename removes false dependencies. Each new destination gets a fresh physical register, so write-after-write and write-after-read hazards vanish, and only true data dependencies remain.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Register renaming",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "r",
+          "type": "code",
+          "lang": "text",
+          "text": "add r1, r2, r3   -> p17 = p5 + p9\nsub r1, r4, r5   -> p18 = p6 + p7",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Same r1, two physical registers.",
+          "x": 8,
+          "y": 39.8,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "purple"
+        },
+        {
+          "id": "hl-r",
+          "type": "highlight",
+          "target": "r",
+          "at": 3600
+        }
+      ]
+    },
+    {
+      "duration_ms": 11500,
+      "caption": "Every instruction gets a ROB entry in program order at dispatch.",
+      "narration": "At dispatch, each instruction also takes an entry at the tail of the reorder buffer, recording its destination, status and any exception. Execution can finish in any order.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The reorder buffer",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "rob",
+          "type": "list",
+          "items": [
+            "head: oldest, waiting to retire",
+            "entry: dest reg, done bit, fault",
+            "tail: newest, just dispatched"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "blue"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Skylake: 224 entries.",
+          "x": 8,
+          "y": 47.0,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "gray"
+        }
+      ]
+    },
+    {
+      "duration_ms": 13500,
+      "caption": "Only the oldest completed entry may commit; stores become visible and faults are taken then.",
+      "narration": "Retirement happens at the head, in order. Only then does architectural state update and a store leave the pipeline. Faults are recorded in the entry and raised at the head, giving precise exceptions.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "In-order retirement",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "list",
+          "items": [
+            "Head done? commit, free entry",
+            "Head faulted? take exception",
+            "Younger entries: discard"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "green"
+        },
+        {
+          "id": "p",
+          "type": "text",
+          "text": "Precise exceptions.",
+          "x": 8,
+          "y": 47.0,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11500,
+      "caption": "A mispredicted branch flushes every younger ROB entry and rolls back rename state.",
+      "narration": "When a branch resolves wrongly, everything younger in the ROB is squashed and the rename map is restored. Wrong-path work vanishes architecturally, though it can leave microarchitectural traces.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Mispredict recovery",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "br",
+          "type": "box",
+          "text": "Branch resolves: mispredicted",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "h": 11,
+          "color": "red",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "fl",
+          "type": "box",
+          "text": "Flush younger entries, restore RAT, refetch",
+          "x": 8,
+          "y": 40.0,
+          "w": 84,
+          "h": 14.2,
+          "color": "orange",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "br-fl",
+          "type": "arrow",
+          "from": "br",
+          "to": "fl",
+          "at": 2500,
+          "enter": "draw"
+        }
+      ]
+    }
+  ],
+  "takeaway": "The ROB lets execution run ahead out of order while commit stays in order, which gives precise exceptions and cheap rollback."
+}

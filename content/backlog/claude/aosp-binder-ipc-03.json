@@ -1,0 +1,320 @@
+{
+  "version": 1,
+  "title": "linkToDeath under the hood",
+  "hook": "How does Android know a remote service died, and what is `linkToDeath` really watching?",
+  "topic": "aosp/binder/death-recipients",
+  "tags": [
+    "aosp",
+    "binder",
+    "death"
+  ],
+  "level": "advanced",
+  "series": "aosp-binder-ipc",
+  "series_index": 3,
+  "scenes": [
+    {
+      "duration_ms": 8000,
+      "caption": "linkToDeath registers a callback on the proxy for a remote binder object.",
+      "narration": "Calling linkToDeath on a BinderProxy registers a recipient. Underneath, libbinder asks the driver for a death notification.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Registering",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "java",
+          "text": "binder.linkToDeath(\n    recipient, /* flags */ 0);",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 10,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "r",
+          "type": "box",
+          "text": "BC_REQUEST_DEATH_NOTIFICATION",
+          "x": 15,
+          "y": 40,
+          "w": 70,
+          "h": 10,
+          "color": "purple",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "c",
+          "to": "r",
+          "at": 3500,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "The driver attaches a death record to the binder_ref, keyed by your cookie.",
+      "narration": "The driver stores a binder_ref_death on your reference, tagged with the cookie. It is watching the remote binder_node, not a process id.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "What is watched",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "ref",
+          "type": "box",
+          "text": "binder_ref (your handle)",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "node",
+          "type": "box",
+          "text": "binder_node (remote object)",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "orange",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "ref",
+          "to": "node",
+          "at": 2500,
+          "enter": "draw",
+          "label": "death record"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Watches the node, not a pid",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 10,
+          "color": "green",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "When the service process dies, the kernel closes its binder fd and releases its nodes.",
+      "narration": "When the service process dies, the kernel closes its binder file. binder_release tears down the nodes and queues BR_DEAD_BINDER to every watcher.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The process dies",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "p",
+          "type": "box",
+          "text": "service process exits",
+          "x": 15,
+          "y": 20,
+          "w": 70,
+          "h": 9,
+          "color": "red",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "f",
+          "type": "box",
+          "text": "kernel closes /dev/binder fd",
+          "x": 15,
+          "y": 36,
+          "w": 70,
+          "h": 9,
+          "color": "gray",
+          "at": 2000,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "box",
+          "text": "binder_release: nodes die",
+          "x": 15,
+          "y": 52,
+          "w": 70,
+          "h": 9,
+          "color": "orange",
+          "at": 3500,
+          "enter": "pop"
+        },
+        {
+          "id": "d",
+          "type": "box",
+          "text": "queue BR_DEAD_BINDER",
+          "x": 15,
+          "y": 68,
+          "w": 70,
+          "h": 9,
+          "color": "purple",
+          "at": 5000,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "p",
+          "to": "f",
+          "at": 1800,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "f",
+          "to": "n",
+          "at": 3300,
+          "enter": "draw"
+        },
+        {
+          "id": "a3",
+          "type": "arrow",
+          "from": "n",
+          "to": "d",
+          "at": 4800,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "A binder thread gets BR_DEAD_BINDER, calls binderDied(), and acks with BC_DEAD_BINDER_DONE.",
+      "narration": "A binder thread in your process receives BR_DEAD_BINDER, runs your binderDied callback, and acknowledges with BC_DEAD_BINDER_DONE.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Delivery",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "BR_DEAD_BINDER",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "purple",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "r",
+          "type": "box",
+          "text": "binderDied()",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "b",
+          "to": "r",
+          "at": 2500,
+          "enter": "draw",
+          "label": "on a binder thread"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Later transactions fail with DEAD_OBJECT",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 10,
+          "color": "red",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "pingBinder is a poll; linkToDeath is a push, and only works for remote proxies.",
+      "narration": "Remember that pingBinder polls, while linkToDeath pushes. And it only makes sense for a remote proxy, not a local object.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Poll versus push",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "isBinderAlive / pingBinder: poll",
+            "linkToDeath: push notification",
+            "local binders cannot die remotely"
+          ],
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 24,
+          "color": "blue",
+          "at": 500,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "linkToDeath watches the remote binder node: when its process's binder fd closes, the driver pushes BR_DEAD_BINDER to every registered reference.",
+  "sources": [
+    "https://developer.android.com/reference/android/os/IBinder.DeathRecipient"
+  ]
+}

@@ -1,0 +1,252 @@
+{
+  "version": 1,
+  "title": "Raft's commit rule and Figure 8",
+  "hook": "Why can a Raft leader only commit entries from its own term by counting replicas?",
+  "topic": "distributed/consensus/raft-log-replication-safety",
+  "tags": [
+    "distributed",
+    "raft",
+    "consensus"
+  ],
+  "level": "advanced",
+  "series": "distributed-consensus",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "The leader appends client commands to its log and replicates them with AppendEntries.",
+      "narration": "A client command goes to the leader, which appends it and sends AppendEntries. Once stored on a majority, it is committed and applied.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Replication",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "Client",
+          "x": 8,
+          "y": 18,
+          "w": 34,
+          "h": 9,
+          "color": "gray",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "l",
+          "type": "box",
+          "text": "Leader",
+          "x": 58,
+          "y": 18,
+          "w": 34,
+          "h": 9,
+          "color": "green",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "f1",
+          "type": "box",
+          "text": "Follower",
+          "x": 8,
+          "y": 40,
+          "w": 34,
+          "h": 9,
+          "color": "blue",
+          "enter": "pop",
+          "at": 2900
+        },
+        {
+          "id": "f2",
+          "type": "box",
+          "text": "Follower",
+          "x": 58,
+          "y": 40,
+          "w": 34,
+          "h": 9,
+          "color": "blue",
+          "enter": "pop",
+          "at": 3700
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "c",
+          "to": "l",
+          "enter": "draw",
+          "label": "cmd",
+          "at": 4500
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "l",
+          "to": "f1",
+          "enter": "draw",
+          "label": "append",
+          "at": 5300
+        },
+        {
+          "id": "a3",
+          "type": "arrow",
+          "from": "l",
+          "to": "f2",
+          "enter": "draw",
+          "label": "append",
+          "at": 6100
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Followers accept entries only if the previous entry matches, which keeps logs consistent.",
+      "narration": "AppendEntries carries prevLogIndex and prevLogTerm. A follower rejects without a matching entry, and the leader backs up. This yields Log Matching.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Consistency check",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "AppendEntries(term, leaderId,\n  prevLogIndex, prevLogTerm,\n  entries[], leaderCommit)",
+          "x": 6,
+          "y": 18,
+          "w": 88,
+          "enter": "slide-up",
+          "at": 1300
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Same index and term implies identical logs up to that index.",
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "enter": "fade",
+          "color": "purple",
+          "at": 2100
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Figure 8: an old-term entry on a majority can still be overwritten by a later leader.",
+      "narration": "Figure 8: a term-2 entry reaches a majority, yet a server with a term-3 last entry can win an election and overwrite it.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "The danger",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "S1 leads term 2, copies entry to S2",
+            "S1 crashes; S5 wins term 3, adds its own",
+            "S1 returns, re-replicates term-2 entry to S3",
+            "Majority has it, but S5 can still win",
+            "S5 overwrites a 'committed' entry"
+          ],
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "red",
+          "at": 1300
+        }
+      ]
+    },
+    {
+      "duration_ms": 9500,
+      "caption": "So a leader commits only entries from its current term, by counting replicas.",
+      "narration": "So a leader counts replicas to commit only entries from its own term. Committing one commits everything before it, through Log Matching.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "The commit rule",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "for N > commitIndex:\n  if log[N].term == currentTerm\n  and majority matchIndex >= N:\n    commitIndex = N",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "at": 1300
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 2100
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Together with the election check, this guarantees committed entries survive every leadership change.",
+      "narration": "With the election restriction, this gives Leader Completeness: committed entries are in every future leader's log. Many implementations append a no-op on election.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Safety result",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Election restriction: up-to-date logs win",
+            "Commit only current-term entries by count",
+            "Leader Completeness holds",
+            "New leaders often append a no-op"
+          ],
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "green",
+          "at": 1300
+        }
+      ]
+    }
+  ],
+  "takeaway": "A Raft leader never counts replicas to commit an old-term entry; committing a current-term entry commits everything before it, closing the Figure 8 hole.",
+  "sources": [
+    "https://raft.github.io/raft.pdf"
+  ]
+}

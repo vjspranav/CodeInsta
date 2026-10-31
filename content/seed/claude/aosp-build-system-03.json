@@ -1,0 +1,358 @@
+{
+  "version": 1,
+  "title": "inherit-product and PRODUCT_PACKAGES",
+  "hook": "How does `inherit-product` turn one device.mk into a full PRODUCT_PACKAGES list?",
+  "topic": "aosp/build/product-makefile-inheritance",
+  "tags": [
+    "aosp",
+    "build",
+    "product-config"
+  ],
+  "level": "intermediate",
+  "series": "aosp-build-system",
+  "series_index": 3,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "A product makefile is the root of an inheritance graph of small makefiles.",
+      "narration": "lunch picks a product makefile. That file inherits from other makefiles, forming a graph from your device up to shared base products.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "A product is a graph",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "p",
+          "type": "box",
+          "text": "aosp_<device>.mk",
+          "x": 15,
+          "y": 20,
+          "w": 70,
+          "h": 9,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "d",
+          "type": "box",
+          "text": "device.mk",
+          "x": 15,
+          "y": 38,
+          "w": 70,
+          "h": 9,
+          "color": "blue",
+          "at": 1800,
+          "enter": "pop"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "core_64_bit.mk",
+          "x": 15,
+          "y": 56,
+          "w": 70,
+          "h": 9,
+          "color": "gray",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "base_system.mk",
+          "x": 15,
+          "y": 74,
+          "w": 70,
+          "h": 9,
+          "color": "gray",
+          "at": 4200,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "p",
+          "to": "d",
+          "at": 1500,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "d",
+          "to": "c",
+          "at": 2700,
+          "enter": "draw"
+        },
+        {
+          "id": "a3",
+          "type": "arrow",
+          "from": "c",
+          "to": "b",
+          "at": 3900,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "inherit-product pulls in a parent; PRODUCT_PACKAGES += adds module names.",
+      "narration": "In device.mk you call inherit-product with a parent path, then append module names to PRODUCT_PACKAGES. Both are plain make variables.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "In device.mk",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "make",
+          "text": "$(call inherit-product, \\\n  $(SRC_TARGET_DIR)/product/ \\\n  core_64_bit.mk)\n\nPRODUCT_PACKAGES += \\\n    Launcher3",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 30,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 4000,
+          "enter": "fade"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "SRC_TARGET_DIR is build/make/target",
+          "x": 8,
+          "y": 58,
+          "w": 84,
+          "h": 10,
+          "color": "gray",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "The graph is flattened: lists accumulate across files, scalars take the most-derived value.",
+      "narration": "The build records parents in the node graph and flattens it. List variables like PRODUCT_PACKAGES accumulate across files, while scalars like PRODUCT_NAME take the most derived value.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Flattening rules",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "box",
+          "text": "lists: PRODUCT_PACKAGES",
+          "x": 8,
+          "y": 20,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "scalars: PRODUCT_NAME",
+          "x": 52,
+          "y": 20,
+          "w": 40,
+          "h": 10,
+          "color": "orange",
+          "at": 900,
+          "enter": "pop"
+        },
+        {
+          "id": "tl",
+          "type": "text",
+          "text": "accumulate across the whole graph",
+          "x": 8,
+          "y": 36,
+          "w": 40,
+          "h": 12,
+          "color": "green",
+          "at": 2500,
+          "enter": "fade"
+        },
+        {
+          "id": "ts",
+          "type": "text",
+          "text": "most-derived file wins",
+          "x": 52,
+          "y": 36,
+          "w": 40,
+          "h": 12,
+          "color": "orange",
+          "at": 3000,
+          "enter": "fade"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Order of inherit-product calls matters",
+          "x": 8,
+          "y": 60,
+          "w": 84,
+          "h": 10,
+          "color": "red",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Module names resolve to Soong or Make modules, whose install paths decide the partition.",
+      "narration": "Each name in PRODUCT_PACKAGES must match a module. Soong or make then installs it, and vendor or product properties decide which partition it lands on.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Names to files",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "pk",
+          "type": "box",
+          "text": "PRODUCT_PACKAGES",
+          "x": 25,
+          "y": 20,
+          "w": 50,
+          "h": 9,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "m",
+          "type": "box",
+          "text": "Module (Android.bp or .mk)",
+          "x": 25,
+          "y": 38,
+          "w": 50,
+          "h": 9,
+          "color": "purple",
+          "at": 2000,
+          "enter": "pop"
+        },
+        {
+          "id": "i",
+          "type": "box",
+          "text": "out/target/product/<d>/",
+          "x": 25,
+          "y": 56,
+          "w": 50,
+          "h": 9,
+          "color": "green",
+          "at": 3500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "pk",
+          "to": "m",
+          "at": 1800,
+          "enter": "draw",
+          "label": "name lookup"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "m",
+          "to": "i",
+          "at": 3300,
+          "enter": "draw",
+          "label": "install"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "vendor: true puts it in vendor/",
+          "x": 8,
+          "y": 76,
+          "w": 84,
+          "h": 10,
+          "color": "gray",
+          "at": 5000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "Inspect the result with get_build_var after lunch.",
+      "narration": "After lunch, get_build_var PRODUCT_PACKAGES prints the flattened list, so you can see exactly what your inheritance produced.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Check your work",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "bash",
+          "text": "lunch aosp_arm64-userdebug\nget_build_var PRODUCT_PACKAGES",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 12,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 3000,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "inherit-product builds a graph of makefiles; flattening it yields one PRODUCT_PACKAGES list of module names that the build installs.",
+  "sources": [
+    "https://source.android.com/docs/setup/create/new-device"
+  ]
+}

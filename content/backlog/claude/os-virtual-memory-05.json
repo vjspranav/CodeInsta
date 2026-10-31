@@ -1,0 +1,288 @@
+{
+  "version": 1,
+  "title": "NUMA policy and transparent hugepages",
+  "hook": "When do NUMA policy and transparent hugepages help, and when do they hurt latency?",
+  "topic": "os/memory/numa-transparent-hugepages",
+  "tags": [
+    "os",
+    "memory",
+    "numa",
+    "thp",
+    "latency"
+  ],
+  "level": "advanced",
+  "series": "os-virtual-memory",
+  "series_index": 5,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "On NUMA machines each node has local RAM; remote accesses cross an interconnect and are slower.",
+      "narration": "On a NUMA machine each node has its own memory. Touching another node's RAM crosses the interconnect and costs more latency.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Local vs remote memory",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "n0",
+          "type": "box",
+          "text": "Node 0: CPUs + local RAM",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 16,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "n1",
+          "type": "box",
+          "text": "Node 1: CPUs + local RAM",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 16,
+          "color": "green",
+          "at": 1000,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "n0",
+          "to": "n1",
+          "label": "remote: slower",
+          "at": 3000,
+          "enter": "draw"
+        },
+        {
+          "id": "ft",
+          "type": "text",
+          "text": "Default policy: allocate on the node where the task runs (first touch).",
+          "x": 8,
+          "y": 50,
+          "w": 84,
+          "h": 15.2,
+          "at": 5000,
+          "enter": "fade",
+          "color": "gray"
+        },
+        {
+          "id": "cmd",
+          "type": "code",
+          "lang": "bash",
+          "text": "numactl --hardware",
+          "x": 8,
+          "y": 70,
+          "w": 84,
+          "h": 7.4,
+          "at": 7000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Policies set with mbind, set_mempolicy or numactl choose which node supplies pages.",
+      "narration": "Memory policy chooses the supplying node. Bind restricts it, interleave stripes pages across nodes, and preferred tries one node first.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "NUMA memory policies",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "pol",
+          "type": "list",
+          "items": [
+            "MPOL_BIND: only these nodes",
+            "MPOL_INTERLEAVE: stripe across nodes",
+            "MPOL_PREFERRED: try this node first"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 28.5,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "nc",
+          "type": "code",
+          "lang": "bash",
+          "text": "numactl --interleave=all ./db",
+          "x": 8,
+          "y": 56,
+          "w": 84,
+          "h": 7.4,
+          "at": 5000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Automatic NUMA balancing samples access with hinting faults and migrates pages or tasks.",
+      "narration": "Automatic balancing periodically unmaps ranges, takes hinting faults to see which node touches them, then migrates pages or tasks to match.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Automatic NUMA balancing",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "nb",
+          "type": "list",
+          "items": [
+            "task_numa_work marks PTEs PROT_NONE",
+            "Hinting fault records the touching node",
+            "Migrate the page or the task"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 28.5,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "sc",
+          "type": "code",
+          "lang": "bash",
+          "text": "sysctl kernel.numa_balancing",
+          "x": 8,
+          "y": 58,
+          "w": 84,
+          "h": 7.4,
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "THP maps 2 MiB with a single PMD entry, so one TLB entry covers what took 512.",
+      "narration": "Transparent hugepages back aligned 2 MiB ranges with one PMD entry. One TLB entry then covers what needed 512, and walks get shorter.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Transparent hugepages",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "sm",
+          "type": "box",
+          "text": "4 KiB pages: 512 PTEs",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 14,
+          "color": "orange",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "hg",
+          "type": "box",
+          "text": "2 MiB THP: 1 PMD entry",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 14,
+          "color": "green",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "sy",
+          "type": "code",
+          "lang": "bash",
+          "text": "cat /sys/kernel/mm/\n  transparent_hugepage/enabled",
+          "x": 8,
+          "y": 48,
+          "w": 84,
+          "h": 11.8,
+          "at": 5000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "THP hurts via compaction stalls, 2 MiB zeroing, bloat and wrongly placed huge pages.",
+      "narration": "The latency costs: direct compaction stalls on fault, zeroing two megabytes, memory bloat from sparse use, and a remote huge page that slows every access.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Where they hurt",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "bad",
+          "type": "list",
+          "items": [
+            "Direct compaction stalls the faulting thread",
+            "Zeroing 2 MiB on first touch is slow",
+            "Sparse use pins 2 MiB: bloat",
+            "Remote huge page: every access slow"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 38.8,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "fix",
+          "type": "text",
+          "text": "Mitigate: THP mode madvise, MADV_HUGEPAGE, defrag=defer.",
+          "x": 8,
+          "y": 74,
+          "w": 84,
+          "h": 10.8,
+          "at": 6500,
+          "enter": "fade",
+          "color": "green"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Locality and big pages cut latency when they match the access pattern, and spike it when compaction or remote placement gets in the way.",
+  "sources": [
+    "https://docs.kernel.org/admin-guide/mm/transhuge.html",
+    "https://docs.kernel.org/admin-guide/mm/numa_memory_policy.html"
+  ]
+}

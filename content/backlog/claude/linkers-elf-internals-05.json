@@ -1,0 +1,246 @@
+{
+  "version": 1,
+  "title": "The four ELF TLS models",
+  "hook": "How do thread-local variables work across the four ELF TLS models?",
+  "topic": "linkers/elf/tls-models",
+  "tags": [
+    "linkers",
+    "elf",
+    "tls"
+  ],
+  "level": "advanced",
+  "series": "linkers-elf-internals",
+  "series_index": 5,
+  "scenes": [
+    {
+      "duration_ms": 11500,
+      "caption": "A PT_TLS template (.tdata + .tbss) is copied per thread; the thread pointer finds it.",
+      "narration": "Thread-locals live in a PT_TLS template with initialized .tdata and zeroed .tbss. Each thread gets a copy, and on x86-64 the fs register points at the thread's block.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Per-thread copies",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "tpl",
+          "type": "box",
+          "text": "PT_TLS template",
+          "x": 8,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "th",
+          "type": "box",
+          "text": "Thread block",
+          "x": 56,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "green",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "fs",
+          "type": "text",
+          "text": "%fs base = thread pointer (TCB)",
+          "x": 8,
+          "y": 43.2,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "purple"
+        },
+        {
+          "id": "tpl-th",
+          "type": "arrow",
+          "from": "tpl",
+          "to": "th",
+          "at": 1200,
+          "enter": "draw",
+          "label": "copy"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "Local Exec: the offset from the thread pointer is a link-time constant.",
+      "narration": "The fastest model is local exec for executables only. The linker knows the variable's fixed offset from the thread pointer, so access is one fs-relative mov.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Local Exec",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "le",
+          "type": "code",
+          "lang": "asm",
+          "text": "movl %fs:x@tpoff, %eax",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "r",
+          "type": "text",
+          "text": "R_X86_64_TPOFF32. Executable only.",
+          "x": 8,
+          "y": 35.9,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "green"
+        },
+        {
+          "id": "hl-le",
+          "type": "highlight",
+          "target": "le",
+          "at": 3600
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Initial Exec: the offset is loaded from a GOT slot filled at startup.",
+      "narration": "For libraries loaded at startup, the offset isn't known at link time. Initial exec loads it from the GOT, then adds it to fs. One extra load.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Initial Exec",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "ie",
+          "type": "code",
+          "lang": "asm",
+          "text": "movq x@gottpoff(%rip), %rax\nmovl %fs:(%rax), %eax",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "r",
+          "type": "text",
+          "text": "R_X86_64_GOTTPOFF. Static TLS block: no dlopen.",
+          "x": 8,
+          "y": 39.8,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "orange"
+        },
+        {
+          "id": "hl-ie",
+          "type": "highlight",
+          "target": "ie",
+          "at": 3600
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "General Dynamic calls __tls_get_addr; Local Dynamic calls it once per module.",
+      "narration": "General dynamic works even for dlopen-ed libraries. It passes a module id and offset to __tls_get_addr. Local dynamic calls it once for the module block, then adds offsets.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Dynamic models",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "gd",
+          "type": "code",
+          "lang": "asm",
+          "text": "leaq x@tlsgd(%rip), %rdi\ncall __tls_get_addr@PLT",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "ld",
+          "type": "list",
+          "items": [
+            "GD: R_X86_64_TLSGD, per variable",
+            "LD: R_X86_64_TLSLD, per module"
+          ],
+          "x": 8,
+          "y": 39.8,
+          "w": 84,
+          "at": 1900,
+          "enter": "slide-up",
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11500,
+      "caption": "Pick by scope: -ftls-model=; the linker relaxes GD to IE or LE when it can.",
+      "narration": "Shared libraries default to general dynamic with fPIC. When the linker sees the final link context, it can relax these sequences into cheaper initial or local exec ones.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Choosing a model",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "tbl",
+          "type": "list",
+          "items": [
+            "Executable: local-exec",
+            "Startup libs: initial-exec",
+            "dlopen libs: general-dynamic",
+            "ld relaxes GD to IE/LE"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "purple"
+        }
+      ]
+    }
+  ],
+  "takeaway": "TLS models trade generality for speed: more link-time knowledge means fewer instructions per access.",
+  "sources": [
+    "https://www.akkadia.org/drepper/tls.pdf"
+  ]
+}

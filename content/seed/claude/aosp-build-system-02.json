@@ -1,0 +1,341 @@
+{
+  "version": 1,
+  "title": "Soong, Kati and ninja in one m",
+  "hook": "How do Soong, Kati and ninja split the work in a single `m` invocation?",
+  "topic": "aosp/build/kati-ninja-pipeline",
+  "tags": [
+    "aosp",
+    "soong",
+    "kati",
+    "ninja"
+  ],
+  "level": "intermediate",
+  "series": "aosp-build-system",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 8000,
+      "caption": "`m` is a shell function that runs soong_ui, the build driver.",
+      "narration": "The m command expands to build/soong/soong_ui.bash with make mode. That launches soong_ui, which orchestrates the whole build.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "What m really runs",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "bash",
+          "text": "m  ==>\nbuild/soong/soong_ui.bash \\\n   --make-mode <targets>",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 16,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "ui",
+          "type": "box",
+          "text": "soong_ui (Go driver)",
+          "x": 20,
+          "y": 48,
+          "w": 60,
+          "h": 10,
+          "color": "purple",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "c",
+          "to": "ui",
+          "at": 3500,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Two generators run: Soong reads Android.bp, Kati reads Android.mk and product makefiles.",
+      "narration": "First soong_build reads every Android.bp and emits build.ninja. In parallel Kati, a make clone, reads Android.mk and product config, emitting a second Ninja file.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Two Ninja generators",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "so",
+          "type": "box",
+          "text": "soong_build: reads Android.bp",
+          "x": 8,
+          "y": 20,
+          "w": 40,
+          "h": 12,
+          "color": "purple",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "ka",
+          "type": "box",
+          "text": "ckati: reads Android.mk + product .mk",
+          "x": 52,
+          "y": 20,
+          "w": 40,
+          "h": 12,
+          "color": "purple",
+          "at": 800,
+          "enter": "pop"
+        },
+        {
+          "id": "n1",
+          "type": "box",
+          "text": "out/soong/build.ninja",
+          "x": 8,
+          "y": 50,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "n2",
+          "type": "box",
+          "text": "out/build-<product>.ninja",
+          "x": 52,
+          "y": 50,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "at": 3300,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "so",
+          "to": "n1",
+          "at": 2500,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "ka",
+          "to": "n2",
+          "at": 2800,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "A combined Ninja file stitches both outputs together for one ninja run.",
+      "narration": "soong_ui then writes out/combined-product.ninja, which includes both generated files. A single ninja process executes the merged graph.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "One merged graph",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "n1",
+          "type": "box",
+          "text": "soong build.ninja",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "n2",
+          "type": "box",
+          "text": "kati build-<product>.ninja",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "at": 700,
+          "enter": "pop"
+        },
+        {
+          "id": "co",
+          "type": "box",
+          "text": "out/combined-<product>.ninja",
+          "x": 15,
+          "y": 46,
+          "w": 70,
+          "h": 10,
+          "color": "purple",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "nj",
+          "type": "box",
+          "text": "ninja",
+          "x": 30,
+          "y": 68,
+          "w": 40,
+          "h": 10,
+          "color": "red",
+          "at": 5000,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "n1",
+          "to": "co",
+          "at": 2500,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "n2",
+          "to": "co",
+          "at": 2800,
+          "enter": "draw"
+        },
+        {
+          "id": "a3",
+          "type": "arrow",
+          "from": "co",
+          "to": "nj",
+          "at": 4500,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Soong exports module install info to Kati, so make-based rules can package its outputs.",
+      "narration": "The two sides are not independent. Soong writes an Android-product.mk file that Kati includes, so image and install rules in make can package Soong modules.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The cross-edge",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "so",
+          "type": "box",
+          "text": "soong_build",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "purple",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "ka",
+          "type": "box",
+          "text": "ckati",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "purple",
+          "at": 700,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "so",
+          "to": "ka",
+          "at": 2500,
+          "enter": "draw",
+          "label": "Android-<product>.mk"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Make-world rules still own images and packaging, using Soong modules by name",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 14,
+          "color": "orange",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 7000,
+      "caption": "Ninja runs clang, linkers and image tools; outputs land in out/target/product/<device>.",
+      "narration": "Ninja finally runs the real commands, and artifacts land under out/target/product slash device.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Execution",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "clang / ld compile steps",
+            "image tools build system.img",
+            "out/target/product/<device>/"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 500,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "A single m runs soong_ui, which generates Ninja files from Android.bp and from Kati, merges them, and lets one ninja process do the work.",
+  "sources": [
+    "https://source.android.com/docs/setup/build",
+    "https://android.googlesource.com/platform/build/soong/"
+  ]
+}

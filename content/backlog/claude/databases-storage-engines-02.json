@@ -1,0 +1,252 @@
+{
+  "version": 1,
+  "title": "WAL and ARIES recovery",
+  "hook": "How does write-ahead logging with ARIES redo and undo recover after a crash?",
+  "topic": "databases/storage/wal-aries-recovery",
+  "tags": [
+    "databases",
+    "wal",
+    "aries",
+    "recovery"
+  ],
+  "level": "advanced",
+  "series": "databases-storage-engines",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 12000,
+      "caption": "Steal and no-force need one rule: log before data.",
+      "narration": "Dirty pages may be flushed before commit, called steal, and need not be flushed at commit, called no-force. That works only if the log record reaches disk before the page.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "The WAL rule",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "STEAL: dirty pages flush early, so UNDO info needed",
+            "NO-FORCE: commit only flushes the log, so REDO info needed",
+            "Log record hits disk before its page"
+          ],
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 8000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Log records carry an LSN; each page remembers the last LSN applied.",
+      "narration": "Each log record has an LSN, the transaction ID, a prevLSN chain, and redo and undo data. Each page stores the pageLSN of the last change applied.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Log record",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "LSN | txnId | prevLSN\npageId | undo | redo",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "p",
+          "type": "code",
+          "lang": "text",
+          "text": "page.pageLSN = last LSN\n  applied to this page",
+          "x": 8,
+          "y": 42,
+          "w": 84,
+          "at": 3500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Checkpoint saves dirty page table and txn table.",
+          "x": 8,
+          "y": 62,
+          "w": 84,
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Analysis: scan from the last checkpoint to find dirty pages and losers.",
+      "narration": "Recovery starts from the last checkpoint. Analysis scans forward to rebuild the dirty page table and the transaction table, identifying transactions that never committed.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "1. Analysis",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Start at last checkpoint",
+            "Rebuild dirty page table",
+            "Rebuild txn table",
+            "Mark losers: no commit record"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 7000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Redo repeats history for all changes, winners and losers alike.",
+      "narration": "Redo starts at the smallest recLSN in the dirty page table and replays records. It skips a change only if the page already has it.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "2. Redo",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "for rec in log[min recLSN..]:\n  if page.pageLSN < rec.LSN:\n    apply(rec.redo)",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Repeating history restores the exact crash state.",
+          "x": 8,
+          "y": 52,
+          "w": 84,
+          "at": 4500,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Undo rolls back losers backward via prevLSN, writing compensation records.",
+      "narration": "Undo walks each loser transaction backward through prevLSN. Every undo writes a compensation log record, with undoNextLSN, so a crash during recovery never repeats work.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "3. Undo",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "box",
+          "text": "loser txn chain\nprevLSN",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 12,
+          "color": "red",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "CLR\nundoNextLSN",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 12,
+          "color": "orange",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "l",
+          "to": "c",
+          "at": 2000,
+          "enter": "draw",
+          "label": "undo + log"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "CLRs are never undone, so recovery is idempotent.",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "at": 5000,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "ARIES logs before data, repeats history in redo, then undoes losers using compensation records so recovery survives its own crashes.",
+  "sources": [
+    "https://dl.acm.org/doi/10.1145/128765.128770"
+  ]
+}

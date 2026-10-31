@@ -1,0 +1,289 @@
+{
+  "version": 1,
+  "title": "Vector clocks and concurrent writes",
+  "hook": "How do vector clocks detect concurrent writes?",
+  "topic": "distributed/time/vector-clocks",
+  "tags": [
+    "distributed",
+    "clocks",
+    "dynamo"
+  ],
+  "level": "intermediate",
+  "series": "distributed-time-and-consistency",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "One counter per node: V[i] counts events seen from node i.",
+      "narration": "A vector clock keeps one counter per node. Node i bumps its own slot on local events and sends, and merges slot by slot on receive.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Vector clock rules",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "r",
+          "type": "list",
+          "items": [
+            "Node i holds V[0..N-1]",
+            "Local event or send: V[i]++",
+            "Receive m: V = max(V, m.V), then V[i]++"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "r",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "A happened-before B if every slot of A is <= B (and one is <).",
+      "narration": "Compare two vectors slot by slot. If A is less than or equal to B everywhere, A causally precedes B.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Ordered: A before B",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "A = [2, 1, 0]\nB = [2, 3, 0]",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "t",
+          "type": "text",
+          "text": "A <= B in every slot, and 1 < 3",
+          "x": 8,
+          "y": 40,
+          "w": 84,
+          "at": 2500,
+          "enter": "fade"
+        },
+        {
+          "id": "res",
+          "type": "box",
+          "text": "A happened before B",
+          "x": 8,
+          "y": 56,
+          "w": 84,
+          "h": 10,
+          "color": "green",
+          "at": 4500,
+          "enter": "pop"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "res",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "If neither vector dominates the other, the events are concurrent.",
+      "narration": "If A wins in one slot and B wins in another, neither saw the other. The writes are concurrent.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Concurrent: A || B",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "A = [2, 0, 0]\nB = [0, 0, 1]",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "t",
+          "type": "text",
+          "text": "A[0] > B[0] but A[2] < B[2]",
+          "x": 8,
+          "y": 40,
+          "w": 84,
+          "at": 2500,
+          "enter": "fade"
+        },
+        {
+          "id": "res",
+          "type": "box",
+          "text": "Concurrent writes",
+          "x": 8,
+          "y": 56,
+          "w": 84,
+          "h": 10,
+          "color": "red",
+          "at": 4500,
+          "enter": "pop"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "res",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Dynamo keeps both versions as siblings and returns them to the client.",
+      "narration": "In Dynamo, each put carries a vector clock context. Concurrent versions are kept as siblings, and the client reconciles them on read.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Dynamo siblings",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "a",
+          "type": "box",
+          "text": "put cart v1\nclock [X:1]",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 12,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "put cart v2\nclock [Y:1]",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 12,
+          "color": "orange",
+          "at": 1000,
+          "enter": "pop"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "get(cart) returns 2 siblings",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 10,
+          "color": "purple",
+          "at": 3500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "a",
+          "to": "s",
+          "at": 3000,
+          "enter": "draw"
+        },
+        {
+          "id": "b1",
+          "type": "arrow",
+          "from": "b",
+          "to": "s",
+          "at": 3000,
+          "enter": "draw"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Client merges them, then writes back with the merged clock.",
+          "x": 8,
+          "y": 66,
+          "w": 84,
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "The cost: the vector grows with the number of writers.",
+      "narration": "The price is size. Vectors grow with distinct coordinators, so Dynamo truncates the oldest entries once a threshold is passed.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "The cost",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Size grows with distinct writers",
+            "Dynamo truncates oldest (node, counter) pairs",
+            "Truncation can lose causality info"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Vector clocks capture causality exactly: compare slot by slot, and incomparable vectors mean concurrent writes that someone must merge.",
+  "sources": [
+    "https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf"
+  ]
+}

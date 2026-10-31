@@ -1,0 +1,336 @@
+{
+  "version": 1,
+  "title": "The x86-64 four-level page walk",
+  "hook": "How does a 4-level x86-64 page walk turn a virtual address into a physical one?",
+  "topic": "os/memory/page-table-walk",
+  "tags": [
+    "os",
+    "memory",
+    "x86-64",
+    "paging"
+  ],
+  "level": "intermediate",
+  "series": "os-virtual-memory",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "A 48-bit virtual address is four 9-bit table indexes plus a 12-bit page offset.",
+      "narration": "On x86-64 with four-level paging, a 48-bit virtual address is cut into four nine-bit table indexes and a twelve-bit page offset.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Anatomy of a virtual address",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "fields",
+          "type": "list",
+          "items": [
+            "[47:39] PML4 index",
+            "[38:30] PDPT index",
+            "[29:21] PD index",
+            "[20:12] PT index",
+            "[11:0] page offset"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 31.5,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "size",
+          "type": "text",
+          "text": "Each table: 512 entries x 8 B = one 4 KiB page",
+          "x": 8,
+          "y": 66,
+          "w": 84,
+          "h": 10.8,
+          "at": 3000,
+          "enter": "fade",
+          "color": "purple"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "size",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "CR3 holds the PML4's physical base; each entry names the next table's physical frame.",
+      "narration": "CR3 holds the physical base of the top table. Index times eight selects an entry, and that entry's address bits name the next table.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Walking down from CR3",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "cr3",
+          "type": "box",
+          "text": "CR3: physical base of PML4",
+          "x": 8,
+          "y": 24,
+          "w": 84,
+          "h": 9,
+          "color": "purple",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "pml4",
+          "type": "box",
+          "text": "PML4[idx] -> PDPT frame",
+          "x": 8,
+          "y": 40,
+          "w": 84,
+          "h": 9,
+          "color": "blue",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "pdpt",
+          "type": "box",
+          "text": "PDPT[idx] -> PD frame",
+          "x": 8,
+          "y": 56,
+          "w": 84,
+          "h": 9,
+          "color": "blue",
+          "at": 5000,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "cr3",
+          "to": "pml4",
+          "at": 2000,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "pml4",
+          "to": "pdpt",
+          "at": 4500,
+          "enter": "draw"
+        },
+        {
+          "id": "addr",
+          "type": "code",
+          "lang": "text",
+          "text": "entry = table + idx * 8",
+          "x": 8,
+          "y": 72,
+          "w": 84,
+          "h": 7.4,
+          "at": 7000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "PD leads to a PT; the PT entry gives the 4 KiB frame and the offset is appended.",
+      "narration": "The page directory leads to a page table, whose entry names the frame; append the offset. A PS bit stops early for huge pages.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Finishing the walk",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "pd",
+          "type": "box",
+          "text": "PD[idx] -> PT frame",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 9,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "pt",
+          "type": "box",
+          "text": "PT[idx] -> 4 KiB frame",
+          "x": 8,
+          "y": 37,
+          "w": 84,
+          "h": 9,
+          "color": "blue",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "pa",
+          "type": "box",
+          "text": "phys = frame | offset",
+          "x": 8,
+          "y": 52,
+          "w": 84,
+          "h": 9,
+          "color": "green",
+          "at": 4500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "pd",
+          "to": "pt",
+          "at": 2000,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "pt",
+          "to": "pa",
+          "at": 4000,
+          "enter": "draw"
+        },
+        {
+          "id": "ps",
+          "type": "text",
+          "text": "PS=1 in a PDPT or PD entry ends the walk early: a 1 GiB or 2 MiB page.",
+          "x": 8,
+          "y": 68,
+          "w": 84,
+          "h": 15.2,
+          "at": 6500,
+          "enter": "fade",
+          "color": "orange"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "ps",
+          "at": 8000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Each level is a dependent memory load, so one TLB miss can cost four loads.",
+      "narration": "Each level is a dependent load, so a miss can cost four. Paging-structure caches and huge pages trim that cost.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Why walks are expensive",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "pts",
+          "type": "list",
+          "items": [
+            "4 dependent loads per walk",
+            "Paging-structure caches skip upper levels",
+            "TLB hit: no walk at all",
+            "2 MiB pages drop one level"
+          ],
+          "x": 8,
+          "y": 24,
+          "w": 84,
+          "h": 30,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "pts",
+          "at": 5000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Linux walks the same tree with pgd, p4d, pud, pmd and pte helpers.",
+      "narration": "Linux names the levels pgd, p4d, pud, pmd and pte. With four-level paging the p4d level is folded away, but the code stays generic.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The same walk in Linux",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "walk",
+          "type": "code",
+          "lang": "c",
+          "text": "pgd = pgd_offset(mm, addr);\np4d = p4d_offset(pgd, addr);\npud = pud_offset(p4d, addr);\npmd = pmd_offset(pud, addr);\npte = pte_offset_map(pmd, addr);",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 29.4,
+          "at": 500,
+          "enter": "fade"
+        },
+        {
+          "id": "fold",
+          "type": "text",
+          "text": "With 4-level paging the p4d level is folded into the pgd.",
+          "x": 8,
+          "y": 62,
+          "w": 84,
+          "h": 10.8,
+          "at": 4000,
+          "enter": "fade",
+          "color": "gray"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "fold",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "A page walk is four dependent table lookups indexed by 9-bit slices of the address, which is why TLBs and huge pages matter.",
+  "sources": [
+    "https://docs.kernel.org/mm/page_tables.html"
+  ]
+}

@@ -1,0 +1,261 @@
+{
+  "version": 1,
+  "title": "Handle 0 and servicemanager",
+  "hook": "Why is handle 0 special, and how does servicemanager enforce who may register services?",
+  "topic": "aosp/binder/servicemanager-context",
+  "tags": [
+    "aosp",
+    "binder",
+    "servicemanager",
+    "selinux"
+  ],
+  "level": "advanced",
+  "series": "aosp-binder-ipc",
+  "series_index": 4,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "servicemanager claims handle 0 by becoming the binder context manager.",
+      "narration": "At startup servicemanager issues BINDER_SET_CONTEXT_MGR on the binder device. The driver then maps handle 0 in every process to that single node.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Becoming handle 0",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "c",
+          "text": "ioctl(fd,\n      BINDER_SET_CONTEXT_MGR, 0);",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 10,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "box",
+          "text": "context manager node",
+          "x": 15,
+          "y": 40,
+          "w": 70,
+          "h": 10,
+          "color": "purple",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "z",
+          "type": "box",
+          "text": "handle 0 in every process",
+          "x": 15,
+          "y": 58,
+          "w": 70,
+          "h": 10,
+          "color": "blue",
+          "at": 4500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "n",
+          "to": "z",
+          "at": 5000,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Clients need no lookup to reach it: defaultServiceManager() is a proxy for handle 0.",
+      "narration": "Because handle 0 is always valid, a client needs no bootstrap. defaultServiceManager simply returns a BpBinder for handle 0.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The bootstrap",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "Client",
+          "x": 8,
+          "y": 22,
+          "w": 25,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "z",
+          "type": "box",
+          "text": "BpBinder(0)",
+          "x": 38,
+          "y": 22,
+          "w": 25,
+          "h": 10,
+          "color": "green",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "servicemanager",
+          "x": 68,
+          "y": 22,
+          "w": 24,
+          "h": 10,
+          "color": "purple",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "c",
+          "to": "z",
+          "at": 2000,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "z",
+          "to": "s",
+          "at": 3300,
+          "enter": "draw",
+          "label": "getService"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "On addService, servicemanager checks SELinux with the caller's context.",
+      "narration": "On addService, servicemanager reads the caller's security context from binder and asks SELinux whether it may add that service name.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Who may register",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "caller sid (from binder)",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "t",
+          "type": "box",
+          "text": "service name label",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "orange",
+          "at": 1200,
+          "enter": "pop"
+        },
+        {
+          "id": "p",
+          "type": "box",
+          "text": "SELinux: service_manager add",
+          "x": 15,
+          "y": 46,
+          "w": 70,
+          "h": 10,
+          "color": "red",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "c",
+          "to": "p",
+          "at": 2000,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "t",
+          "to": "p",
+          "at": 2800,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Names get labels from service_contexts, and sepolicy grants add and find.",
+      "narration": "The service name maps to a type in service_contexts, and policy rules like add_service grant the permission to specific domains.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The policy side",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "# service_contexts\nactivity  u:object_r:activity_service:s0\n\n# sepolicy\nadd_service(system_server,\n            activity_service)",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 24,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Handle 0 is the context manager node claimed via BINDER_SET_CONTEXT_MGR, and SELinux service_manager add checks decide who may register each name.",
+  "sources": [
+    "https://source.android.com/docs/security/features/selinux"
+  ]
+}

@@ -1,0 +1,235 @@
+{
+  "version": 1,
+  "title": "The VT-x VM entry and exit loop",
+  "hook": "How does Intel VT-x run a guest with VMLAUNCH and handle VM exits?",
+  "topic": "virtualization/cpu/vmx-vmexit-loop",
+  "tags": [
+    "virtualization",
+    "vt-x",
+    "kvm"
+  ],
+  "level": "advanced",
+  "series": "virtualization-internals",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "VMX root mode runs the hypervisor; VMX non-root runs the guest at full speed.",
+      "narration": "VT-x adds two modes. The hypervisor runs in VMX root operation, the guest in non-root. The guest runs natively until something sensitive forces an exit.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Root vs non-root",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "root",
+          "type": "box",
+          "text": "VMX root: hypervisor",
+          "x": 8,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "non",
+          "type": "box",
+          "text": "VMX non-root: guest",
+          "x": 56,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "green",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "x",
+          "type": "text",
+          "text": "Exit returns to the host RIP stored in the VMCS.",
+          "x": 8,
+          "y": 43.2,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade"
+        },
+        {
+          "id": "root-non",
+          "type": "arrow",
+          "from": "root",
+          "to": "non",
+          "at": 1200,
+          "enter": "draw",
+          "label": "VMLAUNCH / VMRESUME"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Per-vCPU state lives in the VMCS: guest state, host state, controls, exit info.",
+      "narration": "Each vCPU has a VMCS, made current with VMPTRLD and edited with VMWRITE. It holds guest and host state, execution controls, and read-only exit information fields.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The VMCS",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "v",
+          "type": "list",
+          "items": [
+            "Guest-state area (RIP, CR3, ...)",
+            "Host-state area (reload on exit)",
+            "VM-execution / entry / exit controls",
+            "Exit info: EXIT_REASON, QUALIFICATION"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "purple"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "VMXON, VMCLEAR, VMPTRLD, VMWRITE",
+          "x": 8,
+          "y": 62.4,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "gray"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "The hypervisor loops: enter guest, exit, read EXIT_REASON, emulate, resume.",
+      "narration": "The core is a loop. Enter with VMLAUNCH the first time, VMRESUME afterwards. On exit, read the reason, emulate the instruction, advance guest RIP, and resume.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The run loop",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "loop",
+          "type": "code",
+          "lang": "text",
+          "text": "VMPTRLD vmcs\nVMLAUNCH   (later: VMRESUME)\n... guest runs ...\nexit: read EXIT_REASON\nemulate, advance guest RIP",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl-loop",
+          "type": "highlight",
+          "target": "loop",
+          "at": 2300
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "KVM dispatches on exit reason through a handler table in vmx.c.",
+      "narration": "In KVM, vmx_vcpu_run does the entry. After an exit, vmx_handle_exit indexes kvm_vmx_exit_handlers by exit reason, such as CPUID, I/O or an EPT violation.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Exit reasons in KVM",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "tbl",
+          "type": "code",
+          "lang": "c",
+          "text": "[EXIT_REASON_CPUID] = kvm_emulate_cpuid,\n[EXIT_REASON_IO_INSTRUCTION] = handle_io,\n[EXIT_REASON_EPT_VIOLATION] = handle_ept_violation,",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "text",
+          "text": "arch/x86/kvm/vmx/vmx.c",
+          "x": 8,
+          "y": 51.5,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "gray"
+        },
+        {
+          "id": "hl-tbl",
+          "type": "highlight",
+          "target": "tbl",
+          "at": 3600
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "Every exit is a full state switch, so hypervisors work to avoid them.",
+      "narration": "An exit saves guest state, loads host state and later reverses it. That's expensive, which is why EPT, virtio and posted interrupts exist: to cut exits.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Why exits matter",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "w",
+          "type": "list",
+          "items": [
+            "EPT: no exit per page-table write",
+            "virtio: batch I/O, few kicks",
+            "Posted interrupts: no exit to inject"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "orange"
+        }
+      ]
+    }
+  ],
+  "takeaway": "A hypervisor is a loop around VMLAUNCH/VMRESUME that handles each exit reason and then goes back to native-speed guest execution.",
+  "sources": [
+    "https://www.kernel.org/doc/html/latest/virt/kvm/index.html"
+  ]
+}

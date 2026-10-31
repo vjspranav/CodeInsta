@@ -1,0 +1,251 @@
+{
+  "version": 1,
+  "title": "ARM64 exception levels",
+  "hook": "What are EL0 to EL3 on ARM64, and where do the kernel, hypervisor and TrustZone run?",
+  "topic": "architecture/isa/arm64-exception-levels",
+  "tags": [
+    "architecture",
+    "arm64",
+    "exception-levels"
+  ],
+  "level": "intermediate",
+  "series": "architecture-cpu-internals",
+  "series_index": 6,
+  "scenes": [
+    {
+      "duration_ms": 10500,
+      "caption": "ARM64 has four privilege levels: EL0 user, EL1 kernel, EL2 hypervisor, EL3 secure monitor.",
+      "narration": "Higher number means more privilege. Applications run at EL0, the operating system kernel at EL1, a hypervisor at EL2, and the secure monitor firmware at EL3.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Four levels",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "el3",
+          "type": "box",
+          "text": "EL3: secure monitor (firmware)",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "h": 11,
+          "color": "red",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "el2",
+          "type": "box",
+          "text": "EL2: hypervisor",
+          "x": 8,
+          "y": 40.0,
+          "w": 84,
+          "h": 11,
+          "color": "orange",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "el1",
+          "type": "box",
+          "text": "EL1: OS kernel",
+          "x": 8,
+          "y": 60.0,
+          "w": 84,
+          "h": 11,
+          "color": "blue",
+          "at": 3200,
+          "enter": "pop"
+        },
+        {
+          "id": "el0",
+          "type": "box",
+          "text": "EL0: applications",
+          "x": 8,
+          "y": 80.0,
+          "w": 84,
+          "h": 11,
+          "color": "green",
+          "at": 4500,
+          "enter": "pop"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "Linux runs at EL1; KVM-style hypervisors at EL2; pKVM puts its code at EL2 too.",
+      "narration": "Linux's kernel proper runs at EL1. KVM needs EL2 to own stage-2 translation, which is how guest kernels at EL1 are isolated. Android's pKVM keeps its hypervisor code at EL2.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Kernel and hypervisor",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "k",
+          "type": "list",
+          "items": [
+            "Linux kernel: EL1",
+            "KVM / pKVM hypervisor: EL2",
+            "Guest kernel: EL1 under stage-2",
+            "Apps: EL0"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "purple"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "EL3 plus the Secure world is TrustZone: Arm Trusted Firmware, then a trusted OS.",
+      "narration": "TrustZone splits the system into Normal and Secure worlds. EL3 runs Arm Trusted Firmware, which switches worlds. The Secure world runs a trusted OS such as OP-TEE at secure EL1.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "TrustZone",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "n",
+          "type": "box",
+          "text": "Normal world: Linux, apps",
+          "x": 8,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "Secure world: TEE",
+          "x": 56,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "red",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "m",
+          "type": "box",
+          "text": "EL3: Trusted Firmware-A switches worlds",
+          "x": 8,
+          "y": 43.2,
+          "w": 84,
+          "h": 14.2,
+          "color": "orange",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "n-m",
+          "type": "arrow",
+          "from": "n",
+          "to": "m",
+          "at": 2500,
+          "enter": "draw"
+        },
+        {
+          "id": "s-m",
+          "type": "arrow",
+          "from": "s",
+          "to": "m",
+          "at": 2500,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Instructions raise levels: SVC to EL1, HVC to EL2, SMC to EL3; ERET returns.",
+      "narration": "Software moves up with exception-generating instructions. SVC enters the kernel, HVC the hypervisor, and SMC the secure monitor. ERET returns to the lower level.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Crossing levels",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "i",
+          "type": "code",
+          "lang": "text",
+          "text": "SVC #0   EL0 -> EL1  (syscall)\nHVC #0   EL1 -> EL2  (hypercall)\nSMC #0   EL1 -> EL3  (firmware)\nERET     return downward",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl-i",
+          "type": "highlight",
+          "target": "i",
+          "at": 2300
+        }
+      ]
+    },
+    {
+      "duration_ms": 14000,
+      "caption": "Each level has its own vector base and syndrome registers: VBAR_ELx, ESR_ELx, ELR_ELx.",
+      "narration": "On an exception the CPU saves the return address in ELR, the state in SPSR, and a cause code in ESR. It then jumps through the vector table at the VBAR of the target level.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Exception state",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "r",
+          "type": "list",
+          "items": [
+            "VBAR_ELx: vector base",
+            "ESR_ELx: why it happened",
+            "ELR_ELx: where to return",
+            "SPSR_ELx: saved PSTATE"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "green"
+        }
+      ]
+    }
+  ],
+  "takeaway": "ARM64 privilege is a ladder: syscalls go EL0 to EL1, hypercalls to EL2, and secure-world calls to EL3."
+}

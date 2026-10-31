@@ -1,0 +1,262 @@
+{
+  "version": 1,
+  "title": "RCU and grace periods",
+  "hook": "How does RCU let readers run with zero locks while writers free memory safely?",
+  "topic": "os/sync/rcu-grace-periods",
+  "tags": [
+    "os",
+    "synchronization",
+    "rcu",
+    "linux"
+  ],
+  "level": "advanced",
+  "series": "os-synchronization",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "Readers take no lock: rcu_read_lock is nearly free and rcu_dereference loads the pointer.",
+      "narration": "Readers take no lock and never block. rcu_read_lock merely marks a critical section, and rcu_dereference loads the shared pointer safely.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "RCU readers",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "c",
+          "text": "rcu_read_lock();\np = rcu_dereference(gp);\nif (p) use(p->val);\nrcu_read_unlock();",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 20.6,
+          "at": 500,
+          "enter": "fade"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "No stores, no atomics, no waiting.",
+          "x": 8,
+          "y": 54,
+          "w": 84,
+          "h": 10.8,
+          "at": 4500,
+          "enter": "fade",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Writers copy, modify, then publish with rcu_assign_pointer so readers see old or new, never half.",
+      "narration": "Writers copy the object, modify the copy, and publish it with rcu_assign_pointer. Readers see either the old version or the new one, never a mix.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "RCU writers: copy and publish",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "c",
+          "text": "new = kmalloc(sizeof(*new));\n*new = *old;\nnew->val = 5;\nrcu_assign_pointer(gp, new);",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 20.6,
+          "at": 500,
+          "enter": "fade"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "rcu_assign_pointer includes a release barrier.",
+          "x": 8,
+          "y": 54,
+          "w": 84,
+          "h": 10.8,
+          "at": 4500,
+          "enter": "fade",
+          "color": "gray"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "The old copy cannot be freed yet; synchronize_rcu waits for a grace period, call_rcu defers the free.",
+      "narration": "The old copy cannot be freed immediately, since a reader may still hold it. synchronize_rcu waits out a grace period, or call_rcu defers the free.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Deferred reclamation",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "u",
+          "type": "box",
+          "text": "publish new pointer",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 9,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "g",
+          "type": "box",
+          "text": "wait: grace period",
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "h": 9,
+          "color": "orange",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "f",
+          "type": "box",
+          "text": "kfree(old)",
+          "x": 8,
+          "y": 54,
+          "w": 84,
+          "h": 9,
+          "color": "green",
+          "at": 4500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "u",
+          "to": "g",
+          "at": 2000,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "g",
+          "to": "f",
+          "at": 4000,
+          "enter": "draw"
+        },
+        {
+          "id": "k",
+          "type": "code",
+          "lang": "c",
+          "text": "call_rcu(&old->rcu, free_cb);",
+          "x": 8,
+          "y": 70,
+          "w": 84,
+          "h": 7.4,
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "A grace period ends after every CPU passes a quiescent state, such as a context switch.",
+      "narration": "A grace period ends once every CPU has passed through a quiescent state, like a context switch or idle. Tree RCU aggregates those reports up an rcu_node hierarchy.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "What ends a grace period",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "g",
+          "type": "list",
+          "items": [
+            "Non-preemptible readers cannot block",
+            "Context switch or idle: quiescent state",
+            "Every CPU must report one",
+            "Tree RCU: rcu_node hierarchy aggregates"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 38.8,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "g",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Best for read-mostly data: readers are free, writers pay for copying and deferred freeing.",
+      "narration": "RCU shines on read-mostly data. Readers are free, while writers pay for the copy and the deferred free. The dentry cache and the task list rely on it.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "When to use RCU",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "u",
+          "type": "list",
+          "items": [
+            "Read-mostly: routing, dcache lookups",
+            "list_for_each_entry_rcu() traversal",
+            "kfree_rcu(p, rcu) for simple frees",
+            "Writers still need mutual exclusion"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 43.2,
+          "at": 500,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "RCU trades writer cost for reader speed: publish a new version, then free the old one only after every reader has left.",
+  "sources": [
+    "https://docs.kernel.org/RCU/whatisRCU.html"
+  ]
+}

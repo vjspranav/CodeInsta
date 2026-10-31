@@ -1,0 +1,238 @@
+{
+  "version": 1,
+  "title": "Calling conventions and ABIs",
+  "hook": "What decides which registers hold arguments in the System V and AAPCS64 ABIs?",
+  "topic": "compilers/backend/calling-conventions-abi",
+  "tags": [
+    "compilers",
+    "backend",
+    "abi"
+  ],
+  "level": "intermediate",
+  "series": "compilers-backend",
+  "series_index": 5,
+  "scenes": [
+    {
+      "duration_ms": 8500,
+      "caption": "An ABI is a contract that lets separately compiled code agree on registers, stack and alignment.",
+      "narration": "Caller and callee are compiled separately, so the ABI must fix argument registers, return values, saved registers and stack layout.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Why an ABI",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "Caller",
+          "x": 8,
+          "y": 20,
+          "w": 34,
+          "h": 10,
+          "color": "blue",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "e",
+          "type": "box",
+          "text": "Callee",
+          "x": 58,
+          "y": 20,
+          "w": 34,
+          "h": 10,
+          "color": "green",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "c",
+          "to": "e",
+          "enter": "draw",
+          "label": "args in regs",
+          "at": 2900
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Argument and return registers",
+            "Callee-saved vs caller-saved",
+            "Stack alignment and layout"
+          ],
+          "x": 8,
+          "y": 40,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "gray",
+          "at": 3700
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "System V x86-64 passes six integer args in registers and eight float args in xmm0 to xmm7.",
+      "narration": "In System V x86-64, integer arguments go in rdi, rsi, rdx, rcx, r8, r9, and floats in xmm0 to xmm7. Results return in rax or xmm0.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "System V x86-64",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "int/ptr: rdi rsi rdx rcx r8 r9",
+            "float: xmm0 - xmm7",
+            "return: rax (rdx:rax), xmm0",
+            "callee-saved: rbx rbp r12-r15",
+            "rsp 16-byte aligned at call"
+          ],
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "blue",
+          "at": 1300
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "AAPCS64 passes eight integer args in x0 to x7 and eight float args in v0 to v7.",
+      "narration": "AAPCS64 uses x0 to x7 for integers and v0 to v7 for floats. Results return in x0 or v0, and x8 carries an indirect result pointer.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "AAPCS64",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "int/ptr: x0 - x7",
+            "float: v0 - v7 (d0, s0)",
+            "return: x0 / v0; x8 = result ptr",
+            "callee-saved: x19 - x28",
+            "x29 = FP, x30 = LR, sp 16-aligned"
+          ],
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "green",
+          "at": 1300
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Integer and float registers are assigned independently, so the same call maps differently per ABI.",
+      "narration": "Integer and float registers are assigned independently. For a long, a double and a long, SysV uses rdi, xmm0, rsi, and AAPCS64 uses x0, d0, x1.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "long f(long a, double b, long c)",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "s",
+          "type": "code",
+          "lang": "text",
+          "text": "SysV:    a=rdi  b=xmm0  c=rsi",
+          "x": 8,
+          "y": 26,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "blue",
+          "at": 1300
+        },
+        {
+          "id": "a",
+          "type": "code",
+          "lang": "text",
+          "text": "AAPCS64: a=x0   b=d0    c=x1",
+          "x": 8,
+          "y": 40,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "green",
+          "at": 2100
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Extra args spill to the stack. Large structs go via memory.",
+          "x": 8,
+          "y": 56,
+          "w": 84,
+          "enter": "fade",
+          "color": "orange",
+          "at": 2900
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Compilers encode these rules in CallingConv TableGen files and clang's ABIInfo.",
+      "narration": "LLVM backends encode the rules in TableGen files like X86CallingConv.td, and clang's ABIInfo classifies C types so frontend and backend agree.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Where it lives",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "X86CallingConv.td, AArch64CallingConvention.td",
+            "clang ABIInfo: classify args/returns",
+            "Spec: System V psABI, Arm AAPCS64"
+          ],
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "purple",
+          "at": 1300
+        }
+      ]
+    }
+  ],
+  "takeaway": "The ABI, not the compiler, fixes which registers carry arguments: System V and AAPCS64 each assign integer and floating-point arguments to dedicated register sequences, spilling to the stack.",
+  "sources": [
+    "https://github.com/ARM-software/abi-aa/blob/main/aapcs64/aapcs64.rst",
+    "https://gitlab.com/x86-psABIs/x86-64-ABI"
+  ]
+}

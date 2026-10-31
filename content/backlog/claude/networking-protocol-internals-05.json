@@ -1,0 +1,318 @@
+{
+  "version": 1,
+  "title": "getaddrinfo to authoritative DNS",
+  "hook": "What really happens between `getaddrinfo` and an authoritative nameserver?",
+  "topic": "networking/dns/recursive-resolution-caching",
+  "tags": [
+    "networking",
+    "dns",
+    "linux"
+  ],
+  "level": "intermediate",
+  "series": "networking-protocol-internals",
+  "series_index": 5,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "libc first consults nsswitch.conf, usually /etc/hosts before DNS.",
+      "narration": "getaddrinfo reads nsswitch.conf. The hosts line usually lists files before dns, so /etc/hosts is checked first.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "getaddrinfo()",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "# /etc/nsswitch.conf\nhosts: files dns",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "box",
+          "text": "/etc/hosts",
+          "x": 8,
+          "y": 44,
+          "w": 38,
+          "h": 10,
+          "color": "gray",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "d",
+          "type": "box",
+          "text": "stub resolver",
+          "x": 54,
+          "y": 44,
+          "w": 38,
+          "h": 10,
+          "color": "blue",
+          "at": 4000,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "f",
+          "to": "d",
+          "at": 4500,
+          "enter": "draw",
+          "label": "miss"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "The stub resolver sends one recursive query to the configured nameserver.",
+      "narration": "The stub resolver reads resolv.conf and sends a single recursive query. It does no iteration itself, the recursive resolver does the work.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Stub to recursive",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "# /etc/resolv.conf\nnameserver 192.0.2.53",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "stub",
+          "x": 8,
+          "y": 46,
+          "w": 38,
+          "h": 10,
+          "color": "blue",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "r",
+          "type": "box",
+          "text": "recursive resolver",
+          "x": 54,
+          "y": 46,
+          "w": 38,
+          "h": 10,
+          "color": "purple",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "s",
+          "to": "r",
+          "at": 3500,
+          "enter": "draw",
+          "label": "RD=1"
+        }
+      ]
+    },
+    {
+      "duration_ms": 14000,
+      "caption": "The recursive resolver walks root, TLD, then authoritative servers.",
+      "narration": "On a cache miss the resolver asks a root server, gets NS records for the TLD, asks that, gets NS records for the zone, and finally asks the authoritative server for the A record.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Iterative walk",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "r",
+          "type": "box",
+          "text": "root",
+          "x": 8,
+          "y": 22,
+          "w": 26,
+          "h": 9,
+          "color": "gray",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "t",
+          "type": "box",
+          "text": ".com TLD",
+          "x": 37,
+          "y": 22,
+          "w": 26,
+          "h": 9,
+          "color": "orange",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "au",
+          "type": "box",
+          "text": "example.com auth",
+          "x": 66,
+          "y": 22,
+          "w": 28,
+          "h": 9,
+          "color": "green",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "re",
+          "type": "box",
+          "text": "recursive resolver",
+          "x": 8,
+          "y": 44,
+          "w": 84,
+          "h": 10,
+          "color": "purple",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "re",
+          "to": "r",
+          "at": 3500,
+          "enter": "draw",
+          "label": "NS .com"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "re",
+          "to": "t",
+          "at": 5000,
+          "enter": "draw",
+          "label": "NS example"
+        },
+        {
+          "id": "a3",
+          "type": "arrow",
+          "from": "re",
+          "to": "au",
+          "at": 6500,
+          "enter": "draw",
+          "label": "A"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "Answers are cached for their TTL, and so are referrals and NXDOMAIN.",
+      "narration": "The resolver caches answers for the record TTL, and the NS referrals too, so the next lookup skips the root. Negative answers are cached based on the SOA record.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Caching",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "A record: cached for its TTL",
+            "NS and glue: skip root and TLD next time",
+            "NXDOMAIN: negative cache, RFC 2308"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 7000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "You can replay the walk yourself with dig +trace.",
+      "narration": "You can replay this from your terminal. dig plus trace queries the root, then each referral in turn.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Watch it",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "dig +trace example.com A",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Prints each referral, root to authoritative.",
+          "x": 8,
+          "y": 36,
+          "w": 84,
+          "at": 3000,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 5000,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "getaddrinfo hits files, then a stub asks a recursive resolver that walks root, TLD and authoritative servers, caching each step by TTL.",
+  "sources": [
+    "https://www.rfc-editor.org/rfc/rfc1034",
+    "https://www.rfc-editor.org/rfc/rfc2308"
+  ]
+}

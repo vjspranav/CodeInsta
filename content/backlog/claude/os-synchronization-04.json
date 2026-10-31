@@ -1,0 +1,267 @@
+{
+  "version": 1,
+  "title": "Acquire and release barriers",
+  "hook": "What do acquire and release barriers guarantee, and why does `volatile` not help?",
+  "topic": "os/sync/memory-barriers-acquire-release",
+  "tags": [
+    "os",
+    "synchronization",
+    "memory-model",
+    "barriers"
+  ],
+  "level": "advanced",
+  "series": "os-synchronization",
+  "series_index": 4,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "Compilers and CPUs reorder memory operations; one thread cannot tell, another can.",
+      "narration": "Compilers and CPUs reorder memory operations. A single thread cannot notice, but another thread can see the flag set before the data.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Message passing, broken",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "c",
+          "text": "// T1\ndata = 42;\nflag = 1;\n// T2\nwhile (!flag);\nuse(data);",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 29.4,
+          "at": 500,
+          "enter": "fade"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "T2 may see flag == 1 but stale data.",
+          "x": 8,
+          "y": 62,
+          "w": 84,
+          "h": 10.8,
+          "at": 5000,
+          "enter": "fade",
+          "color": "red"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "n",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "volatile only forces the compiler to emit each access: no fence, no atomicity, no ordering with other accesses.",
+      "narration": "Volatile only forces the compiler to emit each access. It adds no hardware fence, gives no atomicity, and does not order the surrounding non-volatile accesses.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "What volatile does not do",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "v",
+          "type": "list",
+          "items": [
+            "No CPU fence emitted",
+            "No atomic read-modify-write",
+            "Does not order plain accesses",
+            "Weak CPUs (arm64, POWER) reorder anyway"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 30,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "v",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Release store: earlier writes are visible first. Acquire load: later reads happen after it.",
+      "narration": "A release store makes all earlier writes visible before it. An acquire load ensures later reads happen after it. Pair them on the same variable.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Acquire and release in C11",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "c",
+          "text": "data = 42;\nstore_explicit(&flag, 1,\n  memory_order_release);\n\nwhile (!load_explicit(&flag,\n  memory_order_acquire));\nuse(data);",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 33.8,
+          "at": 500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "If the acquire reads the release's value, the writer's earlier stores happen-before the reader's later loads.",
+      "narration": "When the acquire load reads the value the release stored, the two synchronize. Everything before the release now happens-before everything after the acquire.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Synchronizes-with",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "w",
+          "type": "box",
+          "text": "T1: write data",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 8,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "r",
+          "type": "box",
+          "text": "T1: release-store flag",
+          "x": 8,
+          "y": 36,
+          "w": 84,
+          "h": 8,
+          "color": "purple",
+          "at": 2000,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "box",
+          "text": "T2: acquire-load flag",
+          "x": 8,
+          "y": 50,
+          "w": 84,
+          "h": 8,
+          "color": "purple",
+          "at": 3500,
+          "enter": "pop"
+        },
+        {
+          "id": "u",
+          "type": "box",
+          "text": "T2: read data (sees 42)",
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 8,
+          "color": "green",
+          "at": 5000,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "w",
+          "to": "r",
+          "at": 1800,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "r",
+          "to": "a",
+          "label": "reads-from",
+          "at": 3300,
+          "enter": "draw"
+        },
+        {
+          "id": "a3",
+          "type": "arrow",
+          "from": "a",
+          "to": "u",
+          "at": 4800,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "x86 gets this nearly free; arm64 uses ldar and stlr. Linux wraps both as smp_load_acquire and smp_store_release.",
+      "narration": "On x86 acquire and release are plain moves. Arm64 uses ldar and stlr. Linux wraps them as smp_load_acquire and smp_store_release.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "In hardware and Linux",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "h",
+          "type": "list",
+          "items": [
+            "x86 TSO: plain mov suffices",
+            "arm64: ldar / stlr",
+            "Linux: smp_load_acquire()",
+            "Linux: smp_store_release()",
+            "Full fence: smp_mb()"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 31.5,
+          "at": 500,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Pair a release store with an acquire load on the same variable to publish data safely; volatile gives you neither ordering nor atomicity.",
+  "sources": [
+    "https://en.cppreference.com/w/cpp/atomic/memory_order"
+  ]
+}

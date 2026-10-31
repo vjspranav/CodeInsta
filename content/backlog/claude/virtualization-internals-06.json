@@ -1,0 +1,283 @@
+{
+  "version": 1,
+  "title": "pKVM protected VMs",
+  "hook": "How does pKVM protect VM memory even from the Android host kernel?",
+  "topic": "virtualization/android/pkvm-protected-vms",
+  "tags": [
+    "virtualization",
+    "android",
+    "pkvm",
+    "arm64"
+  ],
+  "level": "advanced",
+  "series": "virtualization-internals",
+  "series_index": 6,
+  "scenes": [
+    {
+      "duration_ms": 12000,
+      "caption": "pKVM puts a small hypervisor at EL2 and demotes the host Linux kernel to a guest.",
+      "narration": "In protected KVM, a tiny hypervisor runs at EL2 and owns stage-2 translation. The Android Linux kernel runs at EL1 and is itself placed under a stage-2 page table.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Host is deprivileged",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "hyp",
+          "type": "box",
+          "text": "EL2: pKVM hypervisor (nVHE hyp code)",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "h": 11,
+          "color": "red",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "host",
+          "type": "box",
+          "text": "EL1: Android host",
+          "x": 8,
+          "y": 40.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "blue",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "pvm",
+          "type": "box",
+          "text": "EL1: protected VM",
+          "x": 56,
+          "y": 40.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "green",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "hyp-host",
+          "type": "arrow",
+          "from": "hyp",
+          "to": "host",
+          "at": 2500,
+          "enter": "draw",
+          "label": "stage-2"
+        },
+        {
+          "id": "hyp-pvm",
+          "type": "arrow",
+          "from": "hyp",
+          "to": "pvm",
+          "at": 2500,
+          "enter": "draw",
+          "label": "stage-2"
+        }
+      ]
+    },
+    {
+      "duration_ms": 13500,
+      "caption": "Because the hypervisor controls the host's stage-2 tables, it can remove pages from the host.",
+      "narration": "The trick is that the host also runs under stage 2. When a page is donated to a guest, the hypervisor unmaps it from the host, so no host access can reach it.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Donate, don't share",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "d",
+          "type": "list",
+          "items": [
+            "Host donates pages via hypercall",
+            "EL2 unmaps them from host stage-2",
+            "EL2 maps them into the guest",
+            "Host access now faults"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "orange"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "Guests choose what to share back, e.g. virtio buffers, by explicit hypercall.",
+      "narration": "A protected guest can still do I/O. It explicitly shares selected pages with the host, such as virtio buffers, through a hypercall. Everything else stays private.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Controlled sharing",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "pr",
+          "type": "box",
+          "text": "Guest private memory",
+          "x": 8,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "green",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "sh",
+          "type": "box",
+          "text": "Shared bounce pages",
+          "x": 56,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "orange",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Host sees only what the guest shares.",
+          "x": 8,
+          "y": 43.2,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade"
+        },
+        {
+          "id": "pr-sh",
+          "type": "arrow",
+          "from": "pr",
+          "to": "sh",
+          "at": 1200,
+          "enter": "draw",
+          "label": "share hypercall"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "On teardown the hypervisor scrubs guest pages before returning them to the host.",
+      "narration": "When a VM is destroyed, the hypervisor must clear the guest's pages before giving them back. Otherwise the host could read leftovers from the protected guest.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Reclaim safely",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "t",
+          "type": "box",
+          "text": "VM teardown",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "h": 11,
+          "color": "gray",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "z",
+          "type": "box",
+          "text": "EL2 zeroes pages, then returns to host",
+          "x": 8,
+          "y": 40.0,
+          "w": 84,
+          "h": 14.2,
+          "color": "red",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "t-z",
+          "type": "arrow",
+          "from": "t",
+          "to": "z",
+          "at": 2500,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Enable with kvm-arm.mode=protected; Android's AVF runs protected VMs via crosvm.",
+      "narration": "Protected mode is selected at boot with kvm-arm dot mode equals protected. The Android Virtualization Framework uses it to run protected VMs, launched by crosvm.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "In Android",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "b",
+          "type": "code",
+          "lang": "text",
+          "text": "kvm-arm.mode=protected",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "a",
+          "type": "list",
+          "items": [
+            "AVF: Android Virtualization Framework",
+            "crosvm is the VMM",
+            "Trust base: EL2 code, not the host"
+          ],
+          "x": 8,
+          "y": 35.9,
+          "w": 84,
+          "at": 1900,
+          "enter": "slide-up",
+          "color": "blue"
+        },
+        {
+          "id": "hl-b",
+          "type": "highlight",
+          "target": "b",
+          "at": 3600
+        }
+      ]
+    }
+  ],
+  "takeaway": "pKVM shrinks the trusted base to a small EL2 hypervisor that can take pages away from even a compromised Android kernel.",
+  "sources": [
+    "https://source.android.com/docs/core/virtualization/architecture"
+  ]
+}

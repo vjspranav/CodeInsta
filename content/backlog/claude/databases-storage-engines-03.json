@@ -1,0 +1,266 @@
+{
+  "version": 1,
+  "title": "MVCC and write skew",
+  "hook": "How does MVCC give readers a snapshot without blocking writers, and what is write skew?",
+  "topic": "databases/txn/mvcc-snapshot-isolation",
+  "tags": [
+    "databases",
+    "postgres",
+    "mvcc",
+    "isolation"
+  ],
+  "level": "advanced",
+  "series": "databases-storage-engines",
+  "series_index": 3,
+  "scenes": [
+    {
+      "duration_ms": 11000,
+      "caption": "In Postgres each row version has xmin and xmax; UPDATE adds a new version.",
+      "narration": "In Postgres every tuple records xmin, the creating transaction, and xmax, the deleting one. An UPDATE writes a new tuple and stamps xmax on the old one.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Row versions",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "SELECT xmin, xmax, *\nFROM accounts;",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "v1",
+          "type": "box",
+          "text": "v1 xmin=100 xmax=205",
+          "x": 8,
+          "y": 44,
+          "w": 84,
+          "h": 9,
+          "color": "gray",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "v2",
+          "type": "box",
+          "text": "v2 xmin=205 xmax=0",
+          "x": 8,
+          "y": 60,
+          "w": 84,
+          "h": 9,
+          "color": "green",
+          "at": 4500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "v1",
+          "to": "v2",
+          "at": 4500,
+          "enter": "draw",
+          "label": "UPDATE"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "A snapshot is (xmin, xmax, in-progress list); visibility is a comparison.",
+      "narration": "A snapshot records the oldest active transaction, the next transaction ID, and in-progress IDs. A row is visible if its creator committed before the snapshot and its deleter did not.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Snapshot",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "snapshot = {xmin, xmax,\n            xip[]}",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "xmin must be committed, in snapshot",
+            "xmax absent or not visible"
+          ],
+          "x": 8,
+          "y": 42,
+          "w": 84,
+          "at": 3500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 7500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Readers read old versions; writers add new ones: no read-write blocking.",
+      "narration": "Because readers see old versions and writers create new ones, neither blocks the other. VACUUM removes versions no snapshot can see.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "No blocking",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "r",
+          "type": "box",
+          "text": "Reader: old version",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 12,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "w",
+          "type": "box",
+          "text": "Writer: new version",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 12,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "VACUUM reclaims dead versions later.",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "at": 4000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 14000,
+      "caption": "Write skew: two txns read the same set, write different rows, no conflict.",
+      "narration": "Under snapshot isolation, two transactions each check that two doctors are on call, then each takes a different doctor off. Neither touches the row the other changed, so both commit and nobody is on call.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Write skew",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "T1: count(on_call)=2\n    UPDATE alice off\nT2: count(on_call)=2\n    UPDATE bob off",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Both commit. Invariant \"at least one on call\" is broken.",
+          "x": 8,
+          "y": 54,
+          "w": 84,
+          "at": 6000,
+          "enter": "fade",
+          "color": "red"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "n",
+          "at": 8500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Fix it with SERIALIZABLE (SSI), or lock the rows you read.",
+      "narration": "Postgres SERIALIZABLE uses serializable snapshot isolation to abort one of them. Alternatively use SELECT FOR UPDATE on the rows you read.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "The fix",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "ISOLATION LEVEL SERIALIZABLE",
+            "Retry on 40001 serialization failure",
+            "Or SELECT ... FOR UPDATE"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "MVCC reads old row versions through a snapshot, but snapshot isolation allows write skew unless you serialize or lock what you read.",
+  "sources": [
+    "https://www.postgresql.org/docs/current/mvcc-intro.html",
+    "https://www.postgresql.org/docs/current/transaction-iso.html"
+  ]
+}

@@ -1,0 +1,236 @@
+{
+  "version": 1,
+  "title": "IOMMU and VFIO passthrough",
+  "hook": "How do the IOMMU and VFIO let a guest own a PCIe device safely?",
+  "topic": "virtualization/isolation/iommu-vfio-passthrough",
+  "tags": [
+    "virtualization",
+    "iommu",
+    "vfio"
+  ],
+  "level": "advanced",
+  "series": "virtualization-internals",
+  "series_index": 5,
+  "scenes": [
+    {
+      "duration_ms": 12000,
+      "caption": "A DMA-capable device can read any physical memory unless an IOMMU intervenes.",
+      "narration": "Handing a device to a guest is dangerous, because devices do DMA with physical addresses. The IOMMU sits between device and RAM and translates device addresses through per-device page tables.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "DMA needs a gatekeeper",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "dev",
+          "type": "box",
+          "text": "PCIe device (DMA)",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "h": 11,
+          "color": "orange",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "mmu",
+          "type": "box",
+          "text": "IOMMU: VT-d / AMD-Vi",
+          "x": 8,
+          "y": 40.0,
+          "w": 84,
+          "h": 11,
+          "color": "blue",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "ram",
+          "type": "box",
+          "text": "Host RAM",
+          "x": 8,
+          "y": 60.0,
+          "w": 84,
+          "h": 11,
+          "color": "green",
+          "at": 3200,
+          "enter": "pop"
+        },
+        {
+          "id": "dev-mmu",
+          "type": "arrow",
+          "from": "dev",
+          "to": "mmu",
+          "at": 2500,
+          "enter": "draw",
+          "label": "IOVA"
+        },
+        {
+          "id": "mmu-ram",
+          "type": "arrow",
+          "from": "mmu",
+          "to": "ram",
+          "at": 3800,
+          "enter": "draw",
+          "label": "PA"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "The unit of isolation is the IOMMU group: devices that cannot be told apart.",
+      "narration": "VFIO hands out whole IOMMU groups, the smallest set of devices the hardware can isolate from each other. Missing ACS on a bridge can put several devices in one group.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "IOMMU groups",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "g",
+          "type": "code",
+          "lang": "text",
+          "text": "/sys/kernel/iommu_groups/14/devices/\n  0000:01:00.0  (GPU)\n  0000:01:00.1  (audio)",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Bind each to vfio-pci first.",
+          "x": 8,
+          "y": 43.7,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "gray"
+        },
+        {
+          "id": "hl-g",
+          "type": "highlight",
+          "target": "g",
+          "at": 3600
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "A VMM opens a container and group, selects Type1, then maps DMA ranges.",
+      "narration": "The VMM opens the VFIO container and the group, joins them, and selects the Type1 IOMMU. It then gets the device fd, and calls MAP_DMA to install IOVA mappings.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "VFIO ioctl flow",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "v",
+          "type": "code",
+          "lang": "c",
+          "text": "ioctl(group, VFIO_GROUP_SET_CONTAINER, &c);\nioctl(c, VFIO_SET_IOMMU, VFIO_TYPE1_IOMMU);\nioctl(c, VFIO_IOMMU_MAP_DMA, &map);\ndev = ioctl(group, VFIO_GROUP_GET_DEVICE_FD, id);",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl-v",
+          "type": "highlight",
+          "target": "v",
+          "at": 2300
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "Guest physical addresses become IOVAs; VFIO pins the backing host pages.",
+      "narration": "MAP_DMA ties an IOVA, usually the guest physical address, to the VMM's virtual memory. VFIO pins those pages, so the device's DMA lands exactly in guest RAM and nowhere else.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Mapping guest RAM",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "m",
+          "type": "code",
+          "lang": "c",
+          "text": "struct vfio_iommu_type1_dma_map {\n  __u64 vaddr;  // VMM memory\n  __u64 iova;   // guest GPA\n  __u64 size;\n};",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl-m",
+          "type": "highlight",
+          "target": "m",
+          "at": 2300
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "BARs map into the guest; MSIs are remapped and routed to the vCPU via eventfd.",
+      "narration": "The device's BARs are mmapped into the guest. Interrupts become eventfds that KVM injects as irqfds, and interrupt remapping stops the device from forging interrupts.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "MMIO and interrupts",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "i",
+          "type": "list",
+          "items": [
+            "BAR regions: VFIO_DEVICE_GET_REGION_INFO",
+            "IRQs: VFIO_DEVICE_SET_IRQS + eventfd",
+            "Interrupt remapping blocks spoofed MSIs"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "purple"
+        }
+      ]
+    }
+  ],
+  "takeaway": "The IOMMU confines device DMA to guest memory, and VFIO is the userspace API that programs it safely.",
+  "sources": [
+    "https://www.kernel.org/doc/html/latest/driver-api/vfio.html"
+  ]
+}

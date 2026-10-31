@@ -1,0 +1,332 @@
+{
+  "version": 1,
+  "title": "What Project Treble separated",
+  "hook": "What did Project Treble actually separate, and why can a GSI boot on your phone?",
+  "topic": "aosp/treble/system-vendor-split",
+  "tags": [
+    "aosp",
+    "treble",
+    "vendor"
+  ],
+  "level": "intermediate",
+  "series": "aosp-treble-hals",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "Before Treble, framework and vendor code were entangled; a framework update meant reworking vendor code.",
+      "narration": "Before Treble, HAL code and framework code were tangled together in one build. Updating the framework meant every vendor had to rework their side.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Before Treble",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "fw",
+          "type": "box",
+          "text": "Android framework",
+          "x": 15,
+          "y": 20,
+          "w": 70,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "hal",
+          "type": "box",
+          "text": "HAL libs, loaded in-process",
+          "x": 15,
+          "y": 38,
+          "w": 70,
+          "h": 10,
+          "color": "orange",
+          "at": 1800,
+          "enter": "pop"
+        },
+        {
+          "id": "k",
+          "type": "box",
+          "text": "Kernel + drivers",
+          "x": 15,
+          "y": 56,
+          "w": 70,
+          "h": 10,
+          "color": "gray",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "One tightly coupled build, rebuilt per release",
+          "x": 8,
+          "y": 74,
+          "w": 84,
+          "h": 10,
+          "color": "red",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Treble splits system.img from vendor.img and defines a stable interface between them.",
+      "narration": "Treble splits the image into system and vendor. The framework only talks to vendor code through versioned interfaces, so each side can change independently.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The split",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "sys",
+          "type": "box",
+          "text": "system.img: framework",
+          "x": 8,
+          "y": 20,
+          "w": 40,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "ven",
+          "type": "box",
+          "text": "vendor.img: HAL impls",
+          "x": 52,
+          "y": 20,
+          "w": 40,
+          "h": 10,
+          "color": "orange",
+          "at": 900,
+          "enter": "pop"
+        },
+        {
+          "id": "ifc",
+          "type": "box",
+          "text": "Stable HAL interfaces",
+          "x": 15,
+          "y": 42,
+          "w": 70,
+          "h": 10,
+          "color": "green",
+          "at": 2800,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "sys",
+          "to": "ifc",
+          "at": 3500,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "ifc",
+          "to": "ven",
+          "at": 4200,
+          "enter": "draw"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "HIDL, then stable AIDL, plus VNDK and kernel ABI",
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 12,
+          "color": "gray",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Three mechanisms enforce the boundary: SELinux, linker namespaces and VINTF.",
+      "narration": "The boundary is enforced three ways. SELinux policy is split per partition, linker namespaces block private library links, and VINTF manifests declare what each side provides.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Enforcing the contract",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "SELinux: split sepolicy",
+            "Linker namespaces + VNDK",
+            "VINTF manifests + matrices"
+          ],
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 24,
+          "color": "purple",
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Each rule is checked at build time or runtime",
+          "x": 8,
+          "y": 52,
+          "w": 84,
+          "h": 10,
+          "color": "gray",
+          "at": 5000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "A GSI is a system.img built from AOSP, flashed over the device's own vendor.img.",
+      "narration": "A generic system image is a pure system.img from AOSP. Because the vendor interface is stable, it can run on top of the device's untouched vendor image.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Why a GSI boots",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "gsi",
+          "type": "box",
+          "text": "GSI system.img (AOSP)",
+          "x": 15,
+          "y": 20,
+          "w": 70,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "v",
+          "type": "box",
+          "text": "Device vendor.img",
+          "x": 15,
+          "y": 38,
+          "w": 70,
+          "h": 10,
+          "color": "orange",
+          "at": 2000,
+          "enter": "pop"
+        },
+        {
+          "id": "k",
+          "type": "box",
+          "text": "Device kernel + boot",
+          "x": 15,
+          "y": 56,
+          "w": 70,
+          "h": 10,
+          "color": "gray",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "bash",
+          "text": "fastboot flash system gsi.img",
+          "x": 8,
+          "y": 74,
+          "w": 84,
+          "h": 8,
+          "at": 5000,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "VTS tests verify that a vendor implementation honors the vendor interface.",
+      "narration": "The Vendor Test Suite checks that vendor code really honors the interface. Passing it is what makes a system image swappable.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Proof, not promise",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "v",
+          "type": "box",
+          "text": "Vendor image",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "orange",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "t",
+          "type": "box",
+          "text": "VTS tests",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "t",
+          "to": "v",
+          "at": 2500,
+          "enter": "draw",
+          "label": "checks"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Treble moved the vendor interface behind versioned contracts, enforced by SELinux, linker namespaces and VINTF, so system and vendor evolve separately.",
+  "sources": [
+    "https://source.android.com/docs/core/architecture",
+    "https://developer.android.com/topic/generic-system-image"
+  ]
+}

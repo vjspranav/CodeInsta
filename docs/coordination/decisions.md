@@ -5,3 +5,23 @@
 - 2026-10-31: **Frontend data path.** The browser talks to Supabase directly with the user's session, under the RLS in `supabase/migrations/0001_init.sql`, for reads, likes, views, feedback and user DMs. Only the agents use `/api/agent/**`, with service-role keys server-side. Allowlist enforcement happens in middleware and the auth callback using `ALLOWED_EMAILS`.
 - 2026-10-31: **Dependency audit.** Bump to the latest Next 15.x patch. Don't move to Next 16 now; revisit after launch.
 - 2026-10-31: **Seed authoring.** Claude's 100 reels are written by Sonnet subagents in batches of 25 (`content/seed/claude/`). GPT's 100 are written by Codex dispatches (`content/seed/gpt/`). Each file is named `<series_index-padded>-<topic-with-dashes>.json` and must pass `validateReel`.
+- 2026-10-31: **Start small (user request).** The initial seed is **15 reels per creator**. Claude's other 85 finished reels live in `content/backlog/claude/` and get posted by the scheduled Claude agent over time. GPT writes only 15 now (`content/seed/gpt/`), and more later via its playbook.
+- 2026-10-31: **Auth (user found Google OAuth too much setup).**
+  - The primary sign-in is **email + password** through Supabase. Email confirmations are off. Sign-up is allowlisted server-side: a server action checks `ALLOWED_EMAILS` *before* calling `signUp`, and middleware checks again on every request.
+  - Google stays in the code behind `NEXT_PUBLIC_ENABLE_GOOGLE=true`, so that option remains open. Magic links are not used, because iOS PWAs don't share cookies with Safari, and the free tier can't customize email templates.
+  - Supabase site_url and redirect URLs point at https://codeinsta-tau.vercel.app.
+- 2026-10-31: **Audio = realistic speech (user: "audio should be realistic… I want to get addicted to these reels and learn").**
+  - Narration is rendered with **Kokoro TTS** (`kokoro-js`, open-source neural TTS that runs locally in Node, free, and works on macOS and Linux cloud runners). The orchestrator installs `kokoro-js` while Codex is rate-limited, and records it here.
+  - Voices: claude = `am_michael`, gpt = `af_heart`. The audio is encoded to mp3 with ffmpeg.
+  - Contract: a new column `reels.audio jsonb null`:
+    `{ "voice": string, "hook": {"url","duration_ms"}, "scenes": [{"url","duration_ms","words":[{"w","start_ms"}]}...] (same order as script.scenes), "takeaway": {"url","duration_ms"} }`.
+    `words` are approximate word timings (spread by character length) for karaoke captions.
+  - Storage: the public bucket `reel-audio/<reel_id>/`. Spoken text per scene is `narration` (or `caption` if there's no narration).
+- 2026-10-31: **Player and feed must be addictive (user goal).**
+  - Sound is ON by default. The first tap anywhere unlocks audio (show a "tap for sound 🔊" pill until then). After that, audio autoplays as reels snap into view.
+  - Each scene lasts `max(scene.duration_ms, audio.duration_ms + 250)`. The hook and takeaway cards use their audio durations.
+  - Captions are **word-by-word karaoke**, synced to `words`, bold, centered, TikTok-style.
+  - Pacing: the hook card appears instantly with a punchy scale-in, and element animations stagger tightly.
+  - At the end of a reel, **auto-scroll to the next one**. If the next reel in the series exists, show a cliffhanger "Part N+1 →" card first.
+  - Light gamification: a daily streak and "concepts learned today" counter in the feed header, plus a subtle completion check when a reel finishes.
+  - If `audio` is null, fall back to Web Speech TTS of the same text.

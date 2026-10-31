@@ -1,0 +1,283 @@
+{
+  "version": 1,
+  "title": "OR-Set: add vs remove",
+  "hook": "How does an OR-Set resolve add and remove of the same element?",
+  "topic": "distributed/crdt/or-set-tombstones",
+  "tags": [
+    "distributed",
+    "crdt",
+    "sets"
+  ],
+  "level": "advanced",
+  "series": "distributed-replication-and-crdts",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "Replica A re-adds x while replica B removes x, concurrently.",
+      "narration": "A plain set cannot decide. If one replica adds x while another removes it at the same time, which one wins after merge?",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "The conflict",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "a",
+          "type": "box",
+          "text": "Replica A\nadd(x)",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 12,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "Replica B\nremove(x)",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 12,
+          "color": "red",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Without extra metadata, a merge cannot tell which came first.",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "at": 3500,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "n",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Each add creates a unique tag, so elements are pairs (x, tag).",
+      "narration": "In an OR-Set, every add generates a globally unique tag. The state holds element and tag pairs, not just elements.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Tag every add",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "add(x):\n  tag = (replica, counter)\n  S = S + {(x, tag)}",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Adding x twice yields two distinct pairs.",
+          "x": 8,
+          "y": 50,
+          "w": 84,
+          "at": 3500,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Remove deletes only the tags it has observed, and records them.",
+      "narration": "A remove deletes exactly the pairs the replica has seen, and records their tags as tombstones. Pairs it never saw are untouched.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Observed-remove",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "remove(x):\n  R = {(x,t) in S}\n  S = S - R\n  tombstones += tags(R)",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "It removes what it has seen, nothing else.",
+          "x": 8,
+          "y": 54,
+          "w": 84,
+          "at": 4000,
+          "enter": "fade",
+          "color": "orange"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "A concurrent add carries an unseen tag, so it survives the merge.",
+      "narration": "Replica B removed the tag it saw, t1. Replica A added x with a new tag, t2. After merge, t2 is not tombstoned, so x is present: add wins.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Add wins",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "B removed (x,t1)",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 12,
+          "color": "red",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "box",
+          "text": "A added (x,t2)",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 12,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "m",
+          "type": "box",
+          "text": "Merged: (x,t2) alive\nx is in the set",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 14,
+          "color": "purple",
+          "at": 3500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "b",
+          "to": "m",
+          "at": 3000,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "a",
+          "to": "m",
+          "at": 3000,
+          "enter": "draw"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "m",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Tombstones grow forever unless pruned using causal knowledge.",
+      "narration": "The catch: tombstones accumulate. Optimized OR-Sets drop them using version vectors, once every replica has seen the remove.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "The cost",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Naive OR-Set: tombstones kept forever",
+            "Optimized: version vector, no tombstones",
+            "Needs causal delivery or metadata"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "An OR-Set tags every add and lets a remove cancel only the tags it saw, so a concurrent add always survives.",
+  "sources": [
+    "https://inria.hal.science/inria-00555588"
+  ]
+}

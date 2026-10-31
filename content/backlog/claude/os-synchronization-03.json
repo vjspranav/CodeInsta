@@ -1,0 +1,258 @@
+{
+  "version": 1,
+  "title": "Ticket locks to queued spinlocks",
+  "hook": "Why did Linux move from ticket locks to MCS-style queued spinlocks?",
+  "topic": "os/sync/queued-spinlocks",
+  "tags": [
+    "os",
+    "synchronization",
+    "spinlock",
+    "mcs"
+  ],
+  "level": "advanced",
+  "series": "os-synchronization",
+  "series_index": 3,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "Ticket locks are fair: take a ticket, spin until owner equals it.",
+      "narration": "A ticket lock is fair. Each waiter takes the next ticket and spins until the owner counter reaches it, so waiters run in FIFO order.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Ticket spinlock",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "c",
+          "text": "t = fetch_inc(&lock->next);\nwhile (lock->owner != t)\n  cpu_relax();\n/* unlock: lock->owner++ */",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 20.6,
+          "at": 500,
+          "enter": "fade"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "All waiters spin on one cache line, so every release invalidates it in every waiter's cache.",
+      "narration": "But every waiter spins on the same cache line. Each unlock invalidates that line in all of them, so coherence traffic grows with the CPU count.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The cache-line storm",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "w",
+          "type": "box",
+          "text": "N CPUs spin on lock->owner",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 12,
+          "color": "red",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "l",
+          "type": "box",
+          "text": "One cache line",
+          "x": 8,
+          "y": 44,
+          "w": 84,
+          "h": 9,
+          "color": "orange",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "w",
+          "to": "l",
+          "label": "invalidate on every release",
+          "at": 3500,
+          "enter": "draw"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Cost grows with waiters.",
+          "x": 8,
+          "y": 62,
+          "w": 84,
+          "h": 6.4,
+          "at": 6000,
+          "enter": "fade",
+          "color": "gray"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "MCS lock: each waiter spins on its own node; the lock is just a tail pointer.",
+      "narration": "MCS gives each waiter its own queue node and spins on a private flag. The lock itself is just a tail pointer, and release hands off to the next node.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "MCS queue lock",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "c",
+          "text": "struct mcs_spinlock {\n  struct mcs_spinlock *next;\n  int locked;\n};",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 20.6,
+          "at": 500,
+          "enter": "fade"
+        },
+        {
+          "id": "s",
+          "type": "list",
+          "items": [
+            "Acquire: xchg tail, link prev->next",
+            "Spin on own node->locked",
+            "Release: set next->locked = 1"
+          ],
+          "x": 8,
+          "y": 48,
+          "w": 84,
+          "h": 24.1,
+          "at": 4500,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "qspinlock packs it in 4 bytes: locked byte, pending bit, and a tail of CPU number plus nesting index.",
+      "narration": "Linux's qspinlock fits it into four bytes: a locked byte, a pending bit, and a tail encoding the CPU and a nesting index into per-CPU nodes.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "qspinlock layout (4 bytes)",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "b",
+          "type": "list",
+          "items": [
+            "[7:0] locked byte",
+            "[8] pending bit",
+            "[17:16] tail index (4 contexts)",
+            "[31:18] tail CPU + 1"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 30,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Per-CPU nodes: task, softirq, hardirq, NMI.",
+          "x": 8,
+          "y": 66,
+          "w": 84,
+          "h": 10.8,
+          "at": 5500,
+          "enter": "fade",
+          "color": "gray"
+        }
+      ]
+    },
+    {
+      "duration_ms": 13000,
+      "caption": "Slow path: first waiter uses the pending bit, later ones queue; only the queue head spins on the lock word.",
+      "narration": "In the slow path the first waiter just sets the pending bit. Later ones queue as MCS nodes, and only the queue head spins on the lock word. Merged in Linux 4.2.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "queued_spin_lock_slowpath",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "p",
+          "type": "list",
+          "items": [
+            "Fast path: cmpxchg 0 to locked",
+            "1st waiter: set pending, spin",
+            "Others: queue MCS node",
+            "Only the head spins on the lock"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 30,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "text",
+          "text": "kernel/locking/qspinlock.c",
+          "x": 8,
+          "y": 66,
+          "w": 84,
+          "h": 6.4,
+          "at": 6500,
+          "enter": "fade",
+          "color": "gray"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Queued spinlocks keep ticket-lock fairness but make each waiter spin on private memory, so contention stops scaling with core count.",
+  "sources": [
+    "https://lwn.net/Articles/590243/"
+  ]
+}

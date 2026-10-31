@@ -1,0 +1,240 @@
+{
+  "version": 1,
+  "title": "SCCP: folding and pruning together",
+  "hook": "How does sparse conditional constant propagation fold code and prove branches dead at once?",
+  "topic": "compilers/ssa/sccp-constant-propagation",
+  "tags": [
+    "compilers",
+    "ssa",
+    "optimization"
+  ],
+  "level": "advanced",
+  "series": "compilers-ssa-and-ir",
+  "series_index": 4,
+  "scenes": [
+    {
+      "duration_ms": 8500,
+      "caption": "Each SSA value sits on a three-level lattice: unknown, a single constant, or overdefined.",
+      "narration": "SCCP tracks each SSA value on a small lattice: unknown, one specific constant, or overdefined. Values only ever move downward.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "The lattice",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "t",
+          "type": "box",
+          "text": "unknown (top)",
+          "x": 20,
+          "y": 18,
+          "w": 60,
+          "h": 9,
+          "color": "gray",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "constant 5",
+          "x": 20,
+          "y": 34,
+          "w": 60,
+          "h": 9,
+          "color": "green",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "o",
+          "type": "box",
+          "text": "overdefined (bottom)",
+          "x": 20,
+          "y": 50,
+          "w": 60,
+          "h": 9,
+          "color": "red",
+          "enter": "pop",
+          "at": 2900
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "t",
+          "to": "c",
+          "enter": "draw",
+          "label": "lower",
+          "at": 3700
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "c",
+          "to": "o",
+          "enter": "draw",
+          "label": "lower",
+          "at": 4500
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Here the branch condition depends on a constant, so only one successor may ever execute.",
+      "narration": "Here x is the constant one, so the comparison is true and only the then-edge can ever execute. The else-block is never reached.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "The example",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "ir",
+          "type": "code",
+          "lang": "text",
+          "text": "entry:\n  %x = add i32 0, 1\n  %c = icmp eq i32 %x, 1\n  br i1 %c, %then, %else\nthen:  %y1 = 2   ; br join\nelse:  %y2 = 3   ; br join\njoin:\n  %y = phi [ %y1, %then ],\n           [ %y2, %else ]\n  %z = add i32 %y, 4",
+          "x": 6,
+          "y": 18,
+          "w": 88,
+          "enter": "slide-up",
+          "at": 1300
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "Two worklists drive it: executable CFG edges and SSA def-use edges, visited only when reachable.",
+      "narration": "Two worklists drive it: flow edges and SSA edges. Only blocks reached through executable edges are evaluated, and the folded condition marks just one successor.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Two worklists",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Start: entry edge executable, values unknown",
+            "icmp folds to true",
+            "Mark only the then edge executable",
+            "else block is never visited: it stays unknown"
+          ],
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "blue",
+          "at": 1300
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "The phi meets only executable incoming edges, so it folds to 2 and z folds to 6.",
+      "narration": "A phi merges only values from executable edges. The else edge is dead, so y is two and z folds to six, proven together.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Optimistic meet",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "m",
+          "type": "code",
+          "lang": "text",
+          "text": "y = meet(2, unknown) = 2\nz = y + 4 = 6",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "enter": "slide-up",
+          "at": 1300
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "m",
+          "at": 2100
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "A pessimistic pass sees 2 and 3 and gives up. SCCP assumes unknown until proven.",
+          "x": 8,
+          "y": 42,
+          "w": 84,
+          "enter": "fade",
+          "color": "orange",
+          "at": 2900
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "Each value can only be lowered twice, so SCCP runs in time linear in the size of the SSA graph.",
+      "narration": "Each value descends at most twice, so the pass is linear in SSA edges. LLVM ships it as sccp, and ipsccp extends it across functions.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "In LLVM",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "cmd",
+          "type": "code",
+          "lang": "bash",
+          "text": "opt -passes=sccp -S in.ll\nopt -passes=ipsccp -S in.ll",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "enter": "slide-up",
+          "at": 1300
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Wegman-Zadeck, 1991",
+            "Dead blocks are then cleaned by simplifycfg"
+          ],
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "green",
+          "at": 2100
+        }
+      ]
+    }
+  ],
+  "takeaway": "SCCP interleaves constant propagation with reachability, so folding a branch condition proves code dead and sharper constants emerge in one linear pass.",
+  "sources": [
+    "https://dl.acm.org/doi/10.1145/103135.103136",
+    "https://llvm.org/docs/Passes.html"
+  ]
+}

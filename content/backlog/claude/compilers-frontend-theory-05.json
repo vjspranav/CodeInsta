@@ -1,0 +1,247 @@
+{
+  "version": 1,
+  "title": "Scoped symbol tables",
+  "hook": "How do compilers resolve names and shadowing with scoped symbol tables?",
+  "topic": "compilers/frontend/symbol-tables-scopes",
+  "tags": [
+    "compilers",
+    "semantic-analysis",
+    "scopes"
+  ],
+  "level": "beginner",
+  "series": "compilers-frontend-theory",
+  "series_index": 5,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "Name resolution maps every identifier use to a declaration, and inner declarations shadow outer ones.",
+      "narration": "Name resolution links each identifier use to its declaration. Scopes nest, so an inner declaration shadows the outer one until its scope ends.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Shadowing",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "int x = 1;\n{\n  int x = 2;   // shadows\n  print(x);    // 2\n}\nprint(x);      // 1",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "at": 1300
+        }
+      ]
+    },
+    {
+      "duration_ms": 9500,
+      "caption": "The compiler keeps a stack of scopes; each scope is a map from names to symbols.",
+      "narration": "Implement it as a stack of hash maps from names to symbols. Entering a block pushes a map, and leaving pops it.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Scope stack",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "block {x=2}",
+          "x": 20,
+          "y": 18,
+          "w": 60,
+          "h": 9,
+          "color": "blue",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "f",
+          "type": "box",
+          "text": "function {a}",
+          "x": 20,
+          "y": 36,
+          "w": 60,
+          "h": 9,
+          "color": "purple",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "g",
+          "type": "box",
+          "text": "global {x=1, main}",
+          "x": 20,
+          "y": 54,
+          "w": 60,
+          "h": 9,
+          "color": "gray",
+          "enter": "pop",
+          "at": 2900
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "b",
+          "to": "f",
+          "enter": "draw",
+          "label": "parent",
+          "at": 3700
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "f",
+          "to": "g",
+          "enter": "draw",
+          "label": "parent",
+          "at": 4500
+        }
+      ]
+    },
+    {
+      "duration_ms": 9500,
+      "caption": "Lookup walks from the innermost scope outward, and the first hit wins.",
+      "narration": "Lookup starts at the innermost scope and walks outward. The first match wins, which is shadowing. Falling off the end means undeclared.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Lookup",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "fn lookup(name):\n  for scope in stack.reversed():\n    if name in scope:\n      return scope[name]\n  error(\"undeclared\")",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "at": 1300
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 2100
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "Declaration timing and forward references need care: collect declarations before resolving bodies.",
+      "narration": "Declaring twice in one scope is an error. C makes a name visible after its declarator, and mutual recursion needs declarations collected before bodies resolve.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Subtleties",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Duplicate in same scope: error",
+            "C: visible after its declarator",
+            "Two passes for mutual recursion",
+            "JS let: temporal dead zone"
+          ],
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "orange",
+          "at": 1300
+        }
+      ]
+    },
+    {
+      "duration_ms": 9500,
+      "caption": "Resolution annotates the AST so later phases reuse the symbol instead of repeating string lookups.",
+      "narration": "The output is an annotated tree, each use pointing at its symbol. Clang's Sema uses Scope and IdentifierResolver, and rustc has rustc_resolve.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Output",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "u",
+          "type": "box",
+          "text": "use of x",
+          "x": 8,
+          "y": 22,
+          "w": 34,
+          "h": 10,
+          "color": "blue",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "Symbol x (line 3)",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 10,
+          "color": "green",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "u",
+          "to": "s",
+          "enter": "draw",
+          "label": "resolved",
+          "at": 2900
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Clang: Sema, Scope, IdentifierResolver\nrustc: rustc_resolve",
+          "x": 8,
+          "y": 44,
+          "w": 84,
+          "enter": "fade",
+          "color": "gray",
+          "at": 3700
+        }
+      ]
+    }
+  ],
+  "takeaway": "Scoped symbol tables resolve names with a stack of maps: push on entry, pop on exit, search innermost first, and annotate each use with its symbol.",
+  "sources": [
+    "https://craftinginterpreters.com/resolving-and-binding.html"
+  ]
+}

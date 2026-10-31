@@ -1,0 +1,242 @@
+{
+  "version": 1,
+  "title": "The KVM ioctl lifecycle",
+  "hook": "What are the `/dev/kvm` ioctls a VMM calls to create and run a vCPU?",
+  "topic": "virtualization/kvm/kvm-ioctl-lifecycle",
+  "tags": [
+    "virtualization",
+    "kvm",
+    "ioctl"
+  ],
+  "level": "intermediate",
+  "series": "virtualization-internals",
+  "series_index": 4,
+  "scenes": [
+    {
+      "duration_ms": 12500,
+      "caption": "KVM exposes three file-descriptor levels: system, VM and vCPU.",
+      "narration": "KVM is driven through file descriptors. Opening dev kvm gives a system fd, and creating a VM returns a VM fd. Creating a vCPU returns a third fd, one per vCPU.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Three fd levels",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "sys",
+          "type": "box",
+          "text": "/dev/kvm: system fd",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "h": 11,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "vm",
+          "type": "box",
+          "text": "KVM_CREATE_VM: VM fd",
+          "x": 8,
+          "y": 40.0,
+          "w": 84,
+          "h": 11,
+          "color": "purple",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "vcpu",
+          "type": "box",
+          "text": "KVM_CREATE_VCPU: vCPU fd",
+          "x": 8,
+          "y": 60.0,
+          "w": 84,
+          "h": 11,
+          "color": "green",
+          "at": 3200,
+          "enter": "pop"
+        },
+        {
+          "id": "sys-vm",
+          "type": "arrow",
+          "from": "sys",
+          "to": "vm",
+          "at": 2500,
+          "enter": "draw"
+        },
+        {
+          "id": "vm-vcpu",
+          "type": "arrow",
+          "from": "vm",
+          "to": "vcpu",
+          "at": 3800,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "Setup: create a VM, register guest RAM, create a vCPU.",
+      "narration": "A VMM opens dev kvm, creates a VM, registers memory, and creates a vCPU. The memory region maps a slice of the VMM's own address space as guest physical memory.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Create and configure",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "s",
+          "type": "code",
+          "lang": "c",
+          "text": "kvm = open(\"/dev/kvm\", O_RDWR);\nvm = ioctl(kvm, KVM_CREATE_VM, 0);\nioctl(vm, KVM_SET_USER_MEMORY_REGION, &r);\nvcpu = ioctl(vm, KVM_CREATE_VCPU, 0);",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl-s",
+          "type": "highlight",
+          "target": "s",
+          "at": 2300
+        }
+      ]
+    },
+    {
+      "duration_ms": 12500,
+      "caption": "A memory slot binds guest physical addresses to the VMM's userspace buffer.",
+      "narration": "The region struct names a slot, the guest physical address, the size, and the userspace address of the backing memory. So guest RAM is just anonymous memory in the VMM process.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Guest RAM is VMM memory",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "r",
+          "type": "code",
+          "lang": "c",
+          "text": "struct kvm_userspace_memory_region {\n  __u32 slot, flags;\n  __u64 guest_phys_addr;\n  __u64 memory_size;\n  __u64 userspace_addr;\n};",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl-r",
+          "type": "highlight",
+          "target": "r",
+          "at": 2300
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "Map struct kvm_run from the vCPU fd, then loop on KVM_RUN.",
+      "narration": "Each vCPU has a shared kvm_run page, mapped from the vCPU fd with the size from KVM_GET_VCPU_MMAP_SIZE. The VMM calls KVM_RUN in a loop and inspects exit_reason when it returns.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The run loop",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "code",
+          "lang": "c",
+          "text": "for (;;) {\n  ioctl(vcpu, KVM_RUN, 0);\n  switch (run->exit_reason) {\n  case KVM_EXIT_IO: ...\n  case KVM_EXIT_MMIO: ...\n  case KVM_EXIT_HLT: ...\n  }\n}",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl-l",
+          "type": "highlight",
+          "target": "l",
+          "at": 2300
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Only exits KVM cannot handle in-kernel, like I/O and MMIO, return to userspace.",
+      "narration": "Many exits, like EPT faults and CPUID, are handled inside the kernel. Only device emulation, such as port I/O and MMIO, returns to the VMM through KVM_RUN.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "What reaches userspace",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "k",
+          "type": "box",
+          "text": "In kernel: EPT, CPUID",
+          "x": 8,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "green",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "u",
+          "type": "box",
+          "text": "Userspace: I/O, MMIO",
+          "x": 56,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "orange",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "x",
+          "type": "text",
+          "text": "That split keeps most exits cheap.",
+          "x": 8,
+          "y": 43.2,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "A VMM is a thin ioctl loop: create VM, give it memory, create vCPUs, and call KVM_RUN until an exit needs device emulation.",
+  "sources": [
+    "https://www.kernel.org/doc/html/latest/virt/kvm/api.html"
+  ]
+}

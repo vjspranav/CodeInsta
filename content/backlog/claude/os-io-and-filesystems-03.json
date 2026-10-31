@@ -1,0 +1,269 @@
+{
+  "version": 1,
+  "title": "ext4 journaling modes",
+  "hook": "What do ext4 `data=ordered` and `data=journal` guarantee after a crash?",
+  "topic": "os/io/ext4-journaling-modes",
+  "tags": [
+    "os",
+    "filesystems",
+    "ext4",
+    "journaling"
+  ],
+  "level": "advanced",
+  "series": "os-io-and-filesystems",
+  "series_index": 3,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "ext4 uses the jbd2 journal: a transaction is replayed whole after a crash, or discarded.",
+      "narration": "ext4 logs changes through the jbd2 journal. After a crash, a committed transaction is replayed whole and an uncommitted one is discarded.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The jbd2 journal",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "j",
+          "type": "box",
+          "text": "write blocks to journal",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 9,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "write commit block",
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "h": 9,
+          "color": "purple",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "k",
+          "type": "box",
+          "text": "checkpoint to final location",
+          "x": 8,
+          "y": 54,
+          "w": 84,
+          "h": 9,
+          "color": "green",
+          "at": 4500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "j",
+          "to": "c",
+          "at": 2000,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "c",
+          "to": "k",
+          "at": 4000,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "Three modes control what goes through the journal: writeback, ordered (default), journal.",
+      "narration": "A mount option picks what the journal protects: writeback, ordered, which is the default, or full data journaling.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Mount option data=",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "m",
+          "type": "list",
+          "items": [
+            "data=writeback",
+            "data=ordered (default)",
+            "data=journal"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 19.7,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "m",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "ordered: data reaches its final blocks before the metadata commit, so metadata never points at garbage.",
+      "narration": "In ordered mode only metadata is journaled, but data blocks are forced out before the commit. Metadata never points at garbage, though in-place overwrites are not atomic.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "data=ordered",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "d",
+          "type": "box",
+          "text": "1. write data blocks",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 9,
+          "color": "orange",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "m",
+          "type": "box",
+          "text": "2. commit metadata txn",
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "h": 9,
+          "color": "purple",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "d",
+          "to": "m",
+          "label": "before",
+          "at": 2000,
+          "enter": "draw"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "In-place overwrites can be torn after a crash.",
+          "x": 8,
+          "y": 56,
+          "w": 84,
+          "h": 10.8,
+          "at": 5000,
+          "enter": "fade",
+          "color": "gray"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "journal: data and metadata both go through the journal: written twice, but atomic and consistent.",
+      "narration": "In journal mode data goes through the journal too. It is written twice, so it is slower, but overwrites become atomic. It also disables delayed allocation.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "data=journal",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "j",
+          "type": "list",
+          "items": [
+            "Data and metadata journaled",
+            "Every block written twice",
+            "Overwrites are atomic",
+            "Delayed allocation disabled"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 25.6,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "j",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "writeback gives no data ordering; and renaming over a file still needs fsync for durability.",
+      "narration": "Writeback mode can expose stale data from freed blocks after a crash. And even in ordered mode, replacing a file via rename needs fsync, unless auto_da_alloc guesses for you.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Pitfalls",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "p",
+          "type": "list",
+          "items": [
+            "writeback: stale data after crash",
+            "ordered: write+rename still needs fsync",
+            "auto_da_alloc: heuristic for replace-via-rename",
+            "Atomic overwrite needs journal mode or app logic"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 43.2,
+          "at": 500,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "ordered keeps the filesystem consistent and metadata honest; only data=journal also makes data writes atomic, at double the write cost.",
+  "sources": [
+    "https://docs.kernel.org/admin-guide/ext4.html"
+  ]
+}

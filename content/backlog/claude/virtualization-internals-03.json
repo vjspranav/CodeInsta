@@ -1,0 +1,212 @@
+{
+  "version": 1,
+  "title": "virtio virtqueues",
+  "hook": "How do virtio virtqueues share descriptors between guest and host without traps?",
+  "topic": "virtualization/io/virtio-virtqueues",
+  "tags": [
+    "virtualization",
+    "virtio",
+    "io"
+  ],
+  "level": "advanced",
+  "series": "virtualization-internals",
+  "series_index": 3,
+  "scenes": [
+    {
+      "duration_ms": 13500,
+      "caption": "A split virtqueue is three structures in guest RAM: descriptors, avail ring, used ring.",
+      "narration": "A virtqueue lives entirely in guest memory that the host can also read. It has a descriptor table, an available ring written by the driver, and a used ring written by the device.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Three shared structures",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "desc",
+          "type": "box",
+          "text": "Descriptor table",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "h": 11,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "avail",
+          "type": "box",
+          "text": "Avail ring (driver writes)",
+          "x": 8,
+          "y": 40.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "green",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "used",
+          "type": "box",
+          "text": "Used ring (device writes)",
+          "x": 56,
+          "y": 40.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "orange",
+          "at": 1900,
+          "enter": "pop"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "A descriptor is an address, a length, flags, and a next index for chaining.",
+      "narration": "A descriptor points at a buffer by guest physical address. The NEXT flag chains buffers together, and WRITE marks buffers the device may write into.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "struct vring_desc",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "d",
+          "type": "code",
+          "lang": "c",
+          "text": "struct vring_desc {\n  __virtio64 addr;\n  __virtio32 len;\n  __virtio16 flags;  // NEXT, WRITE\n  __virtio16 next;\n};",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl-d",
+          "type": "highlight",
+          "target": "d",
+          "at": 2300
+        }
+      ]
+    },
+    {
+      "duration_ms": 13500,
+      "caption": "The driver publishes a request by writing avail.idx; the device returns it through the used ring.",
+      "narration": "The driver fills descriptors, puts the head index in the avail ring, and bumps idx. One kick tells the device. The device processes it, adds an entry to the used ring, and interrupts.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "One request",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "s",
+          "type": "list",
+          "items": [
+            "1. Fill descriptor chain",
+            "2. avail.ring[idx] = head; idx++",
+            "3. Kick: one notify write",
+            "4. Device reads, does I/O",
+            "5. used.ring entry, then IRQ"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "blue"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "Data moves through shared memory; only the kick and the IRQ cross the boundary.",
+      "narration": "No trap is needed per descriptor, because memory is shared. Only the kick and the interrupt cross the VM boundary, and flags or event idx suppress even those when busy.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Where the traps went",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "code",
+          "lang": "text",
+          "text": "VRING_AVAIL_F_NO_INTERRUPT\nVRING_USED_F_NO_NOTIFY\nVIRTIO_RING_F_EVENT_IDX",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Batching amortizes each exit.",
+          "x": 8,
+          "y": 43.7,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11500,
+      "caption": "The backend can be QEMU, an in-kernel vhost thread, or a vhost-user process.",
+      "narration": "The device side is just code reading the rings. It can run inside the VMM, in the host kernel as vhost, or in a separate process over vhost-user.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Backend choices",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "b",
+          "type": "list",
+          "items": [
+            "QEMU userspace device",
+            "vhost-net: in-kernel worker",
+            "vhost-user: separate process"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "purple"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Virtqueues replace trapping device registers with shared rings, so a guest pays a VM exit only for an occasional kick.",
+  "sources": [
+    "https://docs.oasis-open.org/virtio/virtio/v1.2/virtio-v1.2.html"
+  ]
+}

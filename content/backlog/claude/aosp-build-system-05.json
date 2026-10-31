@@ -1,0 +1,342 @@
+{
+  "version": 1,
+  "title": "The super partition",
+  "hook": "Why does modern Android pack system, vendor and product into one `super` partition?",
+  "topic": "aosp/build/dynamic-partitions-super",
+  "tags": [
+    "aosp",
+    "partitions",
+    "ota"
+  ],
+  "level": "intermediate",
+  "series": "aosp-build-system",
+  "series_index": 5,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "Classic layouts gave each partition a fixed size, wasting space and blocking growth.",
+      "narration": "Older devices had one fixed-size physical partition per image. Slack in one could not help another, and OTAs could not grow them.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Fixed partitions",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "system (fixed)",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "v",
+          "type": "box",
+          "text": "vendor (fixed)",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "at": 900,
+          "enter": "pop"
+        },
+        {
+          "id": "p",
+          "type": "box",
+          "text": "product (fixed)",
+          "x": 8,
+          "y": 40,
+          "w": 40,
+          "h": 10,
+          "color": "orange",
+          "at": 1300,
+          "enter": "pop"
+        },
+        {
+          "id": "o",
+          "type": "box",
+          "text": "odm (fixed)",
+          "x": 52,
+          "y": 40,
+          "w": 40,
+          "h": 10,
+          "color": "purple",
+          "at": 1700,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Unused slack in one cannot help another",
+          "x": 8,
+          "y": 62,
+          "w": 84,
+          "h": 10,
+          "color": "red",
+          "at": 4000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Dynamic partitions: one physical `super` holds resizable logical partitions.",
+      "narration": "Dynamic partitions put one physical super partition on disk. Inside it, system, vendor, product and others are logical partitions that can be resized.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "One super partition",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "sup",
+          "type": "box",
+          "text": "super (one physical partition)",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 10,
+          "color": "gray",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "system",
+          "x": 8,
+          "y": 40,
+          "w": 40,
+          "h": 10,
+          "color": "blue",
+          "at": 1800,
+          "enter": "pop"
+        },
+        {
+          "id": "v",
+          "type": "box",
+          "text": "vendor",
+          "x": 52,
+          "y": 40,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "at": 2300,
+          "enter": "pop"
+        },
+        {
+          "id": "p",
+          "type": "box",
+          "text": "product",
+          "x": 8,
+          "y": 58,
+          "w": 40,
+          "h": 10,
+          "color": "orange",
+          "at": 2800,
+          "enter": "pop"
+        },
+        {
+          "id": "e",
+          "type": "box",
+          "text": "system_ext",
+          "x": 52,
+          "y": 58,
+          "w": 40,
+          "h": 10,
+          "color": "purple",
+          "at": 3300,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Logical partitions share one pool of space",
+          "x": 8,
+          "y": 78,
+          "w": 84,
+          "h": 10,
+          "color": "gray",
+          "at": 4800,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "liblp metadata at the start of super maps each logical partition to extents.",
+      "narration": "Liblp stores geometry and metadata at the start of super. Each logical partition is a list of extents, which init turns into dm-linear device-mapper devices.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "liblp metadata",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "md",
+          "type": "box",
+          "text": "LpMetadata (start of super)",
+          "x": 15,
+          "y": 20,
+          "w": 70,
+          "h": 9,
+          "color": "purple",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "ex",
+          "type": "box",
+          "text": "extents: sector ranges",
+          "x": 15,
+          "y": 38,
+          "w": 70,
+          "h": 9,
+          "color": "blue",
+          "at": 2000,
+          "enter": "pop"
+        },
+        {
+          "id": "dm",
+          "type": "box",
+          "text": "dm-linear devices",
+          "x": 15,
+          "y": 56,
+          "w": 70,
+          "h": 9,
+          "color": "green",
+          "at": 3500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "md",
+          "to": "ex",
+          "at": 1800,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "ex",
+          "to": "dm",
+          "at": 3300,
+          "enter": "draw",
+          "label": "first-stage init"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Tools: lpmake, lpdump",
+          "x": 8,
+          "y": 76,
+          "w": 84,
+          "h": 8,
+          "color": "gray",
+          "at": 5000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Board config declares the super size, groups and partition list.",
+      "narration": "The board config declares the super size, then update groups with a size cap and a partition list. Build tools use these to run lpmake.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "BoardConfig.mk",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "make",
+          "text": "BOARD_SUPER_PARTITION_SIZE := <bytes>\nBOARD_SUPER_PARTITION_GROUPS := grp\nBOARD_GRP_SIZE := <bytes>\nBOARD_GRP_PARTITION_LIST := \\\n    system vendor product",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 22,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "OTAs can resize, add or remove logical partitions; Virtual A/B snapshots them.",
+      "narration": "Because partitions are logical, an OTA can resize, add or remove them. Virtual A/B builds on this with copy-on-write snapshots.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Why it pays off",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "OTA resizes partitions",
+            "no wasted slack per image",
+            "Virtual A/B snapshots"
+          ],
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 500,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "The super partition turns fixed physical partitions into logical ones described by liblp metadata, so OTAs can reshape the layout.",
+  "sources": [
+    "https://source.android.com/docs/core/ota/dynamic_partitions"
+  ]
+}

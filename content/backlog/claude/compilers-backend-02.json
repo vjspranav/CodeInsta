@@ -1,0 +1,224 @@
+{
+  "version": 1,
+  "title": "Linear scan for JIT compilers",
+  "hook": "Why do JITs use linear scan instead of graph coloring?",
+  "topic": "compilers/backend/linear-scan-allocation",
+  "tags": [
+    "compilers",
+    "backend",
+    "jit"
+  ],
+  "level": "advanced",
+  "series": "compilers-backend",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "Graph coloring builds a large interference graph and iterates, which costs too much at JIT time.",
+      "narration": "Graph coloring builds an interference graph and iterates, costing space and several passes. A JIT pays compile time as user-visible latency.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Compile time matters",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "g",
+          "type": "box",
+          "text": "Graph coloring: iterate",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 12,
+          "color": "red",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "l",
+          "type": "box",
+          "text": "Linear scan: one pass",
+          "x": 8,
+          "y": 40,
+          "w": 84,
+          "h": 12,
+          "color": "green",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "JITs trade some code quality for speed.",
+          "x": 8,
+          "y": 60,
+          "w": 84,
+          "enter": "fade",
+          "color": "gray",
+          "at": 2900
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Each value becomes one interval from its first definition to its last use, in linear instruction order.",
+      "narration": "Number the instructions linearly. Each virtual register becomes one live interval, from its first definition to its last use, ignoring holes.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Live intervals",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": " 0: v1 = ...\n 1: v2 = ...\n 2: v3 = v1 + v2\n 3: use v3\n\nv1 [0,2]  v2 [1,2]  v3 [2,3]",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "at": 1300
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Sweep intervals by start point, expiring finished ones and spilling when all registers are busy.",
+      "narration": "Poletto and Sarkar sweep intervals by start. Expire finished ones, assign a free register, and if none is free, spill the active interval ending furthest away.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "The sweep",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "for i in intervals by start:\n  expire intervals ended < i.start\n  if active.size == R:\n    spill interval ending last\n  else:\n    i.reg = free_reg()\n    active.add(i)",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "at": 1300
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "active is kept sorted by end point.",
+          "x": 8,
+          "y": 52,
+          "w": 84,
+          "enter": "fade",
+          "color": "blue",
+          "at": 2100
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "The trade-off is precision: one coarse interval per value gives worse code than coloring.",
+      "narration": "The price is quality. Coarse intervals waste registers in lifetime holes, and spilling a whole interval is blunt. Interval splitting recovers much of the loss.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Trade-offs",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Time roughly linear in intervals",
+            "Ignores lifetime holes",
+            "Whole-interval spills are blunt",
+            "Interval splitting recovers quality"
+          ],
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "orange",
+          "at": 1300
+        }
+      ]
+    },
+    {
+      "duration_ms": 9500,
+      "caption": "HotSpot C1 and V8's TurboFan both allocate registers with linear-scan variants.",
+      "narration": "Production JITs make this trade. HotSpot's C1 uses linear scan, and V8's TurboFan has a linear-scan allocator. Ahead-of-time compilers can afford more.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "In the wild",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c1",
+          "type": "box",
+          "text": "HotSpot C1",
+          "x": 8,
+          "y": 20,
+          "w": 40,
+          "h": 10,
+          "color": "blue",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "v8",
+          "type": "box",
+          "text": "V8 TurboFan",
+          "x": 52,
+          "y": 20,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Ahead-of-time compilers can spend more time on allocation.",
+          "x": 8,
+          "y": 42,
+          "w": 84,
+          "enter": "fade",
+          "color": "gray",
+          "at": 2900
+        }
+      ]
+    }
+  ],
+  "takeaway": "Linear scan makes one fast pass over coarse live intervals, trading some code quality for compile time that a JIT cannot afford to waste.",
+  "sources": [
+    "https://dl.acm.org/doi/10.1145/330249.330250"
+  ]
+}

@@ -1,0 +1,261 @@
+{
+  "version": 1,
+  "title": "Reno, CUBIC and BBR",
+  "hook": "How do Reno, CUBIC and BBR decide how fast to send?",
+  "topic": "networking/tcp/congestion-control-cubic-bbr",
+  "tags": [
+    "networking",
+    "tcp",
+    "congestion-control"
+  ],
+  "level": "advanced",
+  "series": "networking-protocol-internals",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 11000,
+      "caption": "Reno: slow start doubles cwnd per RTT, then AIMD adds one MSS per RTT.",
+      "narration": "Reno starts with slow start, doubling cwnd each round trip. After ssthresh it adds one segment per RTT, and halves cwnd on loss.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Reno: loss-based AIMD",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Slow start: cwnd doubles per RTT",
+            "Past ssthresh: +1 MSS per RTT",
+            "Loss: cwnd halves",
+            "Timeout: cwnd back to 1 MSS"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "CUBIC grows cwnd as a cubic function of time since the last loss.",
+      "narration": "CUBIC, the Linux default, grows the window as a cubic curve of time since the last loss. It plateaus near the old maximum, then probes beyond it.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "CUBIC",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "W(t) = C*(t-K)^3 + Wmax\nK = cbrt(Wmax*(1-b)/C)\nC = 0.4, b = 0.7",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Independent of RTT",
+            "Fast, flat, then probing",
+            "On loss: cwnd = 0.7 * Wmax"
+          ],
+          "x": 8,
+          "y": 44,
+          "w": 84,
+          "at": 4000,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 7500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "BBR models bandwidth and RTT instead of reacting to loss.",
+      "narration": "BBR measures the bottleneck bandwidth and the minimum round trip time. It paces at that rate and caps data in flight near the bandwidth-delay product.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "BBR",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "bw",
+          "type": "box",
+          "text": "BtlBw\nmax delivery rate",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 14,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "rt",
+          "type": "box",
+          "text": "RTprop\nmin RTT",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 14,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "o",
+          "type": "box",
+          "text": "pacing rate = gain x BtlBw\ninflight ~ BDP",
+          "x": 8,
+          "y": 48,
+          "w": 84,
+          "h": 14,
+          "color": "purple",
+          "at": 4000,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "bw",
+          "to": "o",
+          "at": 3500,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "rt",
+          "to": "o",
+          "at": 3500,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Loss-based schemes fill buffers; BBR aims to keep queues short.",
+      "narration": "Loss-based algorithms keep pushing until a buffer overflows, so queues stay full. BBR targets the knee, with high throughput and a small queue.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Why BBR differs",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Reno/CUBIC: loss means congestion",
+            "On lossy links they back off too much",
+            "BBR does not treat loss as the signal"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "On Linux you choose it per system or per socket.",
+      "narration": "On Linux the algorithm is a sysctl, and ss shows live cwnd and rtt per connection.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Try it on Linux",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "sysctl net.ipv4.tcp_congestion_control\nsysctl -w \\\n net.ipv4.tcp_congestion_control=bbr\nss -ti",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "ss -ti prints cwnd, rtt, and the algorithm.",
+          "x": 8,
+          "y": 56,
+          "w": 84,
+          "at": 4000,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Reno and CUBIC react to loss with different growth curves; BBR instead estimates bandwidth and RTT and paces to that model.",
+  "sources": [
+    "https://www.rfc-editor.org/rfc/rfc9438",
+    "https://queue.acm.org/detail.cfm?id=3022184"
+  ]
+}

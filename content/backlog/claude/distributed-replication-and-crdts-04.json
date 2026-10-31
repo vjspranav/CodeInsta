@@ -1,0 +1,331 @@
+{
+  "version": 1,
+  "title": "N, R, W quorums in Dynamo",
+  "hook": "How do N, R and W quorums trade consistency for availability in Dynamo-style stores?",
+  "topic": "distributed/replication/dynamo-quorums",
+  "tags": [
+    "distributed",
+    "dynamo",
+    "quorum"
+  ],
+  "level": "intermediate",
+  "series": "distributed-replication-and-crdts",
+  "series_index": 4,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "Each key is stored on N replicas; W acks finish a write, R replies finish a read.",
+      "narration": "Dynamo stores each key on N replicas. A write completes after W acknowledgements, and a read after R responses.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Three knobs",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "N: replicas holding each key",
+            "W: acks needed for a write",
+            "R: replies needed for a read"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Typical Dynamo setting: (N, R, W) = (3, 2, 2)",
+          "x": 8,
+          "y": 52,
+          "w": 84,
+          "at": 4500,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "n",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "The coordinator sends to all N replicas but returns after W acks.",
+      "narration": "The coordinator sends the write to all N replicas but replies to the client as soon as W of them have answered.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Write path, W = 2",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "Coordinator",
+          "x": 28,
+          "y": 20,
+          "w": 44,
+          "h": 10,
+          "color": "purple",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "r1",
+          "type": "box",
+          "text": "Rep 1",
+          "x": 6,
+          "y": 46,
+          "w": 26,
+          "h": 10,
+          "color": "green",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "r2",
+          "type": "box",
+          "text": "Rep 2",
+          "x": 37,
+          "y": 46,
+          "w": 26,
+          "h": 10,
+          "color": "green",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "r3",
+          "type": "box",
+          "text": "Rep 3 slow",
+          "x": 68,
+          "y": 46,
+          "w": 26,
+          "h": 10,
+          "color": "gray",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "c",
+          "to": "r1",
+          "at": 2500,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "c",
+          "to": "r2",
+          "at": 2500,
+          "enter": "draw"
+        },
+        {
+          "id": "a3",
+          "type": "arrow",
+          "from": "c",
+          "to": "r3",
+          "at": 2500,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "If R + W > N, every read set overlaps every write set.",
+      "narration": "If R plus W exceeds N, any read quorum must share at least one replica with the latest write quorum, so the read can see the newest version.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Overlap rule",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "R + W > N\n2 + 2 > 3   ->  overlap",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "w",
+          "type": "box",
+          "text": "Write set: 1, 2",
+          "x": 8,
+          "y": 42,
+          "w": 38,
+          "h": 10,
+          "color": "green",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "r",
+          "type": "box",
+          "text": "Read set: 2, 3",
+          "x": 54,
+          "y": 42,
+          "w": 38,
+          "h": 10,
+          "color": "blue",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Replica 2 is in both.",
+          "x": 8,
+          "y": 62,
+          "w": 84,
+          "at": 5500,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 7500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Tune the trade-off: W=1 favors write availability; R=1, W=N favors reads.",
+      "narration": "Lower W makes writes fast and always available but weaker. R equal to one with W equal to N gives cheap reads. Lower quorums raise staleness risk.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Tuning",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "W = 1: fastest writes, stale reads",
+            "R = 1, W = N: cheap reads, writes block if any node is down",
+            "R + W <= N: eventual consistency only"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Sloppy quorums and hinted handoff keep writes available but weaken the overlap.",
+      "narration": "During failures Dynamo writes to the next healthy nodes and hands the data back later. That keeps writes available, but the overlap guarantee is lost.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Sloppy quorum",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "d",
+          "type": "box",
+          "text": "Replica down",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 10,
+          "color": "red",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "Stand-in node\nstores a hint",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 12,
+          "color": "orange",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "d",
+          "to": "s",
+          "at": 2500,
+          "enter": "draw",
+          "label": "next in ring"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Hint replays when the owner returns. Until then R + W > N no longer guarantees a fresh read.",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "at": 4500,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "n",
+          "at": 7500,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "With R + W > N a read quorum overlaps the last write quorum; relax it for latency and availability, and you accept stale reads.",
+  "sources": [
+    "https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf"
+  ]
+}

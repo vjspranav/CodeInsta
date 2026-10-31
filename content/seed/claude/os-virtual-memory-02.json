@@ -1,0 +1,310 @@
+{
+  "version": 1,
+  "title": "TLB flushes, PCIDs and ASIDs",
+  "hook": "Why does a context switch flush the TLB, and how do PCIDs and ASIDs avoid it?",
+  "topic": "os/memory/tlb-and-asid",
+  "tags": [
+    "os",
+    "memory",
+    "tlb",
+    "pcid",
+    "asid"
+  ],
+  "level": "advanced",
+  "series": "os-virtual-memory",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 8000,
+      "caption": "The TLB caches virtual-to-physical translations so most accesses skip the page walk.",
+      "narration": "The TLB caches recent translations. A hit returns the frame immediately; a miss makes the hardware walk the page tables.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "What the TLB caches",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "cpu",
+          "type": "box",
+          "text": "CPU: virtual address",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 9,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "tlb",
+          "type": "box",
+          "text": "TLB lookup",
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "h": 9,
+          "color": "purple",
+          "at": 2000,
+          "enter": "pop"
+        },
+        {
+          "id": "walk",
+          "type": "box",
+          "text": "Miss: page-table walk",
+          "x": 8,
+          "y": 54,
+          "w": 84,
+          "h": 9,
+          "color": "orange",
+          "at": 4000,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "cpu",
+          "to": "tlb",
+          "at": 1500,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "tlb",
+          "to": "walk",
+          "label": "miss",
+          "at": 3500,
+          "enter": "draw"
+        },
+        {
+          "id": "hit",
+          "type": "text",
+          "text": "Hit: frame returned, no memory walk.",
+          "x": 8,
+          "y": 72,
+          "w": 84,
+          "h": 10.8,
+          "at": 5500,
+          "enter": "fade",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Two processes use the same virtual page number with different frames, so stale entries are wrong.",
+      "narration": "Two processes can use the same virtual page number for different frames. Entries cached for one are wrong for the other.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Same VPN, different frames",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "ent",
+          "type": "code",
+          "lang": "text",
+          "text": "VPN 0x400 -> PFN 0x91 (A)\nVPN 0x400 -> PFN 0x37 (B)",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 11.8,
+          "at": 500,
+          "enter": "fade"
+        },
+        {
+          "id": "bad",
+          "type": "text",
+          "text": "Without a tag, hardware cannot tell which entry belongs to the running address space.",
+          "x": 8,
+          "y": 50,
+          "w": 84,
+          "h": 15.2,
+          "at": 3000,
+          "enter": "fade",
+          "color": "red"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "bad",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Writing CR3 without PCID invalidates every non-global TLB entry.",
+      "narration": "The simple fix is brutal. Without PCID, loading CR3 on a context switch drops all non-global entries, and the next accesses all miss.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Switch address space, lose the TLB",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 13,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "steps",
+          "type": "list",
+          "items": [
+            "mov cr3, next_pgd",
+            "all non-global entries flushed",
+            "every access misses and walks",
+            "G-bit (global) entries survive"
+          ],
+          "x": 8,
+          "y": 24,
+          "w": 84,
+          "h": 25.6,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "steps",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "PCID tags entries with a 12-bit ID in CR3[11:0], so a CR3 write can keep them.",
+      "narration": "With CR4.PCIDE set, CR3's low twelve bits hold a PCID that tags TLB entries. Setting bit 63 on the write says do not flush.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "PCID: tag entries, keep them",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "cr3",
+          "type": "code",
+          "lang": "c",
+          "text": "CR3 = pgd_pa | pcid\n      | (1ULL << 63)",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 11.8,
+          "at": 500,
+          "enter": "fade"
+        },
+        {
+          "id": "n1",
+          "type": "text",
+          "text": "Bit 63 = no-flush: the old entries stay, tagged with their PCID.",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 15.2,
+          "at": 3500,
+          "enter": "fade",
+          "color": "green"
+        },
+        {
+          "id": "n2",
+          "type": "text",
+          "text": "Linux tracks only a handful of PCIDs per CPU (dynamic ASIDs), recycling the oldest.",
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 15.2,
+          "at": 6500,
+          "enter": "fade",
+          "color": "gray"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "arm64 does the same with an ASID in TTBR, and broadcasts invalidations in hardware.",
+      "narration": "Arm64 tags entries with an ASID held in the TTBR. Invalidating other cores differs: x86 sends IPIs, arm64 broadcasts TLBI instructions.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "ASIDs on arm64",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "x86",
+          "type": "box",
+          "text": "x86-64: PCID, 12 bits, in CR3",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 11,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "arm",
+          "type": "box",
+          "text": "arm64: ASID, 8 or 16 bits, in TTBR",
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "h": 14,
+          "color": "green",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "sd",
+          "type": "text",
+          "text": "Remote invalidation: x86 sends IPIs (shootdown); arm64 uses broadcast TLBI ...IS.",
+          "x": 8,
+          "y": 60,
+          "w": 84,
+          "h": 15.2,
+          "at": 5000,
+          "enter": "fade",
+          "color": "orange"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "sd",
+          "at": 7500,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Tagging TLB entries with a PCID or ASID turns a context switch from a full flush into a cheap register write.",
+  "sources": [
+    "https://docs.kernel.org/arch/x86/tlb.html"
+  ]
+}

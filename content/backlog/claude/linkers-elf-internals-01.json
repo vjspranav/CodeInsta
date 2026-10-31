@@ -1,0 +1,313 @@
+{
+  "version": 1,
+  "title": "ELF sections vs program segments",
+  "hook": "What is the difference between ELF sections and program segments?",
+  "topic": "linkers/elf/sections-vs-segments",
+  "tags": [
+    "linkers",
+    "elf"
+  ],
+  "level": "intermediate",
+  "series": "linkers-elf-internals",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "One ELF file, two tables: sections for the linker, segments for the loader.",
+      "narration": "An ELF file carries two different maps of the same bytes. Section headers serve the linker; program headers serve the kernel and ld.so.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Two views of one file",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "sec",
+          "type": "box",
+          "text": "Linker view: section headers",
+          "x": 8,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "seg",
+          "type": "box",
+          "text": "Loader view: program headers",
+          "x": 56,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "green",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "shoff",
+          "type": "text",
+          "text": "ELF header e_shoff -> section headers",
+          "x": 8,
+          "y": 43.2,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "blue"
+        },
+        {
+          "id": "phoff",
+          "type": "text",
+          "text": "ELF header e_phoff -> program headers",
+          "x": 8,
+          "y": 58.8,
+          "w": 84,
+          "at": 3200,
+          "enter": "fade",
+          "color": "green"
+        },
+        {
+          "id": "both",
+          "type": "text",
+          "text": "Same bytes, two indexes.",
+          "x": 8,
+          "y": 74.4,
+          "w": 84,
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "Sections are named, typed units: .text, .rodata, .data, .bss, .symtab.",
+      "narration": "Sections are what the compiler emits and the linker merges. Each has a name, type, flags and size, like .text for code or .rodata for constants.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Sections: linker's units",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "secs",
+          "type": "list",
+          "items": [
+            ".text  SHT_PROGBITS  AX",
+            ".rodata  SHT_PROGBITS  A",
+            ".data  SHT_PROGBITS  WA",
+            ".bss  SHT_NOBITS  WA",
+            ".symtab  SHT_SYMTAB"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "blue"
+        },
+        {
+          "id": "hl-secs",
+          "type": "highlight",
+          "target": "secs",
+          "at": 2300
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Segments are runtime memory ranges: permissions, file offset, vaddr.",
+      "narration": "Segments describe what to mmap. Each PT_LOAD entry gives an offset, a virtual address, sizes and permissions. The kernel never reads section headers.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Segments: loader's units",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "ph",
+          "type": "code",
+          "lang": "text",
+          "text": "Type  Offset  Flags\nLOAD  0x0000  R\nLOAD  0x1000  R E\nLOAD  0x2000  R\nLOAD  0x2de8  RW",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "tool",
+          "type": "text",
+          "text": "readelf -lW a.out",
+          "x": 8,
+          "y": 51.5,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "green"
+        },
+        {
+          "id": "hl-ph",
+          "type": "highlight",
+          "target": "ph",
+          "at": 3600
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "The linker packs sections with equal permissions into one PT_LOAD.",
+      "narration": "The linker groups sections by permission. Code sections go into the read-execute segment, while .data and .bss share the read-write segment.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Sections packed into segments",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "s1",
+          "type": "box",
+          "text": ".text .plt",
+          "x": 8,
+          "y": 20.0,
+          "w": 36,
+          "h": 12,
+          "color": "orange",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "g1",
+          "type": "box",
+          "text": "PT_LOAD R E",
+          "x": 56,
+          "y": 20.0,
+          "w": 36,
+          "h": 12,
+          "color": "green",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "s3",
+          "type": "box",
+          "text": ".data .bss",
+          "x": 8,
+          "y": 41.0,
+          "w": 36,
+          "h": 12,
+          "color": "orange",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "g3",
+          "type": "box",
+          "text": "PT_LOAD RW",
+          "x": 56,
+          "y": 41.0,
+          "w": 36,
+          "h": 12,
+          "color": "green",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "ro",
+          "type": "text",
+          "text": ".rodata and headers go in a read-only PT_LOAD.",
+          "x": 8,
+          "y": 62.0,
+          "w": 84,
+          "at": 3200,
+          "enter": "fade"
+        },
+        {
+          "id": "s1-g1",
+          "type": "arrow",
+          "from": "s1",
+          "to": "g1",
+          "at": 1200,
+          "enter": "draw"
+        },
+        {
+          "id": "s3-g3",
+          "type": "arrow",
+          "from": "s3",
+          "to": "g3",
+          "at": 2500,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "For the RW segment p_memsz exceeds p_filesz; the kernel zero-fills the tail as .bss.",
+      "narration": "The .bss has no bytes in the file. In the writable segment, p_memsz is larger than p_filesz, and the loader zero-fills the difference.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": ".bss costs no file bytes",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "sz",
+          "type": "code",
+          "lang": "c",
+          "text": "p_filesz = 0x270  // from file\np_memsz  = 0x2a0  // in memory\n// tail zeroed = .bss",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "note",
+          "type": "text",
+          "text": "Stripped section headers? The binary still runs.",
+          "x": 8,
+          "y": 43.7,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "red"
+        },
+        {
+          "id": "hl-sz",
+          "type": "highlight",
+          "target": "sz",
+          "at": 3600
+        }
+      ]
+    }
+  ],
+  "takeaway": "Sections are the linker's fine-grained units; segments are the loader's coarse mmap plan built by merging sections.",
+  "sources": [
+    "https://refspecs.linuxfoundation.org/elf/elf.pdf"
+  ]
+}

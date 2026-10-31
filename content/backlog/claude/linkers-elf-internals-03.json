@@ -1,0 +1,284 @@
+{
+  "version": 1,
+  "title": "GOT, PLT and lazy binding",
+  "hook": "How do the GOT and PLT resolve `printf` lazily at first call?",
+  "topic": "linkers/elf/got-plt-lazy-binding",
+  "tags": [
+    "linkers",
+    "elf",
+    "dynamic-linking"
+  ],
+  "level": "advanced",
+  "series": "linkers-elf-internals",
+  "series_index": 3,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "Code calls a fixed PLT stub, which jumps through a writable GOT slot.",
+      "narration": "Position-independent code can't hardcode printf's address. So it calls a local PLT stub, which jumps through a pointer stored in the GOT.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Indirection: PLT then GOT",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "call",
+          "type": "box",
+          "text": "call printf@plt",
+          "x": 8,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "plt",
+          "type": "box",
+          "text": "PLT stub",
+          "x": 56,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "orange",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "got",
+          "type": "box",
+          "text": "GOT[printf] (.got.plt, writable)",
+          "x": 8,
+          "y": 43.2,
+          "w": 84,
+          "h": 11,
+          "color": "purple",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "call-plt",
+          "type": "arrow",
+          "from": "call",
+          "to": "plt",
+          "at": 1200,
+          "enter": "draw"
+        },
+        {
+          "id": "plt-got",
+          "type": "arrow",
+          "from": "plt",
+          "to": "got",
+          "at": 2500,
+          "enter": "draw",
+          "label": "jmp *"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Initially the GOT slot points back into the stub, which falls into PLT0.",
+      "narration": "Before the first call, the GOT slot holds the address of the stub's own next instruction. That pushes a relocation index and jumps to PLT0.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "First call falls through",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "stub",
+          "type": "code",
+          "lang": "asm",
+          "text": "printf@plt:\n  jmp  *GOT[printf]\n  push $idx\n  jmp  PLT0",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "GOT[printf] starts at the push instruction.",
+          "x": 8,
+          "y": 47.6,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "orange"
+        },
+        {
+          "id": "hl-stub",
+          "type": "highlight",
+          "target": "stub",
+          "at": 3600
+        }
+      ]
+    },
+    {
+      "duration_ms": 11500,
+      "caption": "PLT0 enters _dl_runtime_resolve, which looks up printf and overwrites the GOT slot.",
+      "narration": "PLT0 pushes the link_map from GOT[1] and jumps to GOT[2], the dynamic linker's resolver. It finds printf in libc, writes its address into the slot, and jumps there.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "PLT0 and the resolver",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "p0",
+          "type": "code",
+          "lang": "asm",
+          "text": "PLT0:\n  push GOT[1]   ; link_map\n  jmp  *GOT[2]  ; _dl_runtime_resolve",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "res",
+          "type": "box",
+          "text": "ld.so: find printf, patch GOT[printf]",
+          "x": 8,
+          "y": 43.7,
+          "w": 84,
+          "h": 14.2,
+          "color": "green",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "hl-p0",
+          "type": "highlight",
+          "target": "p0",
+          "at": 3600
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Later calls take PLT stub then jmp *GOT straight into libc: one extra indirect jump.",
+      "narration": "From the second call on, the stub's first jump goes directly to printf in libc. Lazy binding costs only the first call and one indirect jump afterwards.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Second call is cheap",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c2",
+          "type": "box",
+          "text": "call printf@plt",
+          "x": 8,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "p2",
+          "type": "box",
+          "text": "jmp *GOT",
+          "x": 56,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "orange",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "libc",
+          "type": "box",
+          "text": "printf in libc.so",
+          "x": 8,
+          "y": 43.2,
+          "w": 84,
+          "h": 11,
+          "color": "green",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "c2-p2",
+          "type": "arrow",
+          "from": "c2",
+          "to": "p2",
+          "at": 1200,
+          "enter": "draw"
+        },
+        {
+          "id": "p2-libc",
+          "type": "arrow",
+          "from": "p2",
+          "to": "libc",
+          "at": 2500,
+          "enter": "draw",
+          "label": "direct"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "-z now plus -z relro resolves eagerly and makes the GOT read-only.",
+      "narration": "Lazy binding leaves a writable GOT, a classic exploit target. Linking with z now resolves everything at startup, and full RELRO then marks the GOT read-only.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Hardening trade-off",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "opt",
+          "type": "list",
+          "items": [
+            "Lazy: fast start, writable .got.plt",
+            "-Wl,-z,now: bind all at load",
+            "-Wl,-z,relro: GOT read-only after",
+            "Full RELRO = both"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "red"
+        }
+      ]
+    }
+  ],
+  "takeaway": "The PLT is a stub, the GOT is a pointer table, and the first call patches the pointer so later calls skip the resolver.",
+  "sources": [
+    "https://refspecs.linuxfoundation.org/elf/x86_64-abi-0.99.pdf"
+  ]
+}

@@ -1,0 +1,353 @@
+{
+  "version": 1,
+  "title": "Android.bp: Soong's declarative build",
+  "hook": "Why did Android replace Makefiles with Android.bp?",
+  "topic": "aosp/build/soong-blueprint",
+  "tags": [
+    "aosp",
+    "soong",
+    "build"
+  ],
+  "level": "intermediate",
+  "series": "aosp-build-system",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "Android.mk was GNU make: every build re-parsed thousands of imperative fragments.",
+      "narration": "Android.mk files were GNU make fragments. Every build re-parsed thousands of them as imperative code, making startup slow and analysis hard.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The Makefile era",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "mk",
+          "type": "box",
+          "text": "Android.mk x thousands",
+          "x": 15,
+          "y": 20,
+          "w": 70,
+          "h": 10,
+          "color": "orange",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "make",
+          "type": "box",
+          "text": "GNU make evals every file",
+          "x": 15,
+          "y": 38,
+          "w": 70,
+          "h": 10,
+          "color": "red",
+          "at": 1800,
+          "enter": "pop"
+        },
+        {
+          "id": "graph",
+          "type": "box",
+          "text": "One giant dependency graph",
+          "x": 15,
+          "y": 56,
+          "w": 70,
+          "h": 10,
+          "color": "gray",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "mk",
+          "to": "make",
+          "at": 1500,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "make",
+          "to": "graph",
+          "at": 2800,
+          "enter": "draw"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Slow startup, hard to analyze statically",
+          "x": 8,
+          "y": 74,
+          "w": 84,
+          "h": 10,
+          "color": "red",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Android.bp is declarative: a module type plus properties, with no control flow.",
+      "narration": "Android.bp is declarative. Each module is a type and a set of properties, in a JSON-like syntax with no loops and no if statements.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Android.bp",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "bp",
+          "type": "code",
+          "lang": "text",
+          "text": "cc_binary {\n    name: \"hello\",\n    srcs: [\"hello.c\"],\n    shared_libs: [\"liblog\"],\n}",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 22,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "bp",
+          "at": 3500,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "module type: cc_binary",
+            "properties, not statements",
+            "no conditionals or loops"
+          ],
+          "x": 8,
+          "y": 50,
+          "w": 84,
+          "h": 24,
+          "color": "green",
+          "at": 5000,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Blueprint parses .bp files, Soong's module types generate Ninja rules.",
+      "narration": "The Blueprint library parses every Android.bp. Soong's Go code defines module types like cc_binary, and writes the result as out/soong/build.ninja.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "From .bp to Ninja",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "bp",
+          "type": "box",
+          "text": "Android.bp files",
+          "x": 15,
+          "y": 20,
+          "w": 70,
+          "h": 9,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "bl",
+          "type": "box",
+          "text": "build/blueprint: parse",
+          "x": 15,
+          "y": 36,
+          "w": 70,
+          "h": 9,
+          "color": "purple",
+          "at": 1800,
+          "enter": "pop"
+        },
+        {
+          "id": "so",
+          "type": "box",
+          "text": "build/soong: module types",
+          "x": 15,
+          "y": 52,
+          "w": 70,
+          "h": 9,
+          "color": "purple",
+          "at": 3200,
+          "enter": "pop"
+        },
+        {
+          "id": "ni",
+          "type": "box",
+          "text": "out/soong/build.ninja",
+          "x": 15,
+          "y": 68,
+          "w": 70,
+          "h": 9,
+          "color": "green",
+          "at": 4600,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "bp",
+          "to": "bl",
+          "at": 1500,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "bl",
+          "to": "so",
+          "at": 2900,
+          "enter": "draw"
+        },
+        {
+          "id": "a3",
+          "type": "arrow",
+          "from": "so",
+          "to": "ni",
+          "at": 4300,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Mutators split each module into variants for arch, image and link type.",
+      "narration": "Mutators then clone each module into variants. One cc_library may become arm64 and arm, core and vendor, shared and static builds.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Variants via mutators",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "mod",
+          "type": "box",
+          "text": "cc_library: libfoo",
+          "x": 25,
+          "y": 20,
+          "w": 50,
+          "h": 9,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "v",
+          "type": "list",
+          "items": [
+            "arch: arm64, arm",
+            "image: core, vendor, product",
+            "link: shared, static"
+          ],
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "h": 22,
+          "color": "orange",
+          "at": 2000,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Each variant gets its own Ninja build edges",
+          "x": 8,
+          "y": 68,
+          "w": 84,
+          "h": 10,
+          "color": "gray",
+          "at": 5000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Conditionals live in properties and defaults, so the build graph stays analyzable.",
+      "narration": "Per-arch differences go in nested properties, and shared settings go in defaults modules. Because nothing executes, tools can analyze or convert the files.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Variation without code",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "cc_binary {\n    name: \"hello\",\n    defaults: [\"my_defaults\"],\n    arch: {\n        arm64: { srcs: [\"a64.c\"] },\n    },\n}",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 28,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 3500,
+          "enter": "fade"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "The androidmk tool converts Android.mk to Android.bp",
+          "x": 8,
+          "y": 58,
+          "w": 84,
+          "h": 12,
+          "color": "green",
+          "at": 5000,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Android.bp trades make's power for a declarative graph that is fast to parse and easy to analyze, with Soong generating the Ninja rules.",
+  "sources": [
+    "https://source.android.com/docs/setup/reference/androidbp",
+    "https://android.googlesource.com/platform/build/soong/"
+  ]
+}

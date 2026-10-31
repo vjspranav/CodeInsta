@@ -1,0 +1,306 @@
+{
+  "version": 1,
+  "title": "CFS, vruntime and the red-black tree",
+  "hook": "How does CFS use a red-black tree and `vruntime` to be 'completely fair'?",
+  "topic": "os/scheduling/cfs-vruntime",
+  "tags": [
+    "os",
+    "scheduling",
+    "cfs",
+    "linux"
+  ],
+  "level": "intermediate",
+  "series": "os-scheduling",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "Each task accumulates vruntime: real CPU time scaled by its weight. The smallest vruntime runs next.",
+      "narration": "CFS tracks vruntime, real run time scaled inversely by weight. Heavier tasks accumulate it slower, so the task with the smallest value is the most owed.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "vruntime: weighted run time",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "code",
+          "lang": "c",
+          "text": "vruntime += delta_exec\n   * NICE_0_LOAD / weight;",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 11.8,
+          "at": 500,
+          "enter": "fade"
+        },
+        {
+          "id": "w",
+          "type": "list",
+          "items": [
+            "nice 0 has weight 1024",
+            "each nice step is about 1.25x",
+            "nice -20: 88761, nice 19: 15"
+          ],
+          "x": 8,
+          "y": 42,
+          "w": 84,
+          "h": 19.7,
+          "at": 3500,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Runnable entities sit in a red-black tree keyed by vruntime; the leftmost node is next.",
+      "narration": "Runnable tasks live in a red-black tree ordered by vruntime. The leftmost node has run the least, so it is the next pick.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The timeline tree",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "root",
+          "type": "box",
+          "text": "root vr=130",
+          "x": 30,
+          "y": 22,
+          "w": 40,
+          "h": 9,
+          "color": "gray",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "left",
+          "type": "box",
+          "text": "vr=100 leftmost",
+          "x": 8,
+          "y": 42,
+          "w": 40,
+          "h": 14,
+          "color": "green",
+          "at": 2000,
+          "enter": "pop"
+        },
+        {
+          "id": "right",
+          "type": "box",
+          "text": "vr=170",
+          "x": 52,
+          "y": 42,
+          "w": 40,
+          "h": 11,
+          "color": "blue",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "root",
+          "to": "left",
+          "at": 3000,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "root",
+          "to": "right",
+          "at": 3500,
+          "enter": "draw"
+        },
+        {
+          "id": "st",
+          "type": "text",
+          "text": "cfs_rq->tasks_timeline: rb_root_cached",
+          "x": 8,
+          "y": 68,
+          "w": 84,
+          "h": 10.8,
+          "at": 5000,
+          "enter": "fade",
+          "color": "gray"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "left",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Tick charges the running task via update_curr; picking the next is the cached leftmost.",
+      "narration": "On each tick update_curr charges the running task. Enqueue is a logarithmic tree insert, and picking is the cached leftmost node, effectively constant time.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Charge, insert, pick",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "ops",
+          "type": "list",
+          "items": [
+            "tick: update_curr() charges vruntime",
+            "enqueue: rb-tree insert, O(log n)",
+            "pick: cached leftmost, O(1)",
+            "preempt when current ran past its slice"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 38.8,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "ops",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "min_vruntime is a monotonic floor so sleepers and newcomers neither starve nor monopolize.",
+      "narration": "Placement matters too. A monotonic min_vruntime anchors new and waking tasks, so a long sleeper gets a bounded bonus, not an unbounded debt of CPU.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Placing sleepers and newcomers",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "pl",
+          "type": "list",
+          "items": [
+            "min_vruntime: monotonic floor of the tree",
+            "wakeup: vruntime = max(own, min_vruntime - bonus)",
+            "bonus bounded by latency target (pre-6.6)"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 32.9,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "pl",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "With cgroups, each group is a sched_entity owning its own cfs_rq: fairness nests.",
+      "narration": "With CONFIG_FAIR_GROUP_SCHED, a cgroup is itself a scheduling entity with its own queue. Fairness nests: first between groups, then within a group.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Hierarchical fairness",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "rq",
+          "type": "box",
+          "text": "root cfs_rq",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 9,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "ge",
+          "type": "box",
+          "text": "group sched_entity (cpu.weight)",
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "h": 14,
+          "color": "purple",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "gq",
+          "type": "box",
+          "text": "group cfs_rq: tasks",
+          "x": 8,
+          "y": 58,
+          "w": 84,
+          "h": 9,
+          "color": "green",
+          "at": 4500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "rq",
+          "to": "ge",
+          "at": 2000,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "ge",
+          "to": "gq",
+          "at": 4000,
+          "enter": "draw"
+        }
+      ]
+    }
+  ],
+  "takeaway": "CFS equalizes weighted runtime: always run the task that has received the least, found in O(1) at the tree's left edge.",
+  "sources": [
+    "https://docs.kernel.org/scheduler/sched-design-CFS.html"
+  ]
+}

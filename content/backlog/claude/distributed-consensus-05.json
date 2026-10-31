@@ -1,0 +1,262 @@
+{
+  "version": 1,
+  "title": "What FLP really says",
+  "hook": "What does the FLP result really say about consensus in asynchronous systems?",
+  "topic": "distributed/consensus/flp-impossibility",
+  "tags": [
+    "distributed",
+    "consensus",
+    "theory"
+  ],
+  "level": "advanced",
+  "series": "distributed-consensus",
+  "series_index": 5,
+  "scenes": [
+    {
+      "duration_ms": 8000,
+      "caption": "FLP assumes asynchronous timing, reliable messages, deterministic processes and at most one crash.",
+      "narration": "FLP assumes no bounds on message delay or process speed, reliable messages, deterministic processes, and at most one crash.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "The model",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Asynchronous: no timing bounds",
+            "Reliable message delivery",
+            "Deterministic processes",
+            "At most 1 crash failure",
+            "Agreement + validity + termination"
+          ],
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "blue",
+          "at": 1300
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "No deterministic protocol can guarantee termination here; safety alone is still achievable.",
+      "narration": "No deterministic protocol can guarantee agreement, validity and termination together. Safety can be kept, but termination cannot be guaranteed, even with one crash.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "The theorem",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "Safety: achievable",
+          "x": 8,
+          "y": 20,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "l",
+          "type": "box",
+          "text": "Termination: no guarantee",
+          "x": 52,
+          "y": 20,
+          "w": 40,
+          "h": 10,
+          "color": "red",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "It is about guarantees, not typical executions.",
+          "x": 8,
+          "y": 44,
+          "w": 84,
+          "enter": "fade",
+          "color": "gray",
+          "at": 2900
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "The proof keeps the system bivalent by delaying one critical message forever.",
+      "narration": "A bivalent start state exists, where either decision is still possible. An adversarial scheduler can keep delaying one message and stay bivalent forever.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Bivalence",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "b1",
+          "type": "box",
+          "text": "bivalent",
+          "x": 8,
+          "y": 20,
+          "w": 38,
+          "h": 9,
+          "color": "orange",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "b2",
+          "type": "box",
+          "text": "bivalent",
+          "x": 54,
+          "y": 20,
+          "w": 38,
+          "h": 9,
+          "color": "orange",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "b3",
+          "type": "box",
+          "text": "bivalent ...",
+          "x": 30,
+          "y": 42,
+          "w": 40,
+          "h": 9,
+          "color": "orange",
+          "enter": "pop",
+          "at": 2900
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "b1",
+          "to": "b2",
+          "enter": "draw",
+          "label": "delay msg",
+          "at": 3700
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "b2",
+          "to": "b3",
+          "enter": "draw",
+          "label": "delay msg",
+          "at": 4500
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Slow and crashed look the same, so no algorithm can tell them apart in an asynchronous model.",
+      "narration": "A slow process is indistinguishable from a crashed one. Practical systems relax the model with randomization, partial synchrony, or failure detectors.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Ways out",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Randomization (Ben-Or)",
+            "Partial synchrony (Dwork-Lynch-Stockmeyer)",
+            "Failure detectors (Chandra-Toueg)",
+            "Raft: randomized election timeouts"
+          ],
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "purple",
+          "at": 1300
+        }
+      ]
+    },
+    {
+      "duration_ms": 11500,
+      "caption": "Paxos and Raft never violate safety; they only lose liveness when the network misbehaves.",
+      "narration": "So Paxos and Raft stay safe under any delays and progress only when the system is stable enough. FLP does not say consensus is impossible in practice.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "In practice",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "Always safe",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 10,
+          "color": "green",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "l",
+          "type": "box",
+          "text": "Live when stable",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 10,
+          "color": "blue",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "FLP: no guaranteed liveness, not 'consensus is impossible'.",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "enter": "fade",
+          "color": "orange",
+          "at": 2900
+        }
+      ]
+    }
+  ],
+  "takeaway": "FLP proves no deterministic algorithm can guarantee termination in an asynchronous system with one crash; real protocols stay safe always and live under timing assumptions.",
+  "sources": [
+    "https://dl.acm.org/doi/10.1145/3149.214121"
+  ]
+}

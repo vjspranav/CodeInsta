@@ -1,0 +1,351 @@
+{
+  "version": 1,
+  "title": "Dominator trees, the optimizer's index",
+  "hook": "What is a dominator tree and why does almost every optimization query it?",
+  "topic": "compilers/ssa/dominator-trees",
+  "tags": [
+    "compilers",
+    "ssa",
+    "llvm"
+  ],
+  "level": "intermediate",
+  "series": "compilers-ssa-and-ir",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 13000,
+      "caption": "Block a dominates b if every path from entry to b goes through a.",
+      "narration": "Block a dominates block b if every path from the entry to b passes through a. Here A dominates D, but B does not, since the path through C skips it.",
+      "elements": [
+        {
+          "id": "a",
+          "type": "box",
+          "text": "A (entry)",
+          "x": 30,
+          "y": 10,
+          "w": 40,
+          "h": 9,
+          "color": "blue",
+          "enter": "pop",
+          "at": 500
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "B",
+          "x": 8,
+          "y": 32,
+          "w": 32,
+          "h": 9,
+          "color": "blue",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "C",
+          "x": 60,
+          "y": 32,
+          "w": 32,
+          "h": 9,
+          "color": "blue",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "d",
+          "type": "box",
+          "text": "D",
+          "x": 30,
+          "y": 54,
+          "w": 40,
+          "h": 9,
+          "color": "green",
+          "enter": "pop",
+          "at": 2900
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "a",
+          "to": "b",
+          "enter": "draw",
+          "at": 3700
+        },
+        {
+          "id": "a3",
+          "type": "arrow",
+          "from": "a",
+          "to": "c",
+          "enter": "draw",
+          "at": 4500
+        },
+        {
+          "id": "a4",
+          "type": "arrow",
+          "from": "b",
+          "to": "d",
+          "enter": "draw",
+          "at": 5300
+        },
+        {
+          "id": "a5",
+          "type": "arrow",
+          "from": "c",
+          "to": "d",
+          "enter": "draw",
+          "at": 6100
+        }
+      ]
+    },
+    {
+      "duration_ms": 9500,
+      "caption": "The immediate dominator of n is its closest strict dominator, and these links form a tree.",
+      "narration": "The immediate dominator, idom, is the closest strict dominator. Linking each block to its idom gives a tree rooted at the entry.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "The tree",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "a",
+          "type": "box",
+          "text": "A (entry)",
+          "x": 30,
+          "y": 20,
+          "w": 40,
+          "h": 9,
+          "color": "blue",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "B",
+          "x": 6,
+          "y": 46,
+          "w": 26,
+          "h": 9,
+          "color": "blue",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "C",
+          "x": 37,
+          "y": 46,
+          "w": 26,
+          "h": 9,
+          "color": "blue",
+          "enter": "pop",
+          "at": 2900
+        },
+        {
+          "id": "d",
+          "type": "box",
+          "text": "D",
+          "x": 68,
+          "y": 46,
+          "w": 26,
+          "h": 9,
+          "color": "green",
+          "enter": "pop",
+          "at": 3700
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "a",
+          "to": "b",
+          "enter": "draw",
+          "at": 4500
+        },
+        {
+          "id": "a3",
+          "type": "arrow",
+          "from": "a",
+          "to": "c",
+          "enter": "draw",
+          "at": 5300
+        },
+        {
+          "id": "a4",
+          "type": "arrow",
+          "from": "a",
+          "to": "d",
+          "enter": "draw",
+          "label": "idom(D)=A",
+          "at": 6100
+        }
+      ]
+    },
+    {
+      "duration_ms": 9500,
+      "caption": "Cooper-Harvey-Kennedy computes idoms by iterating over reverse postorder with an intersect step.",
+      "narration": "Cooper, Harvey and Kennedy visit blocks in reverse postorder, setting each idom to the intersection of its processed predecessors, until nothing changes.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Computing idoms",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "code",
+          "type": "code",
+          "lang": "text",
+          "text": "idom[entry] = entry\nrepeat until no change:\n  for b in RPO, b != entry:\n    new = first processed pred\n    for p in other preds:\n      if idom[p] known:\n        new = intersect(p, new)\n    idom[b] = new",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "at": 1300
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "LLVM uses Semi-NCA instead.",
+          "x": 8,
+          "y": 62,
+          "w": 84,
+          "enter": "fade",
+          "color": "gray",
+          "at": 2100
+        }
+      ]
+    },
+    {
+      "duration_ms": 11500,
+      "caption": "The dominance frontier is where a block's dominance ends, and it decides where phi nodes go.",
+      "narration": "The dominance frontier of n holds blocks n reaches but does not strictly dominate. Here DF of B and C is D, exactly where a phi belongs.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Dominance frontier",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "B",
+          "x": 8,
+          "y": 20,
+          "w": 32,
+          "h": 9,
+          "color": "blue",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "C",
+          "x": 60,
+          "y": 20,
+          "w": 32,
+          "h": 9,
+          "color": "blue",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "d",
+          "type": "box",
+          "text": "D",
+          "x": 34,
+          "y": 42,
+          "w": 32,
+          "h": 9,
+          "color": "green",
+          "enter": "pop",
+          "at": 2900
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "b",
+          "to": "d",
+          "enter": "draw",
+          "at": 3700
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "c",
+          "to": "d",
+          "enter": "draw",
+          "at": 4500
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "DF(B) = DF(C) = {D}\nphi for x lives in D",
+          "x": 8,
+          "y": 60,
+          "w": 84,
+          "enter": "fade",
+          "color": "orange",
+          "at": 5300
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Optimizers query dominance constantly: validity, hoisting, value reuse and loop detection all depend on it.",
+      "narration": "Passes ask dominance constantly. SSA validity, loop-invariant hoisting, value numbering and natural-loop detection all reduce to whether one block dominates another.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Who asks",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "SSA rule: a def must dominate its uses",
+            "LICM: preheader dominates the loop",
+            "GVN/CSE: reuse a dominating computation",
+            "Back edge n->h where h dominates n",
+            "LLVM: DominatorTree::dominates()"
+          ],
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "purple",
+          "at": 1300
+        }
+      ]
+    }
+  ],
+  "takeaway": "Dominators answer 'must this happen first?', and the dominator tree turns that question into a cheap query used by SSA construction, LICM, GVN and loop analysis.",
+  "sources": [
+    "https://www.cs.rice.edu/~keith/EMBED/dom.pdf",
+    "https://llvm.org/docs/LangRef.html"
+  ]
+}

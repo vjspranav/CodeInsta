@@ -1,0 +1,259 @@
+{
+  "version": 1,
+  "title": "How a Parcel crosses processes",
+  "hook": "How does a Parcel flatten objects, fds and binder handles across processes?",
+  "topic": "aosp/binder/parcel-marshalling",
+  "tags": [
+    "aosp",
+    "binder",
+    "parcel"
+  ],
+  "level": "advanced",
+  "series": "aosp-binder-ipc",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "A Parcel has a data buffer plus an array of offsets that mark embedded objects.",
+      "narration": "A Parcel is a flat buffer plus an offsets array. Primitives and strings go in the buffer; offsets point at special objects inside it.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Parcel layout",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "d",
+          "type": "box",
+          "text": "data: int, string, object, int",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "o",
+          "type": "box",
+          "text": "offsets[]: where objects sit",
+          "x": 8,
+          "y": 42,
+          "w": 84,
+          "h": 10,
+          "color": "orange",
+          "at": 2000,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "o",
+          "to": "d",
+          "at": 3500,
+          "enter": "draw",
+          "label": "points into"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Reads must mirror writes in order",
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 10,
+          "color": "red",
+          "at": 5000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Special objects are flat_binder_object structs: a type tag plus a binder pointer or handle.",
+      "narration": "Each special object is a flat_binder_object. A type tag says whether it is a local binder, a remote handle or a file descriptor.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "flat_binder_object",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "c",
+          "text": "struct flat_binder_object {\n  struct binder_object_header hdr;\n  __u32 flags;\n  union {\n    binder_uintptr_t binder;\n    __u32 handle;\n  };\n  binder_uintptr_t cookie;\n};",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 36,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 4000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "The driver rewrites each object for the receiver: binder becomes handle, fd becomes a new fd.",
+      "narration": "The driver walks the offsets and rewrites each object. A local binder becomes a handle in the receiver, and a file descriptor is duplicated into its fd table.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Driver translation",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "BINDER_TYPE_BINDER -> HANDLE",
+            "BINDER_TYPE_HANDLE -> HANDLE or BINDER",
+            "BINDER_TYPE_FD -> new fd in receiver"
+          ],
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 24,
+          "color": "purple",
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Owner process gets its own local pointer back",
+          "x": 8,
+          "y": 50,
+          "w": 84,
+          "h": 12,
+          "color": "gray",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Only the offsets are parsed in the kernel; the rest of the payload stays opaque bytes.",
+      "narration": "That is why offsets exist. The kernel parses just the marked objects and never interprets the rest of the data.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Why offsets",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "k",
+          "type": "box",
+          "text": "kernel: walks offsets only",
+          "x": 15,
+          "y": 22,
+          "w": 70,
+          "h": 10,
+          "color": "purple",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "u",
+          "type": "box",
+          "text": "user space: rest is opaque",
+          "x": 15,
+          "y": 42,
+          "w": 70,
+          "h": 10,
+          "color": "blue",
+          "at": 2000,
+          "enter": "pop"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "readStrongBinder yields a proxy for a remote object; AIDL stubs generate this code.",
+      "narration": "On the receiving side readStrongBinder turns a handle into a BpBinder proxy. AIDL-generated stubs write and read all of this for you.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Unmarshalling",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "h",
+          "type": "box",
+          "text": "handle in Parcel",
+          "x": 8,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "orange",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "p",
+          "type": "box",
+          "text": "BpBinder / BinderProxy",
+          "x": 52,
+          "y": 22,
+          "w": 40,
+          "h": 10,
+          "color": "green",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "h",
+          "to": "p",
+          "at": 2500,
+          "enter": "draw",
+          "label": "readStrongBinder"
+        }
+      ]
+    }
+  ],
+  "takeaway": "A Parcel is opaque bytes plus an offsets table, and the binder driver translates only the marked objects, turning binders into handles and fds into receiver fds.",
+  "sources": [
+    "https://developer.android.com/reference/android/os/Parcel"
+  ]
+}

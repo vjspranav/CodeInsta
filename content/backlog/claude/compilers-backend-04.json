@@ -1,0 +1,275 @@
+{
+  "version": 1,
+  "title": "Instruction scheduling",
+  "hook": "How does a scheduler reorder instructions to hide pipeline latency without changing results?",
+  "topic": "compilers/backend/instruction-scheduling",
+  "tags": [
+    "compilers",
+    "backend",
+    "performance"
+  ],
+  "level": "advanced",
+  "series": "compilers-backend",
+  "series_index": 4,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "A dependent instruction right after a load stalls until the loaded value arrives.",
+      "narration": "A load takes several cycles. If its consumer follows immediately, the pipeline stalls. Interleaving the independent pair hides that wait without changing the result.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Hide latency",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "b",
+          "type": "code",
+          "lang": "text",
+          "text": "ldr x1,[x0]\nadd x2,x1,#1\nldr x3,[x4]\nadd x5,x3,#1",
+          "x": 8,
+          "y": 20,
+          "w": 40,
+          "enter": "slide-up",
+          "color": "red",
+          "at": 1300
+        },
+        {
+          "id": "a",
+          "type": "code",
+          "lang": "text",
+          "text": "ldr x1,[x0]\nldr x3,[x4]\nadd x2,x1,#1\nadd x5,x3,#1",
+          "x": 52,
+          "y": 20,
+          "w": 40,
+          "enter": "slide-up",
+          "color": "green",
+          "at": 2100
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "b",
+          "to": "a",
+          "enter": "draw",
+          "label": "reorder",
+          "at": 2900
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Same results, fewer stall cycles.",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "enter": "fade",
+          "color": "gray",
+          "at": 3700
+        }
+      ]
+    },
+    {
+      "duration_ms": 10500,
+      "caption": "Dependence edges carry latencies; only independent instructions may swap.",
+      "narration": "The scheduler builds a dependence graph. True read-after-write edges carry the producer's latency. The two load-add pairs share no edge, so they can freely interleave.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Dependence DAG",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l1",
+          "type": "box",
+          "text": "ldr x1",
+          "x": 8,
+          "y": 18,
+          "w": 38,
+          "h": 9,
+          "color": "blue",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "a1",
+          "type": "box",
+          "text": "add x2",
+          "x": 54,
+          "y": 18,
+          "w": 38,
+          "h": 9,
+          "color": "blue",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "l2",
+          "type": "box",
+          "text": "ldr x3",
+          "x": 8,
+          "y": 40,
+          "w": 38,
+          "h": 9,
+          "color": "green",
+          "enter": "pop",
+          "at": 2900
+        },
+        {
+          "id": "a2",
+          "type": "box",
+          "text": "add x5",
+          "x": 54,
+          "y": 40,
+          "w": 38,
+          "h": 9,
+          "color": "green",
+          "enter": "pop",
+          "at": 3700
+        },
+        {
+          "id": "e1",
+          "type": "arrow",
+          "from": "l1",
+          "to": "a1",
+          "enter": "draw",
+          "label": "RAW, ~4c",
+          "at": 4500
+        },
+        {
+          "id": "e2",
+          "type": "arrow",
+          "from": "l2",
+          "to": "a2",
+          "enter": "draw",
+          "label": "RAW, ~4c",
+          "at": 5300
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Besides true dependences, anti, output and memory dependences also constrain the order.",
+      "narration": "Other edges matter too. Write-after-read and write-after-write dependences, and possibly aliasing memory operations, also forbid reordering. Registers renamed earlier remove many false edges.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Hazards",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "RAW: true data dependence",
+            "WAR: anti dependence",
+            "WAW: output dependence",
+            "Memory: may-alias loads and stores",
+            "Side effects and barriers stay ordered"
+          ],
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "orange",
+          "at": 1300
+        }
+      ]
+    },
+    {
+      "duration_ms": 12500,
+      "caption": "List scheduling repeatedly emits the best ready instruction, ranked by critical path.",
+      "narration": "List scheduling keeps a ready set. Each cycle it picks the highest-priority instruction, typically the one on the longest latency path, emits it, and releases successors when their latencies elapse.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "List scheduling",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "ready = nodes with no preds\nwhile ready not empty:\n  n = highest priority(ready)\n  emit(n); cycle++\n  release succs whose\n  latency has elapsed",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "at": 1300
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 2100
+        }
+      ]
+    },
+    {
+      "duration_ms": 11500,
+      "caption": "Machine models drive the choices, and llvm-mca shows what the pipeline actually does.",
+      "narration": "LLVM describes each CPU's latencies and ports in TableGen scheduling models. Scheduling before register allocation raises pressure, and after it faces false dependences. llvm-mca simulates the result.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "In LLVM",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "bash",
+          "text": "llvm-mca -mcpu=skylake -timeline a.s",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "at": 1300
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Pre-RA and post-RA schedulers",
+            "SchedMachineModel in TableGen",
+            "Phase ordering vs register pressure"
+          ],
+          "x": 8,
+          "y": 32,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "blue",
+          "at": 2100
+        }
+      ]
+    }
+  ],
+  "takeaway": "A scheduler reorders independent instructions by a dependence DAG and a machine model, hiding latency while keeping every true dependence intact.",
+  "sources": [
+    "https://llvm.org/docs/CommandGuide/llvm-mca.html"
+  ]
+}

@@ -1,0 +1,268 @@
+{
+  "version": 1,
+  "title": "Finding a HAL: service managers",
+  "hook": "How does a client find a HAL: hwservicemanager vs servicemanager vs `lazy` HALs?",
+  "topic": "aosp/hal/hwservicemanager",
+  "tags": [
+    "aosp",
+    "hal",
+    "servicemanager"
+  ],
+  "level": "advanced",
+  "series": "aosp-treble-hals",
+  "series_index": 4,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "Three service managers exist, one per binder domain.",
+      "narration": "There are three service managers, one per binder domain. servicemanager handles framework and AIDL HALs, hwservicemanager handles HIDL, and vndservicemanager serves vendor-to-vendor.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Three managers",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "sm",
+          "type": "box",
+          "text": "servicemanager /dev/binder",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "hw",
+          "type": "box",
+          "text": "hwservicemanager /dev/hwbinder",
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "h": 10,
+          "color": "orange",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "vnd",
+          "type": "box",
+          "text": "vndservicemanager /dev/vndbinder",
+          "x": 8,
+          "y": 56,
+          "w": 84,
+          "h": 10,
+          "color": "purple",
+          "at": 4500,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Domain = which binder device node a process uses",
+          "x": 8,
+          "y": 74,
+          "w": 84,
+          "h": 10,
+          "color": "gray",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "A client asks the manager for a name and gets back a binder handle.",
+      "narration": "The client asks servicemanager for an instance name. The manager returns a binder reference, and then the client talks to the HAL process directly.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Lookup flow",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "Client",
+          "x": 8,
+          "y": 22,
+          "w": 25,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "m",
+          "type": "box",
+          "text": "servicemanager",
+          "x": 38,
+          "y": 22,
+          "w": 25,
+          "h": 10,
+          "color": "gray",
+          "at": 1200,
+          "enter": "pop"
+        },
+        {
+          "id": "h",
+          "type": "box",
+          "text": "HAL process",
+          "x": 68,
+          "y": 22,
+          "w": 24,
+          "h": 10,
+          "color": "orange",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "c",
+          "to": "m",
+          "at": 3000,
+          "enter": "draw",
+          "label": "getService"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "c",
+          "to": "h",
+          "at": 5500,
+          "enter": "draw",
+          "label": "direct calls"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Name: android.hardware.foo.IFoo/default",
+          "x": 8,
+          "y": 52,
+          "w": 84,
+          "h": 10,
+          "color": "gray",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "AIDL HALs register an instance, e.g. IFoo/default, with servicemanager.",
+      "narration": "An AIDL HAL registers with a name made from its interface descriptor and an instance, such as IFoo slash default, which VINTF must also declare.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Registration",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "cpp",
+          "text": "AServiceManager_addService(\n    binder,\n    \"android.hardware.foo.IFoo/default\");",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 16,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 3500,
+          "enter": "fade"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "The same name must appear in the VINTF manifest",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 12,
+          "color": "orange",
+          "at": 5000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Lazy HALs start on demand: init declares the interface, and the service exits when unused.",
+      "narration": "A lazy HAL is declared with an interface line in its init rc, and starts only when a client asks. When no clients remain, it unregisters and exits.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Lazy HALs",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "service vendor.foo /vendor/bin/foo\n    oneshot\n    disabled\n    interface aidl \\\n      android.hardware.foo.IFoo/default",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 22,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 4000,
+          "enter": "fade"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Clients trigger start; idle service unregisters and exits",
+          "x": 8,
+          "y": 48,
+          "w": 84,
+          "h": 12,
+          "color": "green",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "servicemanager variants map names to binder handles per domain, and lazy HALs let init start a HAL only when its first client asks.",
+  "sources": [
+    "https://source.android.com/docs/core/architecture/aidl/aidl-hals"
+  ]
+}

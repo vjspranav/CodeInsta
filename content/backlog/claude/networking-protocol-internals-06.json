@@ -1,0 +1,299 @@
+{
+  "version": 1,
+  "title": "QUIC and head-of-line blocking",
+  "hook": "How does QUIC remove head-of-line blocking that TCP can't?",
+  "topic": "networking/quic/quic-vs-tcp-head-of-line",
+  "tags": [
+    "networking",
+    "quic",
+    "http3"
+  ],
+  "level": "advanced",
+  "series": "networking-protocol-internals",
+  "series_index": 6,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "TCP gives the kernel one ordered byte stream, and HTTP/2 shares it.",
+      "narration": "HTTP/2 multiplexes many streams over one TCP connection. But TCP only knows a single ordered byte stream.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "TCP + HTTP/2",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "a",
+          "type": "box",
+          "text": "stream A",
+          "x": 8,
+          "y": 22,
+          "w": 26,
+          "h": 9,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "stream B",
+          "x": 37,
+          "y": 22,
+          "w": 26,
+          "h": 9,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "stream C",
+          "x": 66,
+          "y": 22,
+          "w": 26,
+          "h": 9,
+          "color": "orange",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "t",
+          "type": "box",
+          "text": "one TCP byte stream",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 10,
+          "color": "gray",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "a",
+          "to": "t",
+          "at": 3000,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "b",
+          "to": "t",
+          "at": 3000,
+          "enter": "draw"
+        },
+        {
+          "id": "a3",
+          "type": "arrow",
+          "from": "c",
+          "to": "t",
+          "at": 3000,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "One lost segment stalls delivery of every stream behind it.",
+      "narration": "If one packet is lost, TCP withholds all later bytes from the application until the retransmission arrives, even bytes belonging to other streams.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "The blocking",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "seq 1000  ok\nseq 2000  LOST\nseq 3000  ok (held)",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Streams A, B and C all wait for the retransmit.",
+          "x": 8,
+          "y": 48,
+          "w": 84,
+          "at": 3500,
+          "enter": "fade",
+          "color": "red"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "QUIC packets carry STREAM frames with a stream ID and offset.",
+      "narration": "QUIC puts stream ID and byte offset in each STREAM frame. The transport itself knows about streams, so ordering is tracked per stream.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "QUIC frames",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "STREAM frame {\n  stream_id\n  offset\n  data }",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Reassembly is per stream, over UDP.",
+          "x": 8,
+          "y": 52,
+          "w": 84,
+          "at": 4000,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Loss on one stream only stalls that stream; the others keep delivering.",
+      "narration": "When a packet carrying stream B is lost, streams A and C still deliver in order. Only stream B waits for retransmission.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "After a loss",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "a",
+          "type": "box",
+          "text": "A: delivering",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 9,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "B: waiting",
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "h": 9,
+          "color": "red",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "C: delivering",
+          "x": 8,
+          "y": 54,
+          "w": 84,
+          "h": 9,
+          "color": "green",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "b",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Also: connection IDs survive IP changes, and TLS 1.3 is built in.",
+      "narration": "Retransmissions use new packet numbers, which removes ambiguity. Connection IDs let a connection survive IP changes, and TLS 1.3 is part of the handshake.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Other differences",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Retransmit in a new packet number",
+            "Connection ID survives migration",
+            "TLS 1.3 built into the handshake"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "QUIC moves ordering from one connection-wide byte stream to independent streams, so a lost packet only blocks its own stream.",
+  "sources": [
+    "https://www.rfc-editor.org/rfc/rfc9000",
+    "https://www.rfc-editor.org/rfc/rfc9002"
+  ]
+}

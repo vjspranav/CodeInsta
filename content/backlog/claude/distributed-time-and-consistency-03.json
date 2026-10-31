@@ -1,0 +1,270 @@
+{
+  "version": 1,
+  "title": "Hybrid logical clocks",
+  "hook": "How do hybrid logical clocks combine wall time with causality?",
+  "topic": "distributed/time/hybrid-logical-clocks",
+  "tags": [
+    "distributed",
+    "clocks",
+    "cockroachdb"
+  ],
+  "level": "advanced",
+  "series": "distributed-time-and-consistency",
+  "series_index": 3,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "Wall clocks drift; Lamport counters ignore real time. HLC wants both.",
+      "narration": "Physical clocks are skewed and can jump. Lamport clocks are causal but meaningless as dates. A hybrid logical clock gives you both.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Why a hybrid?",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "w",
+          "type": "box",
+          "text": "Wall clock\nreadable, skewed",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 14,
+          "color": "orange",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "l",
+          "type": "box",
+          "text": "Lamport\ncausal, no date",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 14,
+          "color": "blue",
+          "at": 1000,
+          "enter": "pop"
+        },
+        {
+          "id": "hlc",
+          "type": "box",
+          "text": "HLC: (l, c)",
+          "x": 30,
+          "y": 52,
+          "w": 40,
+          "h": 12,
+          "color": "green",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "w",
+          "to": "hlc",
+          "at": 3500,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "l",
+          "to": "hlc",
+          "at": 3500,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "A timestamp is (l, c): max wall time seen, plus a logical counter.",
+      "narration": "An HLC timestamp is a pair. L tracks the largest physical time seen. C is a counter that breaks ties when L does not advance.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Timestamp = (l, c)",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "list",
+          "items": [
+            "l: highest wall time seen so far",
+            "c: counter when l did not advance",
+            "Compare l first, then c"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "s",
+          "type": "code",
+          "lang": "text",
+          "text": "Timestamp {\n  WallTime int64\n  Logical  int32 }",
+          "x": 8,
+          "y": 54,
+          "w": 84,
+          "at": 3500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "src",
+          "type": "text",
+          "text": "CockroachDB: pkg/util/hlc",
+          "x": 8,
+          "y": 76,
+          "w": 84,
+          "at": 5500,
+          "enter": "fade",
+          "color": "purple"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "On a local event or send, take max(l, pt); bump c only on a tie.",
+      "narration": "On a local event or send, set L to the max of its old value and the physical clock. If L did not move, increment C. Otherwise reset C to zero.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Local event / send",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "l_old = l\nl = max(l_old, pt)\nif l == l_old: c++\nelse:          c = 0",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Time never goes backwards, even if pt does.",
+          "x": 8,
+          "y": 52,
+          "w": 84,
+          "at": 4000,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "On receive, also fold in the message timestamp, so causality holds.",
+      "narration": "On receive, L becomes the max of local, message, and physical time. The counter then continues from whichever side shares that L.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Receive message",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "l = max(l_old, m.l, pt)\nif l==l_old==m.l:\n  c = max(c, m.c) + 1\nelif l==l_old: c++\nelif l==m.l: c = m.c + 1\nelse: c = 0",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "The result is always greater than both inputs.",
+          "x": 8,
+          "y": 56,
+          "w": 84,
+          "at": 5000,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 7000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "l stays within the clock-skew bound of real time, and c stays small.",
+      "narration": "Because L follows physical time, it stays within the skew bound of a real clock, while still ordering causally related events.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "What you get",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "e causes f implies hlc(e) < hlc(f)",
+            "l stays close to real time",
+            "Fixed-size, so cheap to store"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "An HLC is (max wall time seen, counter): causal like Lamport, yet always close to real time and constant-size.",
+  "sources": [
+    "https://cse.buffalo.edu/tech-reports/2014-04.pdf"
+  ]
+}

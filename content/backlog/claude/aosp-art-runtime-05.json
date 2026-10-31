@@ -1,0 +1,304 @@
+{
+  "version": 1,
+  "title": "boot.art and app images",
+  "hook": "What is in `boot.art`, and why does a boot image speed up every app start?",
+  "topic": "aosp/art/boot-image-app-image",
+  "tags": [
+    "aosp",
+    "art",
+    "boot-image",
+    "zygote"
+  ],
+  "level": "advanced",
+  "series": "aosp-art-runtime",
+  "series_index": 5,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "Without a boot image, each process would load, link and initialize framework classes itself.",
+      "narration": "Without a boot image, every process would have to load, verify, link and initialize the framework classes on its own, which is slow.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The cost avoided",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "load framework classes",
+            "verify and link them",
+            "run static initializers"
+          ],
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 24,
+          "color": "red",
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Paid in every process, every start",
+          "x": 8,
+          "y": 50,
+          "w": 84,
+          "h": 10,
+          "color": "gray",
+          "at": 4000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "The boot image is a pre-initialized heap snapshot plus compiled code.",
+      "narration": "The boot image is a ready-made heap snapshot, with boot classes already linked and initialized, plus compiled code for the boot classpath.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Boot image files",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "a",
+          "type": "box",
+          "text": "boot.art: heap image",
+          "x": 15,
+          "y": 20,
+          "w": 70,
+          "h": 9,
+          "color": "purple",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "o",
+          "type": "box",
+          "text": "boot.oat: compiled code",
+          "x": 15,
+          "y": 36,
+          "w": 70,
+          "h": 9,
+          "color": "green",
+          "at": 1800,
+          "enter": "pop"
+        },
+        {
+          "id": "v",
+          "type": "box",
+          "text": "boot.vdex: dex + verification",
+          "x": 15,
+          "y": 52,
+          "w": 70,
+          "h": 9,
+          "color": "gray",
+          "at": 3100,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Contains classes, interned strings, image roots",
+          "x": 8,
+          "y": 68,
+          "w": 84,
+          "h": 12,
+          "color": "gray",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Zygote maps it once; every forked app shares those pages copy-on-write.",
+      "narration": "Zygote maps the boot image once at startup. Every app is forked from zygote, so all apps share those same physical pages.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Shared via zygote",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "z",
+          "type": "box",
+          "text": "zygote maps boot.art",
+          "x": 25,
+          "y": 20,
+          "w": 50,
+          "h": 10,
+          "color": "purple",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "box",
+          "text": "app 1",
+          "x": 8,
+          "y": 44,
+          "w": 40,
+          "h": 10,
+          "color": "blue",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "a2",
+          "type": "box",
+          "text": "app 2",
+          "x": 52,
+          "y": 44,
+          "w": 40,
+          "h": 10,
+          "color": "blue",
+          "at": 2900,
+          "enter": "pop"
+        },
+        {
+          "id": "f1",
+          "type": "arrow",
+          "from": "z",
+          "to": "a1",
+          "at": 3200,
+          "enter": "draw",
+          "label": "fork"
+        },
+        {
+          "id": "f2",
+          "type": "arrow",
+          "from": "z",
+          "to": "a2",
+          "at": 3500,
+          "enter": "draw",
+          "label": "fork"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "App images do the same for an app's own hot classes.",
+      "narration": "An app image does the same for an app. When compiled with a profile, dex2oat can write a dot art file holding the app's profiled classes.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "App image",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "oat/arm64/\n  base.vdex\n  base.odex\n  base.art   <- app image",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 18,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 3500,
+          "enter": "fade"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Mapped at app start, skipping class loading",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 12,
+          "color": "green",
+          "at": 5000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 8000,
+      "caption": "Image content is chosen by profiles such as the boot image profile.",
+      "narration": "Which classes and methods go into the image is driven by profiles, such as boot-image-profile.txt in frameworks base.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "What gets in",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "p",
+          "type": "box",
+          "text": "boot-image-profile.txt",
+          "x": 15,
+          "y": 22,
+          "w": 70,
+          "h": 10,
+          "color": "purple",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "i",
+          "type": "box",
+          "text": "dex2oat -> boot image",
+          "x": 15,
+          "y": 42,
+          "w": 70,
+          "h": 10,
+          "color": "green",
+          "at": 2000,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "p",
+          "to": "i",
+          "at": 1800,
+          "enter": "draw"
+        }
+      ]
+    }
+  ],
+  "takeaway": "A boot image is a pre-initialized, pre-compiled heap shared by every zygote child, and app images extend the same trick to an app's profiled classes.",
+  "sources": [
+    "https://source.android.com/docs/core/runtime/configure"
+  ]
+}

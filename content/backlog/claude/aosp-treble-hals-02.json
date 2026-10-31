@@ -1,0 +1,308 @@
+{
+  "version": 1,
+  "title": "VINTF manifests and matrices",
+  "hook": "How do the device manifest and framework compatibility matrix decide if an OTA is allowed?",
+  "topic": "aosp/treble/vintf-manifests",
+  "tags": [
+    "aosp",
+    "treble",
+    "vintf"
+  ],
+  "level": "advanced",
+  "series": "aosp-treble-hals",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 11000,
+      "caption": "Each side publishes a manifest of what it provides and a matrix of what it requires.",
+      "narration": "The device has a manifest listing the HALs it provides, and a matrix listing what it needs from the framework. The framework has the mirror pair.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Four VINTF files",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "dm",
+          "type": "box",
+          "text": "Device manifest /vendor/etc/vintf",
+          "x": 8,
+          "y": 20,
+          "w": 40,
+          "h": 12,
+          "color": "orange",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "fm",
+          "type": "box",
+          "text": "Framework matrix /system/etc/vintf",
+          "x": 52,
+          "y": 20,
+          "w": 40,
+          "h": 12,
+          "color": "blue",
+          "at": 900,
+          "enter": "pop"
+        },
+        {
+          "id": "fman",
+          "type": "box",
+          "text": "Framework manifest /system/etc/vintf",
+          "x": 8,
+          "y": 50,
+          "w": 40,
+          "h": 12,
+          "color": "blue",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "dmat",
+          "type": "box",
+          "text": "Device matrix /vendor/etc/vintf",
+          "x": 52,
+          "y": 50,
+          "w": 40,
+          "h": 12,
+          "color": "orange",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "dm",
+          "to": "fm",
+          "at": 3500,
+          "enter": "draw",
+          "label": "must satisfy"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "fman",
+          "to": "dmat",
+          "at": 4500,
+          "enter": "draw",
+          "label": "must satisfy"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "A device manifest declares HALs, their versions, and the framework target-level.",
+      "narration": "A device manifest lists each HAL's format, name, version and instances. The target level names the framework matrix it was built for.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "A device manifest",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "xml",
+          "text": "<manifest version=\"2.0\" type=\"device\"\n          target-level=\"8\">\n  <hal format=\"aidl\">\n    <name>android.hardware.light</name>\n    <version>2</version>\n    <fqname>ILights/default</fqname>\n  </hal>\n</manifest>",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 38,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Matching: every required HAL must be provided in a compatible version.",
+      "narration": "Matching is per entry. Every non-optional HAL in the matrix must appear in the manifest with a version in the required range, or the pair is incompatible.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The matching rule",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "req",
+          "type": "box",
+          "text": "matrix: requires ILights v1-2",
+          "x": 8,
+          "y": 20,
+          "w": 40,
+          "h": 12,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "prov",
+          "type": "box",
+          "text": "manifest: provides ILights v2",
+          "x": 52,
+          "y": 20,
+          "w": 40,
+          "h": 12,
+          "color": "orange",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "req",
+          "to": "prov",
+          "at": 2800,
+          "enter": "draw",
+          "label": "version in range?"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Optional HALs may be missing; required ones may not",
+          "x": 8,
+          "y": 50,
+          "w": 84,
+          "h": 12,
+          "color": "red",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Matrices also constrain kernel version and configs, SELinux version and AVB version.",
+      "narration": "It goes beyond HALs. The framework matrix also states minimum kernel versions and kernel configs, the sepolicy version, and the AVB version.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "More than HALs",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "kernel version + CONFIG_ options",
+            "sepolicy version",
+            "AVB version"
+          ],
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 24,
+          "color": "purple",
+          "at": 500,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "At OTA time the new framework's matrix is checked against the device manifest, and a mismatch blocks it.",
+      "narration": "At OTA time the new framework matrix is checked against the installed device manifest. If any requirement fails, the update is rejected.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "OTA gate",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "new",
+          "type": "box",
+          "text": "New system: framework matrix",
+          "x": 15,
+          "y": 20,
+          "w": 70,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "old",
+          "type": "box",
+          "text": "Installed vendor: device manifest",
+          "x": 15,
+          "y": 40,
+          "w": 70,
+          "h": 10,
+          "color": "orange",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "ok",
+          "type": "box",
+          "text": "Compatible? Apply : Reject",
+          "x": 15,
+          "y": 60,
+          "w": 70,
+          "h": 10,
+          "color": "green",
+          "at": 3500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "new",
+          "to": "old",
+          "at": 2000,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "old",
+          "to": "ok",
+          "at": 3000,
+          "enter": "draw"
+        }
+      ]
+    }
+  ],
+  "takeaway": "VINTF turns the vendor interface into data: manifests say what exists, matrices say what is required, and an OTA is allowed only if the two sides agree.",
+  "sources": [
+    "https://source.android.com/docs/core/architecture/vintf"
+  ]
+}

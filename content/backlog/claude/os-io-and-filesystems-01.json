@@ -1,0 +1,267 @@
+{
+  "version": 1,
+  "title": "VFS: dentry, inode and file",
+  "hook": "What are the VFS dentry, inode and file objects, and what happens in `open()`?",
+  "topic": "os/io/vfs-dentry-inode",
+  "tags": [
+    "os",
+    "filesystems",
+    "vfs",
+    "linux"
+  ],
+  "level": "intermediate",
+  "series": "os-io-and-filesystems",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "The VFS gives every filesystem one interface built from four objects.",
+      "narration": "The virtual filesystem layer gives every filesystem one interface, built from four objects: superblock, inode, dentry and file.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Four VFS objects",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "o",
+          "type": "list",
+          "items": [
+            "super_block: a mounted filesystem",
+            "inode: metadata plus i_op, i_fop",
+            "dentry: name to inode, cached",
+            "file: one open instance, f_pos"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 34.4,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "o",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "open() flows through do_sys_openat2 and path_openat, which resolves each path component.",
+      "narration": "The open system call reaches do_sys_openat2, then path_openat, which resolves each path component and finally opens the target.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The open() call chain",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "c",
+          "text": "openat()\n do_sys_openat2()\n  path_openat()\n   link_path_walk()\n   do_open() -> vfs_open()",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 25,
+          "at": 500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Each component hits the dentry cache first; a miss calls the filesystem's i_op->lookup.",
+      "narration": "For each component the kernel first tries the dentry cache, in RCU-walk mode without locks. Only a miss calls the filesystem's lookup method.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Resolving a path component",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "p",
+          "type": "list",
+          "items": [
+            "Hash lookup in the dcache (lockless)",
+            "Hit: reuse dentry, maybe negative",
+            "Miss: inode->i_op->lookup()",
+            "New dentry is cached for next time"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 38.8,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "p",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "open allocates a struct file, calls f_op->open, and installs it in the process's fd table.",
+      "narration": "Then open allocates a struct file, calls the filesystem's open method, and installs the file in the process's descriptor table.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Creating the file",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "box",
+          "text": "struct file: f_path, f_op, f_pos",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 14,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "t",
+          "type": "box",
+          "text": "fdtable[fd] = file",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "h": 9,
+          "color": "green",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "f",
+          "to": "t",
+          "label": "fd_install()",
+          "at": 2500,
+          "enter": "draw"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "get_unused_fd_flags() picks the number.",
+          "x": 8,
+          "y": 64,
+          "w": 84,
+          "h": 10.8,
+          "at": 5000,
+          "enter": "fade",
+          "color": "gray"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "A later read(fd) follows fd to struct file, then inode and the page cache through f_op->read_iter.",
+      "narration": "A later read maps the descriptor back to the struct file, then calls its read_iter method, which usually serves the data from the page cache.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "From fd back to data",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "fd",
+          "type": "box",
+          "text": "fd 3",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 8,
+          "color": "gray",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "sf",
+          "type": "box",
+          "text": "struct file -> f_op->read_iter",
+          "x": 8,
+          "y": 36,
+          "w": 84,
+          "h": 11,
+          "color": "blue",
+          "at": 2000,
+          "enter": "pop"
+        },
+        {
+          "id": "pc",
+          "type": "box",
+          "text": "inode's page cache",
+          "x": 8,
+          "y": 53,
+          "w": 84,
+          "h": 8,
+          "color": "orange",
+          "at": 4000,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "fd",
+          "to": "sf",
+          "at": 1800,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "sf",
+          "to": "pc",
+          "at": 3800,
+          "enter": "draw"
+        }
+      ]
+    }
+  ],
+  "takeaway": "The dentry cache turns names into inodes cheaply; open then wraps the inode in a per-open struct file bound to a descriptor.",
+  "sources": [
+    "https://docs.kernel.org/filesystems/vfs.html",
+    "https://docs.kernel.org/filesystems/path-lookup.html"
+  ]
+}

@@ -1,0 +1,220 @@
+{
+  "version": 1,
+  "title": "Spectre v1 and the cache side channel",
+  "hook": "How does speculative execution leak data through the cache in Spectre v1?",
+  "topic": "architecture/cpu/speculation-spectre",
+  "tags": [
+    "architecture",
+    "security",
+    "spectre"
+  ],
+  "level": "advanced",
+  "series": "architecture-cpu-internals",
+  "series_index": 5,
+  "scenes": [
+    {
+      "duration_ms": 13500,
+      "caption": "A bounds check is predicted, so the CPU runs the guarded code before the check resolves.",
+      "narration": "Speculation lets a CPU run past a branch before it resolves. If the bounds check is slow to resolve, the CPU can execute the body for an out-of-range index, using the predicted direction.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Bounds-check bypass",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "g",
+          "type": "code",
+          "lang": "c",
+          "text": "if (x < array1_size)\n  y = array2[array1[x] * 512];",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "CVE-2017-5753: Spectre variant 1",
+          "x": 8,
+          "y": 39.8,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "red"
+        },
+        {
+          "id": "hl-g",
+          "type": "highlight",
+          "target": "g",
+          "at": 3600
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "Attacker trains the predictor with valid x, then passes a malicious out-of-bounds x.",
+      "narration": "First the attacker calls the gadget many times with in-bounds indices, training the predictor to expect the check to pass. Then they pass an out-of-bounds index pointing at a secret.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Train, then attack",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "t",
+          "type": "list",
+          "items": [
+            "1. Call with valid x many times",
+            "2. Flush array2 and array1_size",
+            "3. Call with malicious x"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "orange"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "Speculatively, array1[x] reads the secret and its value picks a cache line in array2.",
+      "narration": "In the speculative window, the load reads a secret byte beyond the array. That byte, times 512, indexes array2, which pulls exactly one line of array2 into the cache.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The transient access",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "secret = array1[x]  (out of bounds)",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "h": 11,
+          "color": "red",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "array2[secret * 512] cached",
+          "x": 8,
+          "y": 40.0,
+          "w": 84,
+          "h": 11,
+          "color": "orange",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "s-c",
+          "type": "arrow",
+          "from": "s",
+          "to": "c",
+          "at": 2500,
+          "enter": "draw",
+          "label": "transient"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "The CPU squashes the results, but the cache line stays: timing reveals the byte.",
+      "narration": "The CPU discards the architectural results, but the cache keeps its change. The attacker times a read of each array2 line. The one fast access reveals the secret byte value.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Flush plus Reload",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "t",
+          "type": "code",
+          "lang": "text",
+          "text": "for i in 0..255:\n  t0 = rdtsc(); read array2[i*512]\n  fast access => secret == i",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl-t",
+          "type": "highlight",
+          "target": "t",
+          "at": 2300
+        }
+      ]
+    },
+    {
+      "duration_ms": 11500,
+      "caption": "Mitigate by blocking speculation on the index: lfence or Linux's array_index_nospec().",
+      "narration": "Defenses stop the speculative use of the index. Insert an lfence after the check, or clamp the index with the kernel's array_index_nospec macro, so out-of-range values become zero.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Mitigations",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "m",
+          "type": "code",
+          "lang": "c",
+          "text": "idx = array_index_nospec(x, size);\ny = array2[array1[idx] * 512];",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "include/linux/nospec.h",
+          "x": 8,
+          "y": 39.8,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "gray"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Spectre v1 turns a mispredicted bounds check into a cache-timing read of out-of-bounds memory, because speculation leaves cache traces.",
+  "sources": [
+    "https://spectreattack.com/spectre.pdf"
+  ]
+}

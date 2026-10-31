@@ -1,0 +1,256 @@
+{
+  "version": 1,
+  "title": "What Raft pins down vs Multi-Paxos",
+  "hook": "What does Multi-Paxos leave unspecified that Raft pins down?",
+  "topic": "distributed/consensus/multi-paxos-vs-raft",
+  "tags": [
+    "distributed",
+    "paxos",
+    "raft"
+  ],
+  "level": "advanced",
+  "series": "distributed-consensus",
+  "series_index": 4,
+  "scenes": [
+    {
+      "duration_ms": 9500,
+      "caption": "Multi-Paxos runs one Paxos instance per log slot, and a stable leader skips phase 1 after the first.",
+      "narration": "Multi-Paxos runs one single-decree instance per log slot. A stable leader runs phase one once, then only the accept phase per command.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Log of instances",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "s1",
+          "type": "box",
+          "text": "slot 1: Paxos",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "h": 9,
+          "color": "blue",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "s2",
+          "type": "box",
+          "text": "slot 2: Paxos",
+          "x": 8,
+          "y": 34,
+          "w": 84,
+          "h": 9,
+          "color": "blue",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "s3",
+          "type": "box",
+          "text": "slot 3: Paxos",
+          "x": 8,
+          "y": 50,
+          "w": 84,
+          "h": 9,
+          "color": "blue",
+          "enter": "pop",
+          "at": 2900
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "One Prepare covers all later slots.",
+          "x": 8,
+          "y": 66,
+          "w": 84,
+          "enter": "fade",
+          "color": "green",
+          "at": 3700
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "The original description leaves leader election, gaps, membership and compaction open.",
+      "narration": "The description leaves open how to elect a leader, fill log gaps, change membership, and compact the log. Implementers invent these.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Left unspecified",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Leader election / failure detection",
+            "Filling log holes (no-ops)",
+            "Membership changes",
+            "Snapshots and log compaction",
+            "Client interaction"
+          ],
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "orange",
+          "at": 1300
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Raft specifies a strong leader, a hole-free log and the rules for elections and reconfiguration.",
+      "narration": "Raft specifies them: one strong leader, elections with terms and votes, a gapless log with matching prefixes, membership change, and InstallSnapshot.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Raft pins down",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "p",
+          "type": "text",
+          "text": "Multi-Paxos: slots may be chosen out of order",
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "fade",
+          "color": "orange",
+          "at": 1300
+        },
+        {
+          "id": "r",
+          "type": "text",
+          "text": "Raft: log is a gapless, prefix-matching sequence",
+          "x": 8,
+          "y": 34,
+          "w": 84,
+          "enter": "fade",
+          "color": "green",
+          "at": 2100
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Election and terms specified",
+            "Membership change specified",
+            "InstallSnapshot for compaction"
+          ],
+          "x": 8,
+          "y": 50,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "blue",
+          "at": 2900
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "In Raft only an up-to-date candidate can win, so log entries flow in one direction only.",
+      "narration": "In Multi-Paxos, a new leader learns accepted values in phase one. In Raft, only an up-to-date candidate can win, so entries flow outward from the leader.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Who holds the data",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "p",
+          "type": "box",
+          "text": "Paxos: leader learns old values",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 10,
+          "color": "orange",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "r",
+          "type": "box",
+          "text": "Raft: leader already has them",
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "h": 10,
+          "color": "green",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Simpler recovery path in Raft.",
+          "x": 8,
+          "y": 58,
+          "w": 84,
+          "enter": "fade",
+          "color": "gray",
+          "at": 2900
+        }
+      ]
+    },
+    {
+      "duration_ms": 8500,
+      "caption": "Both rest on quorum intersection; Raft trades flexibility for a complete, teachable spec.",
+      "narration": "Both rest on overlapping majority quorums. Raft trades flexibility for completeness. etcd uses Raft; Chubby and Spanner use Paxos variants.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Same core",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Safety: majority quorum intersection",
+            "Raft: etcd, Consul",
+            "Paxos family: Chubby, Spanner"
+          ],
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "purple",
+          "at": 1300
+        }
+      ]
+    }
+  ],
+  "takeaway": "Multi-Paxos and Raft share the same quorum-based safety core, but Raft fully specifies elections, log structure, membership change and snapshots.",
+  "sources": [
+    "https://raft.github.io/raft.pdf"
+  ]
+}

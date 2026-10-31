@@ -1,0 +1,297 @@
+{
+  "version": 1,
+  "title": "G-Counters and PN-Counters",
+  "hook": "How do G-Counters and PN-Counters converge with only merge-by-max?",
+  "topic": "distributed/crdt/counters-g-pn",
+  "tags": [
+    "distributed",
+    "crdt",
+    "counters"
+  ],
+  "level": "intermediate",
+  "series": "distributed-replication-and-crdts",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "A G-Counter is one slot per replica; each replica only bumps its own slot.",
+      "narration": "A grow-only counter is an array with one slot per replica. Each replica increments only its own slot, so slots never conflict.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "G-Counter state",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "a",
+          "type": "box",
+          "text": "Replica A\n[3, 0, 0]",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 12,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "Replica B\n[0, 5, 0]",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 12,
+          "color": "green",
+          "at": 1000,
+          "enter": "pop"
+        },
+        {
+          "id": "v",
+          "type": "code",
+          "lang": "text",
+          "text": "increment():  P[self] += 1\nvalue():      sum(P)",
+          "x": 8,
+          "y": 46,
+          "w": 84,
+          "at": 3500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "No slot has two writers.",
+          "x": 8,
+          "y": 68,
+          "w": 84,
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Merge is slot-wise max: commutative, associative, idempotent.",
+      "narration": "To merge, take the maximum slot by slot. Max is commutative, associative, and idempotent, so order and duplicates do not matter.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Merge = max",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "merge(P, Q)[i] =\n  max(P[i], Q[i])",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Commutative: merge(P,Q) = merge(Q,P)",
+            "Associative: any grouping",
+            "Idempotent: merge(P,P) = P"
+          ],
+          "x": 8,
+          "y": 44,
+          "w": 84,
+          "at": 3000,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 7000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Replicas gossip states and converge to [3, 5, 0], in any order.",
+      "narration": "Replicas exchange full states in any order, with duplicates and delays. Every replica ends with the same vector, and the value is eight.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Convergence",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "a",
+          "type": "box",
+          "text": "[3, 0, 0]",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "[0, 5, 0]",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 10,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "m",
+          "type": "box",
+          "text": "merge -> [3, 5, 0]\nvalue = 8",
+          "x": 8,
+          "y": 48,
+          "w": 84,
+          "h": 14,
+          "color": "purple",
+          "at": 3000,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "a",
+          "to": "m",
+          "at": 2500,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "b",
+          "to": "m",
+          "at": 2500,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "PN-Counter: two G-Counters, P for increments and N for decrements.",
+      "narration": "A G-Counter cannot decrement, since max would never go down. A PN-Counter pairs two G-Counters: one counts increments, one counts decrements.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "PN-Counter",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "p",
+          "type": "box",
+          "text": "P: increments",
+          "x": 8,
+          "y": 22,
+          "w": 38,
+          "h": 10,
+          "color": "green",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "n",
+          "type": "box",
+          "text": "N: decrements",
+          "x": 54,
+          "y": 22,
+          "w": 38,
+          "h": 10,
+          "color": "red",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "value() = sum(P) - sum(N)\nmerge: max each of P and N",
+          "x": 8,
+          "y": 44,
+          "w": 84,
+          "at": 3000,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "c",
+          "at": 6500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Both are state-based CRDTs: merge is a join on a semilattice.",
+      "narration": "Each state only moves up the lattice, and merge is the least upper bound. That is why they converge without coordination.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Why it converges",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "State only grows in the lattice",
+            "Merge = least upper bound",
+            "Same inputs, same result"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 4500,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Counters converge because each replica owns a slot and merge takes slot-wise max, a join that ignores order and duplicates.",
+  "sources": [
+    "https://inria.hal.science/inria-00555588"
+  ]
+}

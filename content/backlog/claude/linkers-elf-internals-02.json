@@ -1,0 +1,264 @@
+{
+  "version": 1,
+  "title": "How x86-64 relocations patch code",
+  "hook": "How do R_X86_64 relocations patch code once addresses are known?",
+  "topic": "linkers/elf/relocation-types",
+  "tags": [
+    "linkers",
+    "elf",
+    "x86-64"
+  ],
+  "level": "advanced",
+  "series": "linkers-elf-internals",
+  "series_index": 2,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "The assembler leaves a zero placeholder and records a relocation entry.",
+      "narration": "When the assembler sees a call to an unknown symbol, it emits zeroed displacement bytes. It then records a relocation in .rela.text for the linker.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Placeholder plus a note",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "obj",
+          "type": "code",
+          "lang": "text",
+          "text": "e8 00 00 00 00   call foo",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "rel",
+          "type": "box",
+          "text": ".rela.text: R_X86_64_PLT32 foo-4",
+          "x": 8,
+          "y": 35.9,
+          "w": 84,
+          "h": 11,
+          "color": "orange",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "tool",
+          "type": "text",
+          "text": "readelf -r foo.o",
+          "x": 8,
+          "y": 55.9,
+          "w": 84,
+          "at": 3200,
+          "enter": "fade",
+          "color": "blue"
+        },
+        {
+          "id": "obj-rel",
+          "type": "arrow",
+          "from": "obj",
+          "to": "rel",
+          "at": 2500,
+          "enter": "draw",
+          "label": "records"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Each entry is Elf64_Rela: where to patch, which symbol and type, plus an addend.",
+      "narration": "A relocation entry has three fields. r_offset says where to patch, r_info packs the symbol index and type, and r_addend is a constant.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Elf64_Rela",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "st",
+          "type": "code",
+          "lang": "c",
+          "text": "typedef struct {\n  Elf64_Addr   r_offset;\n  Elf64_Xword  r_info;\n  Elf64_Sxword r_addend;\n} Elf64_Rela;",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "t",
+          "type": "text",
+          "text": "type = ELF64_R_TYPE(r_info)\nsym = ELF64_R_SYM(r_info)",
+          "x": 8,
+          "y": 51.5,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "blue"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Each type has a formula over S (symbol), A (addend), P (place), L (PLT entry).",
+      "narration": "The type picks the formula. S is the symbol's address, A the addend, and P the address being patched. PC-relative types subtract P.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Relocation formulas",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "list",
+          "items": [
+            "R_X86_64_64: S + A",
+            "R_X86_64_PC32: S + A - P",
+            "R_X86_64_PLT32: L + A - P",
+            "R_X86_64_RELATIVE: B + A"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "purple"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "B is the load base. RELATIVE is applied by ld.so for PIE.",
+          "x": 8,
+          "y": 53.2,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade"
+        },
+        {
+          "id": "hl-f",
+          "type": "highlight",
+          "target": "f",
+          "at": 3600
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "Worked example: a call at P with S = P + 10 patches in a displacement of 6.",
+      "narration": "The addend of minus four exists because the CPU measures from the end of the field. S plus A minus P gives six, so the bytes become e8 06.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Worked example",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "calc",
+          "type": "code",
+          "lang": "text",
+          "text": "P = 0x401126   S = 0x401130\nA = -4\nS + A - P = 6\ne8 06 00 00 00   call foo",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up"
+        },
+        {
+          "id": "why",
+          "type": "text",
+          "text": "Next insn = P+4, and target = P+4+6 = S.",
+          "x": 8,
+          "y": 47.6,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade",
+          "color": "green"
+        },
+        {
+          "id": "hl-calc",
+          "type": "highlight",
+          "target": "calc",
+          "at": 3600
+        }
+      ]
+    },
+    {
+      "duration_ms": 11500,
+      "caption": "Static links resolve everything at link time; PIE and .so leave dynamic relocs for ld.so.",
+      "narration": "A static link finishes every relocation before writing the file. Shared objects and PIEs keep dynamic relocations, such as RELATIVE and JUMP_SLOT, for ld.so to apply at load.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Link time versus load time",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "lt",
+          "type": "box",
+          "text": "ld: .rela.text consumed",
+          "x": 8,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "blue",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "rt",
+          "type": "box",
+          "text": "ld.so: .rela.dyn, .rela.plt",
+          "x": 56,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "green",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "dyn",
+          "type": "text",
+          "text": "R_X86_64_GLOB_DAT and JUMP_SLOT write S into the GOT.",
+          "x": 8,
+          "y": 43.2,
+          "w": 84,
+          "at": 1900,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "A relocation is a recipe: patch r_offset using a type-specific formula over symbol, addend and place.",
+  "sources": [
+    "https://refspecs.linuxfoundation.org/elf/x86_64-abi-0.99.pdf"
+  ]
+}

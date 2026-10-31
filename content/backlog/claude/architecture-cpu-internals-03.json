@@ -1,0 +1,229 @@
+{
+  "version": 1,
+  "title": "MESI cache coherence",
+  "hook": "How does MESI keep caches coherent, and what traffic does a write cause?",
+  "topic": "architecture/memory/cache-coherence-mesi",
+  "tags": [
+    "architecture",
+    "cache",
+    "coherence"
+  ],
+  "level": "advanced",
+  "series": "architecture-cpu-internals",
+  "series_index": 3,
+  "scenes": [
+    {
+      "duration_ms": 12000,
+      "caption": "Each cache line, typically 64 bytes, is in one of four states per core: M, E, S or I.",
+      "narration": "With per-core caches, the same line can live in several places. MESI tracks each line's state: Modified, Exclusive, Shared or Invalid, so only one core can write at a time.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "The four states",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "m",
+          "type": "box",
+          "text": "M: dirty, only copy",
+          "x": 8,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "red",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "e",
+          "type": "box",
+          "text": "E: clean, only copy",
+          "x": 56,
+          "y": 20.0,
+          "w": 36,
+          "h": 14.2,
+          "color": "orange",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "S: clean, many copies",
+          "x": 8,
+          "y": 43.2,
+          "w": 36,
+          "h": 14.2,
+          "color": "green",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "i",
+          "type": "box",
+          "text": "I: not valid",
+          "x": 56,
+          "y": 43.2,
+          "w": 36,
+          "h": 14.2,
+          "color": "gray",
+          "at": 1900,
+          "enter": "pop"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "A lone reader gets Exclusive; a second reader makes both copies Shared.",
+      "narration": "The first core to read a line gets it Exclusive. When a second core reads it, the snoop shows another copy, and both caches move to Shared.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Reads",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "r",
+          "type": "list",
+          "items": [
+            "Core 0 reads: miss, line goes E",
+            "Core 1 reads: snoop hit",
+            "Both copies become S"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "blue"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "A write to a Shared line broadcasts an invalidate; other copies become Invalid, the writer becomes Modified.",
+      "narration": "To write, a core needs ownership. For a Shared line it sends an invalidate and waits for acknowledgments. A write miss issues a read-for-ownership. The writer ends in Modified.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Writes",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "w",
+          "type": "list",
+          "items": [
+            "S + write: send invalidate",
+            "I + write: RFO (read for ownership)",
+            "Others: S/E -> I",
+            "Writer: M"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "orange"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "A later read of a Modified line forces a write-back or a cache-to-cache transfer.",
+      "narration": "If another core then reads a Modified line, the owner must supply the data or write it back. Both end in Shared. That transfer is why contended lines are slow.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Reading a Modified line",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "mm",
+          "type": "box",
+          "text": "Core 0 holds line in M",
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "h": 11,
+          "color": "red",
+          "at": 600,
+          "enter": "pop"
+        },
+        {
+          "id": "rd",
+          "type": "box",
+          "text": "Core 1 read: supply data, both go S",
+          "x": 8,
+          "y": 40.0,
+          "w": 84,
+          "h": 11,
+          "color": "green",
+          "at": 1900,
+          "enter": "pop"
+        },
+        {
+          "id": "mm-rd",
+          "type": "arrow",
+          "from": "mm",
+          "to": "rd",
+          "at": 2500,
+          "enter": "draw",
+          "label": "snoop"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11500,
+      "caption": "Real chips add Owned or Forward states and use directories; false sharing bounces lines.",
+      "narration": "Real protocols extend this. AMD uses MOESI with an Owned state, and large systems use directories rather than snooping. Two threads writing one line cause false sharing ping-pong.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Beyond MESI",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "x",
+          "type": "list",
+          "items": [
+            "MOESI: Owned state",
+            "Directories scale beyond snooping",
+            "False sharing: line ping-pong"
+          ],
+          "x": 8,
+          "y": 20.0,
+          "w": 84,
+          "at": 600,
+          "enter": "slide-up",
+          "color": "purple"
+        }
+      ]
+    }
+  ],
+  "takeaway": "MESI makes a write a negotiation: invalidate every other copy first, which is exactly why contended cache lines cost so much."
+}

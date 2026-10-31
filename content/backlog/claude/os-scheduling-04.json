@@ -1,0 +1,267 @@
+{
+  "version": 1,
+  "title": "Scheduling domains and load_balance()",
+  "hook": "How do scheduling domains and `load_balance()` spread tasks across cores and NUMA nodes?",
+  "topic": "os/scheduling/load-balancing-domains",
+  "tags": [
+    "os",
+    "scheduling",
+    "load-balancing",
+    "numa"
+  ],
+  "level": "advanced",
+  "series": "os-scheduling",
+  "series_index": 4,
+  "scenes": [
+    {
+      "duration_ms": 9000,
+      "caption": "CPUs are grouped into a hierarchy of sched_domains that mirrors cache and NUMA topology.",
+      "narration": "The kernel arranges CPUs into nested scheduling domains that mirror hardware: SMT siblings, cores sharing a cache, then packages and NUMA nodes.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Domains follow topology",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "lv",
+          "type": "list",
+          "items": [
+            "SMT: hyperthread siblings",
+            "MC: cores sharing last-level cache",
+            "NUMA: nodes by distance"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 24.1,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "dbg",
+          "type": "code",
+          "lang": "bash",
+          "text": "/sys/kernel/debug/sched/domains/\n  cpu0/domain0/name",
+          "x": 8,
+          "y": 52,
+          "w": 84,
+          "h": 16.2,
+          "at": 5000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Each domain spans CPUs split into sched_groups; balancing compares group loads.",
+      "narration": "Each domain spans a set of CPUs split into groups. Balancing compares the load of those groups, using flags and an imbalance threshold.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "struct sched_domain",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "sd",
+          "type": "code",
+          "lang": "c",
+          "text": "struct sched_domain {\n  struct sched_domain *parent, *child;\n  struct sched_group *groups;\n  unsigned int imbalance_pct;\n  int flags; /* SD_* */\n};",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 33.8,
+          "at": 500,
+          "enter": "fade"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "sd",
+          "at": 5500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "load_balance finds the busiest group, then its busiest runqueue, then moves tasks.",
+      "narration": "load_balance first finds the busiest group, then the busiest runqueue inside it, detaches tasks from that queue, and attaches them to the local one.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Inside load_balance()",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "g",
+          "type": "box",
+          "text": "find_busiest_group()",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 8,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "q",
+          "type": "box",
+          "text": "find_busiest_queue()",
+          "x": 8,
+          "y": 34,
+          "w": 84,
+          "h": 8,
+          "color": "blue",
+          "at": 2000,
+          "enter": "pop"
+        },
+        {
+          "id": "d",
+          "type": "box",
+          "text": "detach_tasks()",
+          "x": 8,
+          "y": 48,
+          "w": 84,
+          "h": 8,
+          "color": "orange",
+          "at": 3500,
+          "enter": "pop"
+        },
+        {
+          "id": "at",
+          "type": "box",
+          "text": "attach_tasks()",
+          "x": 8,
+          "y": 62,
+          "w": 84,
+          "h": 8,
+          "color": "green",
+          "at": 5000,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "g",
+          "to": "q",
+          "at": 1800,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "q",
+          "to": "d",
+          "at": 3300,
+          "enter": "draw"
+        },
+        {
+          "id": "a3",
+          "type": "arrow",
+          "from": "d",
+          "to": "at",
+          "at": 4800,
+          "enter": "draw"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Balancing runs from the tick, when a CPU goes idle, on wakeup placement and for NOHZ idle CPUs.",
+      "narration": "Balancing is triggered from several places: the tick, a CPU going idle, task placement on wakeup, and a NOHZ balancer for tickless idle CPUs.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "When balancing runs",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "w",
+          "type": "list",
+          "items": [
+            "scheduler_tick -> trigger_load_balance",
+            "newidle_balance when a CPU idles",
+            "select_task_rq_fair on wake, fork, exec",
+            "NOHZ idle balancer for sleeping CPUs"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 43.2,
+          "at": 500,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "Migration has a cost: cache-hot tasks resist moving, and wider domains tolerate more imbalance.",
+      "narration": "Moving a task is not free. Cache-hot tasks resist migration, and higher domains balance less often and tolerate more imbalance before acting.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Balance versus cache",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "list",
+          "items": [
+            "can_migrate_task checks cache hotness",
+            "Wider domains: longer balance_interval",
+            "imbalance_pct sets the tolerance"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 32.9,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "c",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "Linux balances hierarchically: cheap and frequent inside a cache, rare and cautious across NUMA nodes.",
+  "sources": [
+    "https://docs.kernel.org/scheduler/sched-domains.html"
+  ]
+}

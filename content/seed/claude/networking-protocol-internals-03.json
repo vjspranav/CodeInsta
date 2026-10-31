@@ -1,0 +1,288 @@
+{
+  "version": 1,
+  "title": "TLS 1.3 in one round trip",
+  "hook": "How does the TLS 1.3 handshake reach encryption in one round trip?",
+  "topic": "networking/tls/tls13-handshake",
+  "tags": [
+    "networking",
+    "tls",
+    "security"
+  ],
+  "level": "advanced",
+  "series": "networking-protocol-internals",
+  "series_index": 3,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "ClientHello already carries a key share, guessing the server's group.",
+      "narration": "The client does not wait to negotiate. ClientHello includes an ephemeral X25519 public key in key_share, guessing the group the server will pick.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Flight 1: ClientHello",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "ClientHello",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "supported_versions: TLS 1.3",
+            "key_share: X25519 public key",
+            "signature_algorithms"
+          ],
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "at": 2000,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "ServerHello returns its key share; both sides derive handshake keys.",
+      "narration": "The server answers with its own key share. Both sides now run ECDHE and HKDF to get handshake traffic secrets, before the server sends anything else.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Flight 2: ServerHello",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "ClientHello + key_share",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "s",
+          "type": "box",
+          "text": "ServerHello + key_share",
+          "x": 8,
+          "y": 38,
+          "w": 84,
+          "h": 10,
+          "color": "green",
+          "at": 1500,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "c",
+          "to": "s",
+          "at": 1500,
+          "enter": "draw"
+        },
+        {
+          "id": "d",
+          "type": "code",
+          "lang": "text",
+          "text": "ECDHE -> handshake_secret\nHKDF -> handshake keys",
+          "x": 8,
+          "y": 56,
+          "w": 84,
+          "at": 4000,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Everything after ServerHello is already encrypted.",
+      "narration": "Certificate and signature are now protected. The server sends EncryptedExtensions, Certificate, CertificateVerify, and Finished, all encrypted.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Encrypted flight",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "EncryptedExtensions",
+            "Certificate",
+            "CertificateVerify",
+            "Finished"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Certificates are no longer visible to on-path observers.",
+          "x": 8,
+          "y": 58,
+          "w": 84,
+          "at": 5000,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 7000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "Client Finished and the first request ride out together: 1-RTT.",
+      "narration": "The client verifies the certificate chain and the Finished MAC, then sends its own Finished with application data. That is one round trip, versus two in TLS 1.2.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "1-RTT total",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "Client Finished",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 10,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "d",
+          "type": "box",
+          "text": "HTTP request (app data)",
+          "x": 8,
+          "y": 40,
+          "w": 84,
+          "h": 10,
+          "color": "green",
+          "at": 2000,
+          "enter": "pop"
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "from": "c",
+          "to": "d",
+          "at": 2000,
+          "enter": "draw",
+          "label": "same flight"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "TLS 1.2 needed 2 round trips.",
+          "x": 8,
+          "y": 62,
+          "w": 84,
+          "at": 5000,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "d",
+          "at": 7500,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "Resumption can even send 0-RTT data, but it can be replayed.",
+      "narration": "With a pre-shared key from an earlier session, the client may send early data in its first flight. It is not replay-protected, so only idempotent requests should use it.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "0-RTT resumption",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "psk + early_data",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "at": 500,
+          "enter": "slide-up"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Data in the first flight",
+            "No forward secrecy for early data",
+            "Replayable: idempotent requests only"
+          ],
+          "x": 8,
+          "y": 36,
+          "w": 84,
+          "at": 3000,
+          "enter": "slide-up"
+        },
+        {
+          "id": "f",
+          "type": "highlight",
+          "target": "l",
+          "at": 7000,
+          "enter": "fade"
+        }
+      ]
+    }
+  ],
+  "takeaway": "TLS 1.3 puts the key share in ClientHello, so after one round trip both sides share keys, and almost everything is encrypted.",
+  "sources": [
+    "https://www.rfc-editor.org/rfc/rfc8446"
+  ]
+}

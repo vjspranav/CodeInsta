@@ -1,0 +1,282 @@
+{
+  "version": 1,
+  "title": "The futex fast path",
+  "hook": "Why is an uncontended pthread mutex a pure user-space atomic, and when does it call `futex`?",
+  "topic": "os/sync/futex-fast-path",
+  "tags": [
+    "os",
+    "synchronization",
+    "futex",
+    "pthread"
+  ],
+  "level": "advanced",
+  "series": "os-synchronization",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 10000,
+      "caption": "Uncontended lock: one atomic compare-and-swap on a user-space word, no syscall.",
+      "narration": "A free mutex is just an integer in user memory. Locking it is one atomic compare-and-swap from zero to one, with no system call.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Fast path: one atomic",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "c",
+          "text": "if (cmpxchg(&m->state, 0, 1)\n    == 0)\n  return; // locked",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 16.2,
+          "at": 500,
+          "enter": "fade"
+        },
+        {
+          "id": "s",
+          "type": "list",
+          "items": [
+            "0: unlocked",
+            "1: locked, no waiters",
+            "2: locked, waiters possible"
+          ],
+          "x": 8,
+          "y": 50,
+          "w": 84,
+          "h": 19.7,
+          "at": 3500,
+          "enter": "slide-up"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Contended: mark state 2 and sleep in futex(FUTEX_WAIT), which sleeps only if the value still matches.",
+      "narration": "On contention the thread marks the state as two and calls futex wait. The kernel sleeps it only if the word still holds that value.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Slow path: FUTEX_WAIT",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "c",
+          "text": "while (xchg(&m->state, 2) != 0)\n  futex(&m->state,\n        FUTEX_WAIT, 2);",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 20.6,
+          "at": 500,
+          "enter": "fade"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "FUTEX_WAIT sleeps only if *addr == 2.",
+          "x": 8,
+          "y": 54,
+          "w": 84,
+          "h": 10.8,
+          "at": 4500,
+          "enter": "fade",
+          "color": "orange"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "n",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "In the kernel: hash the key to a bucket, re-read the word under the bucket lock, then queue and sleep.",
+      "narration": "In the kernel, the address is hashed to a bucket. Under the bucket lock the word is re-read; if it changed, return EAGAIN, otherwise queue and sleep.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Inside the kernel",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "h",
+          "type": "box",
+          "text": "futex_hash(key): pick bucket",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 9,
+          "color": "blue",
+          "at": 500,
+          "enter": "pop"
+        },
+        {
+          "id": "r",
+          "type": "box",
+          "text": "lock bucket; re-read *uaddr",
+          "x": 8,
+          "y": 37,
+          "w": 84,
+          "h": 9,
+          "color": "purple",
+          "at": 2500,
+          "enter": "pop"
+        },
+        {
+          "id": "q",
+          "type": "box",
+          "text": "queue waiter; schedule()",
+          "x": 8,
+          "y": 52,
+          "w": 84,
+          "h": 9,
+          "color": "orange",
+          "at": 4500,
+          "enter": "pop"
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "h",
+          "to": "r",
+          "at": 2000,
+          "enter": "draw"
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "r",
+          "to": "q",
+          "label": "match",
+          "at": 4000,
+          "enter": "draw"
+        },
+        {
+          "id": "e",
+          "type": "text",
+          "text": "Changed value: return EAGAIN.",
+          "x": 8,
+          "y": 68,
+          "w": 84,
+          "h": 6.4,
+          "at": 6500,
+          "enter": "fade",
+          "color": "gray"
+        }
+      ]
+    },
+    {
+      "duration_ms": 10000,
+      "caption": "Unlock: exchange to 0; only if the old value was 2 does it call FUTEX_WAKE.",
+      "narration": "Unlock swaps the word to zero. Only if the old value was two, meaning waiters exist, does it pay for a futex wake call.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "Unlock wakes only if needed",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "c",
+          "text": "if (xchg(&m->state, 0) == 2)\n  futex(&m->state,\n        FUTEX_WAKE, 1);",
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 16.2,
+          "at": 500,
+          "enter": "fade"
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "No waiters: unlock is also syscall-free.",
+          "x": 8,
+          "y": 54,
+          "w": 84,
+          "h": 10.8,
+          "at": 4500,
+          "enter": "fade",
+          "color": "green"
+        },
+        {
+          "id": "hl",
+          "type": "highlight",
+          "target": "n",
+          "at": 6000,
+          "enter": "fade"
+        }
+      ]
+    },
+    {
+      "duration_ms": 9000,
+      "caption": "The same primitive underlies mutexes, condvars and semaphores; PI variants use FUTEX_LOCK_PI.",
+      "narration": "The same primitive backs mutexes, condition variables and semaphores. Priority-inheritance mutexes use FUTEX_LOCK_PI instead.",
+      "elements": [
+        {
+          "id": "heading",
+          "type": "title",
+          "text": "One primitive, many locks",
+          "x": 8,
+          "y": 6,
+          "w": 84,
+          "h": 8,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "u",
+          "type": "list",
+          "items": [
+            "glibc: nptl/pthread_mutex_lock.c",
+            "Condvars and semaphores wait on futex words",
+            "PI mutexes: FUTEX_LOCK_PI",
+            "futex_waitv(): wait on many futexes (5.16)"
+          ],
+          "x": 8,
+          "y": 22,
+          "w": 84,
+          "h": 38.8,
+          "at": 500,
+          "enter": "slide-up"
+        }
+      ]
+    }
+  ],
+  "takeaway": "A futex lets user space handle the common case with an atomic and enter the kernel only to sleep or wake.",
+  "sources": [
+    "https://man7.org/linux/man-pages/man2/futex.2.html",
+    "https://www.akkadia.org/drepper/futex.pdf"
+  ]
+}

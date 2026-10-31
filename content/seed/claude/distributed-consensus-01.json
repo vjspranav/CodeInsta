@@ -1,0 +1,280 @@
+{
+  "version": 1,
+  "title": "Raft leader election",
+  "hook": "How does Raft elect a leader with randomized timeouts and terms?",
+  "topic": "distributed/consensus/raft-leader-election",
+  "tags": [
+    "distributed",
+    "raft",
+    "consensus"
+  ],
+  "level": "intermediate",
+  "series": "distributed-consensus",
+  "series_index": 1,
+  "scenes": [
+    {
+      "duration_ms": 12500,
+      "caption": "Every Raft server is a follower, candidate or leader, and moves between them on timeouts and votes.",
+      "narration": "Each server is a follower, candidate or leader. A silent leader makes a follower a candidate, a majority makes it leader, and a higher term makes any server step down.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Three roles",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "f",
+          "type": "box",
+          "text": "Follower",
+          "x": 30,
+          "y": 16,
+          "w": 40,
+          "h": 9,
+          "color": "blue",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "c",
+          "type": "box",
+          "text": "Candidate",
+          "x": 30,
+          "y": 36,
+          "w": 40,
+          "h": 9,
+          "color": "orange",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "l",
+          "type": "box",
+          "text": "Leader",
+          "x": 30,
+          "y": 56,
+          "w": 40,
+          "h": 9,
+          "color": "green",
+          "enter": "pop",
+          "at": 2900
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "f",
+          "to": "c",
+          "enter": "draw",
+          "label": "timeout",
+          "at": 3700
+        },
+        {
+          "id": "a2",
+          "type": "arrow",
+          "from": "c",
+          "to": "l",
+          "enter": "draw",
+          "label": "majority",
+          "at": 4500
+        },
+        {
+          "id": "a3",
+          "type": "arrow",
+          "from": "l",
+          "to": "f",
+          "enter": "draw",
+          "label": "higher term",
+          "at": 5300
+        }
+      ]
+    },
+    {
+      "duration_ms": 12000,
+      "caption": "Terms are a logical clock: at most one leader per term, and stale terms are rejected.",
+      "narration": "Time is split into numbered terms, a logical clock, with at most one leader each. Every RPC carries a term; a server seeing a larger one adopts it.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Terms",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "c",
+          "type": "code",
+          "lang": "text",
+          "text": "RequestVote(term, candidateId,\n            lastLogIndex, lastLogTerm)\n-> (term, voteGranted)",
+          "x": 6,
+          "y": 18,
+          "w": 88,
+          "enter": "slide-up",
+          "at": 1300
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Stale term in request: reject",
+            "Higher term seen: adopt it, become follower"
+          ],
+          "x": 8,
+          "y": 40,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "purple",
+          "at": 2100
+        }
+      ]
+    },
+    {
+      "duration_ms": 11500,
+      "caption": "A follower whose randomized election timeout expires increments the term and asks for votes.",
+      "narration": "Followers reset a randomized election timeout, 150 to 300 milliseconds in the paper, on each heartbeat. On expiry, increment the term, vote for self, and request votes.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Timeout fires",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "Timer reset by valid AppendEntries",
+            "currentTerm++ and become candidate",
+            "Vote for self",
+            "Send RequestVote to all peers"
+          ],
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "orange",
+          "at": 1300
+        }
+      ]
+    },
+    {
+      "duration_ms": 11000,
+      "caption": "A server votes once per term, and only for a candidate whose log is at least as up to date.",
+      "narration": "Each server grants one vote per term, persisted to disk, and only if the candidate's log is at least as up to date. A majority wins.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Voting rules",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "l",
+          "type": "list",
+          "items": [
+            "One vote per term (votedFor persisted)",
+            "Log up-to-date check: lastLogTerm, then lastLogIndex",
+            "Majority of votes wins the term"
+          ],
+          "x": 8,
+          "y": 18,
+          "w": 84,
+          "enter": "slide-up",
+          "color": "blue",
+          "at": 1300
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Two majorities overlap, so at most one winner per term.",
+          "x": 8,
+          "y": 52,
+          "w": 84,
+          "enter": "fade",
+          "color": "green",
+          "at": 2100
+        }
+      ]
+    },
+    {
+      "duration_ms": 8500,
+      "caption": "Randomized timeouts make split votes rare; if one happens, the term ends and a new one begins.",
+      "narration": "Randomization means one server usually times out first. If votes split, nobody wins, timeouts re-randomize, and a new term starts.",
+      "elements": [
+        {
+          "id": "h",
+          "type": "title",
+          "text": "Split votes",
+          "x": 8,
+          "y": 5,
+          "w": 84,
+          "at": 0,
+          "enter": "fade"
+        },
+        {
+          "id": "a",
+          "type": "box",
+          "text": "Term 5: split",
+          "x": 8,
+          "y": 20,
+          "w": 38,
+          "h": 10,
+          "color": "red",
+          "enter": "pop",
+          "at": 1300
+        },
+        {
+          "id": "b",
+          "type": "box",
+          "text": "Term 6: winner",
+          "x": 54,
+          "y": 20,
+          "w": 38,
+          "h": 10,
+          "color": "green",
+          "enter": "pop",
+          "at": 2100
+        },
+        {
+          "id": "a1",
+          "type": "arrow",
+          "from": "a",
+          "to": "b",
+          "enter": "draw",
+          "label": "new timeouts",
+          "at": 2900
+        },
+        {
+          "id": "n",
+          "type": "text",
+          "text": "Leader sends empty AppendEntries as heartbeats.",
+          "x": 8,
+          "y": 42,
+          "w": 84,
+          "enter": "fade",
+          "color": "gray",
+          "at": 3700
+        }
+      ]
+    }
+  ],
+  "takeaway": "Raft elects one leader per term with majority votes, an up-to-date-log check, and randomized timeouts that make split votes rare and self-healing.",
+  "sources": [
+    "https://raft.github.io/raft.pdf",
+    "https://raft.github.io/"
+  ]
+}
