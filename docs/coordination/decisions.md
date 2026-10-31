@@ -25,3 +25,9 @@
   - At the end of a reel, **auto-scroll to the next one**. If the next reel in the series exists, show a cliffhanger "Part N+1 →" card first.
   - Light gamification: a daily streak and "concepts learned today" counter in the feed header, plus a subtle completion check when a reel finishes.
   - If `audio` is null, fall back to Web Speech TTS of the same text.
+- 2026-10-31: **Others can join; questions stay owner-only (user request).**
+  - Migration 0003 adds `members(user_id, email, role owner|member)` and `invites(code, max_uses, uses, expires_at)`, plus the SQL functions `is_member()`, `is_owner()` and `redeem_invite(code)` (callable by authenticated users).
+  - RLS: creators and reels are visible to members only. Feedback inserts and user DMs are owner-only.
+  - Owners are users whose email is in `ALLOWED_EMAILS`. They get upserted as `role='owner'` server-side (service role) whenever they sign in, which is the same as `npm run invite -- owner-sync`.
+  - Sign-up: an email+password sign-up needs an invite code, unless the email is an owner's. Google sign-in (now ON, `NEXT_PUBLIC_ENABLE_GOOGLE=true`) lands non-members on `/join` to enter a code.
+  - Members see no note/ask button and no Inbox tab. Owners create codes through `scripts/invite.ts` or an owner-only "Invite friends" panel.
