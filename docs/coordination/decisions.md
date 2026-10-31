@@ -53,3 +53,17 @@
     - Seen reels go after unseen.
   - **Agents:** weight new posts toward the areas with the highest interest_counts, and fulfill approved requests first (adding a new series to the curriculum if needed).
 - 2026-10-31 22:20: Codex hit its usage limit (resets 2026-11-01 01:15), so the interests frontend (Codex task 7) was reassigned to a Claude subagent. It touches Codex-owned frontend paths only for this task. Codex resumes ownership afterwards.
+- 2026-10-31: **Format Lab (user: reels must be better and less like a lecture; wants options).**
+  - Build an owner-only `/lab` page with 5 sample reels on ONE topic: "How does Instagram load your feed so fast?", in 5 formats: `dialogue` (senior×junior), `whiteboard` (system design drawn live, with request packets flowing), `incident` (3 AM page, trace the bug), `interview` (interviewer pushes back), `podcast` (two hosts riffing, with visual cards).
+  - **Reel schema v2 (additive; v1 stays valid):**
+    - Optional `format` and `cast: [{id, name, role, voice, color}]`.
+    - Scenes get optional `lines: [{speaker, text}]` for multi-voice speech (used instead of narration).
+    - New element types:
+      - `node` (a system component with `icon`: client|phone|lb|cdn|cache|db|queue|service|worker|storage|search|user);
+      - `flow` (animated packets moving along an edge from→to, with `label` and `count`);
+      - `bubble` (a speech bubble tied to a speaker);
+      - `alert` (a pager or incident card);
+      - `metric` (a big number with a label, e.g. "p99 42 ms").
+  - Audio v2: per-line clips, `scenes[i].lines[j] = {url, duration_ms, speaker, words}`. Kokoro voices vary per cast member, and each lab sample uses a different voice pairing so voices can be compared.
+  - Captions show the speaker's name and color. Only ONE short line is on screen at a time; no random word fragments.
+  - Lab reels are stored with `creator_id` per sample and `topic` under `lab/…`. They're hidden from the normal feed: the topic prefix `lab/` is excluded from the feed and catalog.
