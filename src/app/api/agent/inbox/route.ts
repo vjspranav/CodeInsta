@@ -38,7 +38,7 @@ export async function GET(req: Request) {
       .order("created_at", { ascending: true }),
     db
       .from("feedback")
-      .select("id, user_id, reel_id, kind, wants, body, created_at, reels(topic, title)")
+      .select("id, user_id, reel_id, kind, wants, body, created_at, reels!feedback_reel_id_fkey(topic, title)")
       .eq("creator_id", creator)
       .eq("status", "open")
       .order("created_at", { ascending: true }),
