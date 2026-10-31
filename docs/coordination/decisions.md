@@ -52,3 +52,4 @@
     - About 1 in 5 slots is an exploration pick from a non-selected area, so nobody gets stuck in a bubble.
     - Seen reels go after unseen.
   - **Agents:** weight new posts toward the areas with the highest interest_counts, and fulfill approved requests first (adding a new series to the curriculum if needed).
+- 2026-10-31 22:20: Codex hit its usage limit (resets 2026-11-01 01:15), so the interests frontend (Codex task 7) was reassigned to a Claude subagent. It touches Codex-owned frontend paths only for this task. Codex resumes ownership afterwards.
