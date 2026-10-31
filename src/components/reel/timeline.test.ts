@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { validateReel, type ReelElement } from "../../lib/reel-schema";
-import { center, orderFeed, timeline, wordTimings } from "./timeline";
+import { center, orderFeed, scoreFeed, timeline, wordTimings } from "./timeline";
 import { isAllowed } from "../../lib/supabase/allowlist";
 import { readdirSync } from "node:fs";
 const file = readdirSync("content/examples").find((name) =>
@@ -99,4 +99,52 @@ it("fails closed on absent allowlists and matches whole normalized emails only",
   expect(isAllowed("attackerfriend@example.com", "friend@example.com")).toBe(
     false,
   );
+});
+
+describe("interest ranking", () => {
+  const now = Date.parse("2026-11-01T00:00:00Z");
+  const row = (id: string, extra: Record<string, unknown> = {}) => ({
+    id,
+    creator_id: "claude",
+    created_at: "2026-01-01T00:00:00Z",
+    topic: "networking/tcp",
+    series: null as string | null,
+    series_index: null as number | null,
+    parent_reel_id: null as string | null,
+    ...extra,
+  });
+  const ctx = (extra = {}) => ({ areas: [] as string[], liked: new Set<string>(), fulfilled: new Set<string>(), now, ...extra });
+  it("scores each signal exactly", () => {
+    const rows = [
+      row("seen1", { series: "s", series_index: 1 }),
+      row("next", { series: "s", series_index: 2 }),
+      row("later", { series: "s", series_index: 3 }),
+      row("child", { parent_reel_id: "liked" }),
+      row("mine"),
+      row("area", { topic: "aosp/binder" }),
+      row("fresh", { created_at: "2026-11-01T00:00:00Z" }),
+      row("week", { created_at: "2026-10-25T00:00:00Z" }),
+    ];
+    const scores = scoreFeed(rows, new Set(["seen1"]), ctx({ areas: ["aosp"], liked: new Set(["liked"]), fulfilled: new Set(["mine"]) }));
+    expect(scores.get("next")).toBe(100);
+    expect(scores.get("later")).toBe(0);
+    expect(scores.get("child")).toBe(60);
+    expect(scores.get("mine")).toBe(80);
+    expect(scores.get("area")).toBe(40);
+    expect(scores.get("fresh")).toBe(20);
+    expect(scores.get("week")).toBeCloseTo(10);
+  });
+  it("ranks by score, puts seen last, and explores every fifth slot", () => {
+    const rows = [
+      ...[1, 2, 3, 4, 5, 6].map((n) => row(`a${n}`, { topic: "aosp/x", created_at: `2026-01-0${n}T00:00:00Z` })),
+      row("out", { topic: "databases/x" }),
+      row("done", { topic: "aosp/x" }),
+    ];
+    const ids = orderFeed(rows, new Set(["done"]), ctx({ areas: ["aosp"] })).map((r) => r.id);
+    expect(ids).toEqual(["a6", "a5", "a4", "a3", "out", "a2", "a1", "done"]);
+  });
+  it("keeps the original order without interest context", () => {
+    const rows = [row("1"), row("2", { created_at: "2026-02-01T00:00:00Z" })];
+    expect(orderFeed(rows, new Set()).map((r) => r.id)).toEqual(["2", "1"]);
+  });
 });

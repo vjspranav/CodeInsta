@@ -12,12 +12,13 @@ export function Shell({ children, isOwner }: { children: React.ReactNode; isOwne
       navigator.serviceWorker.register("/sw.js").catch(() => {});
   }, []);
   const publicPage = ["/login", "/join", "/not-invited", "/auth/callback", "/auth/google", "/auth/google/nonce", "/privacy"].includes(path);
+  const hideNav = publicPage || path === "/onboarding";
   return (
     <MotionConfig reducedMotion="user">
       <DataProvider isOwner={isOwner}>
         <div className={publicPage ? "" : "app-shell"}>
           {children}
-          {!publicPage && (
+          {!hideNav && (
             <nav className="bottom-nav" aria-label="Main navigation">
               {[
                 { href: "/", label: "Feed", Icon: House },

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { TOPIC_AREAS } from "@/lib/reel-schema";
 import { Avatar, LoadState, useData, type ReelRow } from "./data";
 import { signOut } from "@/app/login/actions";
+import { MyInterests, ReviewRequests, TopicRequests } from "./interests";
 export function ReelGrid({ reels }: { reels: ReelRow[] }) {
   return (
     <div className="reel-grid">
@@ -118,6 +119,9 @@ export function Profiles({ creatorId }: { creatorId?: string }) {
             <ArrowUpRight />
           </Link>
         ))}
+        <MyInterests />
+        <TopicRequests />
+        {isOwner && <ReviewRequests />}
         {isOwner && <Link className="primary" href="/invites">Invite friends</Link>}
         <form action={signOut}>
           <button className="signout">Sign out</button>

@@ -7,7 +7,7 @@ import { orderFeed } from "./timeline";
 type Learning = { day: string; streak: number; ids: string[] };
 const dateKey = () => new Date().toLocaleDateString("en-CA");
 export function Feed({ reelId }: { reelId?: string }) {
-  const { reels, seen, loading, error, userId } = useData();
+  const { reels, seen, loading, error, userId, areas, liked, fulfilled } = useData();
   const [ordered, setOrdered] = useState<ReelRow[]>([]),
     [active, setActive] = useState(""),
     [unlocked, setUnlocked] = useState(false),
@@ -26,10 +26,10 @@ export function Feed({ reelId }: { reelId?: string }) {
     initialized.current = reelId ?? "feed";
     const list = reelId
       ? reels.filter((r) => r.id === reelId)
-      : orderFeed(reels, seen);
+      : orderFeed(reels, seen, { areas, liked, fulfilled });
     setOrdered(list);
     setActive(list[0]?.id ?? "");
-  }, [loading, reels, seen, reelId]);
+  }, [loading, reels, seen, reelId, areas, liked, fulfilled]);
   useEffect(() => {
     try {
       const saved = JSON.parse(

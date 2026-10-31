@@ -99,3 +99,12 @@ Replaced the login page's Supabase OAuth button with Google's rendered pill butt
 Verification: `npm run lint` passed; `npm test` passed **95 tests across 9 files**; `npm run build` passed, including both new route handlers; `git diff --check` passed. Added route tests for missing/empty/mismatched CSRF, missing/malformed nonce, raw nonce forwarding, simulated Supabase nonce rejection, cookie preservation/deletion, missing credentials, bootstrap failure, and nonce randomness/hash/cookie attributes. Middleware tests cover signed-out and owner sessions on both new endpoints.
 
 Implementation references: [Google server-side token/CSRF verification](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token) and [Supabase Google sign-in](https://supabase.com/docs/guides/auth/social-sign-in/auth-google). Real Google account sign-in and iOS standalone PWA behavior were not exercised headlessly. No deployment, staging, or git commit was attempted. Existing untracked `.claude/` was left untouched.
+
+## Interests and topic requests frontend (Claude stand-in for Codex task 7) — 2026-10-31
+
+- `/onboarding`: one screen of large topic chips (`src/lib/interests.ts` labels/blurbs), at least one required, optional box for up to 3 topic requests. Saves `user_interests` (upsert, onboarded=true) then inserts `topic_requests`, then goes to `/`.
+- Gate: `DataProvider` (client) loads `user_interests`; no row or `onboarded=false` redirects to `/onboarding` from app pages, including the existing owner. Middleware untouched. A failed interests lookup fails open.
+- Profiles page: My interests editor, Topic requests list (status badges, reel link when done, pending-limit message), and an owner-only Review requests list (approve/reject via RLS). `members` is select-self only, so the reviewer sees a short member id, not an email.
+- Feed: `orderFeed(rows, seen, context)` implements the decision's scoring (+100 next part, +60 liked parent follow-up, +80 own fulfilled request, +40 interest area, +0..20 recency over 14 days, every fifth slot an out-of-area pick, seen last). Tests added in `timeline.test.ts`.
+- `agents/codex/PLAYBOOK.md`: fulfil approved requests first, then weight toward top `interest_counts`.
+- Not exercised against a live Supabase or in a browser. No commit.

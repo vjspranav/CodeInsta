@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { browserDb } from "@/lib/supabase/browser";
 import { validateReel, type Reel } from "@/lib/reel-schema";
 import type { AudioJson } from "@/lib/reel-audio";
@@ -29,6 +29,7 @@ export type ReelRow = {
   created_at: string;
   script: Reel;
   audio: AudioJson | null;
+  parent_reel_id?: string | null;
 };
 type Data = {
   isOwner: boolean;
@@ -37,6 +38,9 @@ type Data = {
   liked: Set<string>;
   seen: Set<string>;
   userId: string;
+  areas: string[];
+  fulfilled: Set<string>;
+  saveInterests: (areas: string[]) => Promise<string>;
   loading: boolean;
   error: string;
   reload: () => void;
@@ -45,12 +49,16 @@ type Data = {
 };
 const Context = createContext<Data | null>(null);
 export function DataProvider({ children, isOwner }: { children: React.ReactNode; isOwner: boolean }) {
-  const path = usePathname();
+  const path = usePathname(),
+    router = useRouter();
   const isPublic = ["/login", "/join", "/not-invited", "/auth/callback", "/auth/google", "/auth/google/nonce", "/privacy"].includes(path);
   const [reels, setReels] = useState<ReelRow[]>([]),
     [creators, setCreators] = useState<Creator[]>([]);
   const [liked, setLiked] = useState(new Set<string>()),
     [seen, setSeen] = useState(new Set<string>());
+  const [areas, setAreas] = useState<string[]>([]),
+    [onboarded, setOnboarded] = useState<boolean | null>(null),
+    [fulfilled, setFulfilled] = useState(new Set<string>());
   const [userId, setUserId] = useState(""),
     [loading, setLoading] = useState(true),
     [error, setError] = useState("");
@@ -70,8 +78,26 @@ export function DataProvider({ children, isOwner }: { children: React.ReactNode;
         db.from("creators").select("*"),
         db.from("likes").select("reel_id"),
         db.from("views").select("reel_id"),
+        db.from("user_interests").select("areas, onboarded").eq("user_id", user.id).maybeSingle(),
+        db
+          .from("topic_requests")
+          .select("fulfilled_reel_id")
+          .eq("user_id", user.id)
+          .eq("status", "done")
+          .not("fulfilled_reel_id", "is", null),
       ]);
-      for (const result of results) if (result.error) throw result.error;
+      for (const result of results.slice(0, 4)) if (result.error) throw result.error;
+      // Interests are best-effort: a failed lookup must not lock anyone out of the feed.
+      const interests = results[4].error ? undefined : results[4].data;
+      setAreas(interests?.areas ?? []);
+      setOnboarded(results[4].error ? true : Boolean(interests?.onboarded));
+      setFulfilled(
+        new Set(
+          (results[5].data ?? []).map(
+            (row: { fulfilled_reel_id: string }) => row.fulfilled_reel_id,
+          ),
+        ),
+      );
       setReels(
         (results[0].data ?? []).flatMap((row: ReelRow) => {
           const valid = validateReel(row.script);
@@ -102,6 +128,19 @@ export function DataProvider({ children, isOwner }: { children: React.ReactNode;
   useEffect(() => {
     if (!isPublic) void reload();
   }, [isPublic, reload]);
+  useEffect(() => {
+    if (!isPublic && !loading && onboarded === false && path !== "/onboarding")
+      router.replace("/onboarding");
+  }, [isPublic, loading, onboarded, path, router]);
+  const saveInterests = async (next: string[]) => {
+    const { error } = await browserDb()
+      .from("user_interests")
+      .upsert({ user_id: userId, areas: next, onboarded: true }, { onConflict: "user_id" });
+    if (error) return "Could not save your interests. Try again.";
+    setAreas(next);
+    setOnboarded(true);
+    return "";
+  };
   const like = async (id: string, onlyLike = false) => {
     if (onlyLike && liked.has(id)) return;
     const remove = liked.has(id),
@@ -137,6 +176,9 @@ export function DataProvider({ children, isOwner }: { children: React.ReactNode;
         liked,
         seen,
         userId,
+        areas,
+        fulfilled,
+        saveInterests,
         loading,
         error,
         reload,

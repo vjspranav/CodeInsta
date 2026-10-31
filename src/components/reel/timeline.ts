@@ -89,9 +89,59 @@ export function center(
     b = center(e.to, elements, new Set(visited));
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
 }
-export function orderFeed<
-  T extends { id: string; creator_id: string; created_at: string },
->(rows: T[], seen: Set<string>): T[] {
+export type FeedContext = {
+  areas: string[];
+  liked: Set<string>;
+  fulfilled: Set<string>;
+  now?: number;
+};
+type FeedRow = {
+  id: string;
+  creator_id: string;
+  created_at: string;
+  topic?: string;
+  series?: string | null;
+  series_index?: number | null;
+  parent_reel_id?: string | null;
+};
+const DAY = 86_400_000;
+
+export function scoreFeed<T extends FeedRow>(
+  rows: T[],
+  seen: Set<string>,
+  context: FeedContext,
+): Map<string, number> {
+  const now = context.now ?? Date.now(),
+    maxSeen = new Map<string, number>();
+  for (const r of rows)
+    if (seen.has(r.id) && r.series && r.series_index != null)
+      maxSeen.set(r.series, Math.max(maxSeen.get(r.series) ?? 0, r.series_index));
+  const nextPart = new Map<string, string>();
+  for (const [series, max] of maxSeen) {
+    const next = rows
+      .filter((r) => r.series === series && !seen.has(r.id) && (r.series_index ?? 0) > max)
+      .sort((a, b) => a.series_index! - b.series_index!)[0];
+    if (next) nextPart.set(series, next.id);
+  }
+  const scores = new Map<string, number>();
+  for (const r of rows) {
+    let score = 0;
+    if (r.series && nextPart.get(r.series) === r.id) score += 100;
+    if (r.parent_reel_id && context.liked.has(r.parent_reel_id)) score += 60;
+    if (context.fulfilled.has(r.id)) score += 80;
+    if (context.areas.includes((r.topic ?? "").split("/")[0])) score += 40;
+    const age = (now - new Date(r.created_at).getTime()) / DAY;
+    score += 20 * Math.min(1, Math.max(0, 1 - age / 14));
+    scores.set(r.id, score);
+  }
+  return scores;
+}
+
+export function orderFeed<T extends FeedRow>(
+  rows: T[],
+  seen: Set<string>,
+  context?: FeedContext,
+): T[] {
   const mix = (group: T[]) => {
     const sorted = [...group].sort((a, b) =>
         b.created_at.localeCompare(a.created_at),
@@ -107,8 +157,22 @@ export function orderFeed<
     }
     return result;
   };
-  return [
-    ...mix(rows.filter((r) => !seen.has(r.id))),
-    ...mix(rows.filter((r) => seen.has(r.id))),
-  ];
+  const unseen = rows.filter((r) => !seen.has(r.id)),
+    seenRows = mix(rows.filter((r) => seen.has(r.id)));
+  if (!context) return [...mix(unseen), ...seenRows];
+  const scores = scoreFeed(rows, seen, context),
+    remaining = [...unseen].sort(
+      (a, b) =>
+        scores.get(b.id)! - scores.get(a.id)! ||
+        b.created_at.localeCompare(a.created_at),
+    ),
+    ordered: T[] = [];
+  // Every fifth slot is an exploration pick from an area the user did not select.
+  const outside = (r: T) => !context.areas.includes((r.topic ?? "").split("/")[0]);
+  while (remaining.length) {
+    const explore = context.areas.length > 0 && ordered.length % 5 === 4,
+      index = explore ? remaining.findIndex(outside) : -1;
+    ordered.push(remaining.splice(Math.max(0, index), 1)[0]);
+  }
+  return [...ordered, ...seenRows];
 }
