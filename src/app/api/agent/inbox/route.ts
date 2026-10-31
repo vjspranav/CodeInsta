@@ -38,7 +38,7 @@ export async function GET(req: Request) {
       .order("created_at", { ascending: true }),
     db
       .from("feedback")
-      .select("id, reel_id, kind, wants, body, created_at, reels(topic, title)")
+      .select("id, user_id, reel_id, kind, wants, body, created_at, reels(topic, title)")
       .eq("creator_id", creator)
       .eq("status", "open")
       .order("created_at", { ascending: true }),
@@ -63,6 +63,9 @@ export async function GET(req: Request) {
   ]);
   const failed = [likes, feedback, dms, covered, requests, interests].find((r) => r.error);
   if (failed?.error) return NextResponse.json({ error: failed.error.message }, { status: 500 });
+  const owners = await db.from("members").select("user_id").eq("role", "owner");
+  if (owners.error) return NextResponse.json({ error: owners.error.message }, { status: 500 });
+  const ownerIds = new Set((owners.data ?? []).map((o) => o.user_id as string));
 
   const unread = dms.data ?? [];
   if (unread.length > 0) {
@@ -90,6 +93,7 @@ export async function GET(req: Request) {
       const reel = one(l.reels);
       return { reel_id: l.reel_id, topic: reel?.topic ?? null, title: reel?.title ?? null, liked_at: l.created_at };
     }),
+    // Non-owner text must go through the playbook's isolated writer.
     open_feedback: (feedback.data ?? []).map((f) => {
       const reel = one(f.reels as { topic: string; title: string } | { topic: string; title: string }[] | null);
       return {
@@ -100,6 +104,7 @@ export async function GET(req: Request) {
         kind: f.kind,
         wants: f.wants,
         body: f.body,
+        from_owner: ownerIds.has(f.user_id),
         created_at: f.created_at,
       };
     }),
