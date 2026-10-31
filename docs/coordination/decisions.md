@@ -67,3 +67,12 @@
   - Audio v2: per-line clips, `scenes[i].lines[j] = {url, duration_ms, speaker, words}`. Kokoro voices vary per cast member, and each lab sample uses a different voice pairing so voices can be compared.
   - Captions show the speaker's name and color. Only ONE short line is on screen at a time; no random word fragments.
   - Lab reels are stored with `creator_id` per sample and `topic` under `lab/…`. They're hidden from the normal feed: the topic prefix `lab/` is excluded from the feed and catalog.
+- 2026-10-31: **Performance.**
+  - Vercel functions move to `bom1` (Mumbai, next to Supabase) via `vercel.json`.
+  - Add `loading.tsx` skeletons; the shell and data stay mounted across tabs, so nothing refetches on tab switches.
+  - The feed renders only the active reel ±1, so the other players aren't mounted.
+  - Middleware does a single auth call. Membership and owner status are cached in a short-lived signed cookie or derived from the claims, instead of a DB query on every request.
+- 2026-10-31: **Members can ask (user request).**
+  - Members may insert `feedback` (questions/notes), **3 per rolling 24h**, enforced by a DB trigger; the owner is unlimited. Answers DM the asking member, who now has an Inbox (read answers, but no free-form DMs; only the owner sends free DMs).
+  - **Agents answer non-owner text through an ISOLATED WRITER:** a tool-less model call (no files, shell or network) that receives the question as quoted data and returns only the answer markdown or reel JSON. The orchestrating run validates that output, then posts it.
+  - Answer latency: a no-AI poller every 15 minutes triggers an agent run only when new questions exist (set up together with the schedules).
