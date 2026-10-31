@@ -122,3 +122,19 @@
 - 2026-11-01: **New categories requested by the owner:** `product-design` and `ml` were added to the `categories` table directly by the orchestrator.
   - **product-design** starts with the series "filters on a data-heavy page": where filtering should live. That means DB-side (indexes, composite indexes, query plans, keyset pagination), client-side (when the data is small), a denormalized flat view or materialized view, or a search engine (OpenSearch/Elasticsearch facets and counts). It covers the trade-offs, caching filter results, and filter state in the URL.
   - **ml** is an adaptive ladder with level 1 (basics) to level 5 (advanced). A creator posts the next ml reel at the **current level for that owner**: start at level 1, move up one level when the owner liked at least 2 of the last 3 ml reels at the current level, and otherwise stay (re-explaining from a new angle). The reel's `level` field and its curriculum line carry the ladder level, as L1–L5 in the series name.
+- 2026-11-01: **Story-mode round 2 (owner feedback on the first render: "look was very nice").**
+  1. **Context before conflict.** Before any problem or question, establish the world: which system and database (e.g. "Postgres"), the tables with real columns and 3–5 sample rows each, and how one request walks through them. Only then ask questions like "how many joins per open?". The viewer must be able to follow with zero prior context.
+  2. **Dwell time for data.** Data-heavy visuals (tables, joins, query results, code, terminals) stay on screen long enough to read.
+     - New beat fields: `hold_ms` (a silent hold after the line, with visuals still animating) and `pause_before_ms`.
+     - Auto-dwell in the renderer: +500 ms per table row or code line introduced in a beat, capped at 4 s, on top of any explicit hold.
+  3. **Show the query executing.**
+     - `db.table` takes `{id, name, columns:[...], rows:[[...]...]}` with real column names and values.
+     - New action `db.join {steps:[{table, rows:[row indexes], label}]}` highlights rows step by step (e.g. user 42 → their follows rows → matching posts rows → result set), one step per ~700 ms. `db.result` shows the result rows.
+  4. **Natural rhythm in speech.** Gaps vary by context instead of a constant 120 ms:
+     - question → answer: 400 ms;
+     - same speaker continuing: 150 ms;
+     - speaker change: 250 ms;
+     - scene or layout change: 700 ms;
+     - after a punchline: 500 ms.
+     Lines may use commas and ellipses for in-line pauses. For OpenAI, the voice instructions ask for varied pitch, emphasis on key words, natural pauses at commas, and no monotone.
+  5. **No empty scenes:** every beat, narrator lines included, has at least one visual. Visuals are larger (fill the board area), and lower-thirds never truncate (they wrap).
