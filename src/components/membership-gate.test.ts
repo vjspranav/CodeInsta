@@ -7,6 +7,7 @@ vi.mock("@supabase/ssr", () => ({ createServerClient: () => ({
 }) }));
 // Use the real allowlist (alias is not configured in vitest, so point it at the actual module).
 vi.mock("@/lib/supabase/allowlist", async () => await import("../lib/supabase/allowlist"));
+vi.mock("@/lib/supabase/membership-cookie", async () => await import("../lib/supabase/membership-cookie"));
 import { middleware } from "../middleware";
 import { isOwnerUser } from "../lib/supabase/allowlist";
 const googleOwner = { id: "owner", email: "owner@example.com", app_metadata: { provider: "google", providers: ["google"] } };
@@ -91,5 +92,49 @@ describe("isOwnerUser", () => {
     expect(isOwnerUser({ app_metadata: { providers: ["google"] } })).toBe(false);
     expect(isOwnerUser({ email: "owner@example.com" })).toBe(false);
     expect(isOwnerUser({ email: "owner@example.com", app_metadata: {} })).toBe(false);
+  });
+});
+
+describe("membership cookie cache", () => {
+  const cookieOf = (response: Response) => response.headers.get("set-cookie") ?? "";
+  const withCookie = (path: string, value: string) =>
+    new NextRequest(`https://codeinsta.test${path}`, { headers: { cookie: `ci_mem=${value}` } });
+  beforeEach(() => vi.stubEnv("MEMBERSHIP_COOKIE_SECRET", "test-secret"));
+
+  it("queries members once, sets a signed cookie, then skips the query", async () => {
+    mocks.maybeSingle.mockResolvedValue({ data: { role: "member" }, error: null });
+    const first = await middleware(request("/"));
+    const match = /ci_mem=([^;]+)/.exec(cookieOf(first));
+    expect(match).not.toBeNull();
+    expect(cookieOf(first).toLowerCase()).toContain("httponly");
+    expect(mocks.maybeSingle).toHaveBeenCalledTimes(1);
+    mocks.maybeSingle.mockClear();
+    const second = await middleware(withCookie("/explore", match![1]));
+    expect(second.headers.get("location")).toBeNull();
+    expect(mocks.maybeSingle).not.toHaveBeenCalled();
+  });
+
+  it("rejects tampered cookies, other users' cookies and expired cookies", async () => {
+    const { createMembershipCookie } = await import("../lib/supabase/membership-cookie");
+    mocks.maybeSingle.mockResolvedValue({ data: null, error: null });
+    const forged = (await createMembershipCookie("owner", "user"))!.replace("owner", "member");
+    const other = (await createMembershipCookie("member", "someone-else"))!;
+    const expired = (await createMembershipCookie("member", "user", Date.now() - 11 * 60_000))!;
+    for (const value of [forged, other, expired]) {
+      mocks.maybeSingle.mockClear();
+      const response = await middleware(withCookie("/", value));
+      expect(mocks.maybeSingle).toHaveBeenCalledTimes(1);
+      expect(response.headers.get("location")).toBe("https://codeinsta.test/join");
+    }
+  });
+
+  it("re-checks owners whose cached role is member so bootstrap cannot loop", async () => {
+    const { createMembershipCookie } = await import("../lib/supabase/membership-cookie");
+    mocks.getUser.mockResolvedValue({ data: { user: googleOwner } });
+    mocks.maybeSingle.mockResolvedValue({ data: { role: "owner" }, error: null });
+    const stale = (await createMembershipCookie("member", "owner"))!;
+    const response = await middleware(withCookie("/", stale));
+    expect(mocks.maybeSingle).toHaveBeenCalledTimes(1);
+    expect(response.headers.get("location")).toBeNull();
   });
 });

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Heart,
@@ -24,10 +24,11 @@ type Props = {
   muted: boolean;
   unlock: () => void;
   toggleMute: () => void;
-  finish: () => void;
+  slot: number;
+  finish: (id: string, slot: number) => void;
   audioBlocked: () => void;
 };
-export function Player({
+export const Player = memo(function Player({
   reel,
   next,
   active,
@@ -36,10 +37,11 @@ export function Player({
   muted,
   unlock,
   toggleMute,
+  slot,
   finish,
   audioBlocked,
 }: Props) {
-  const { creators, liked, like, view, isOwner } = useData();
+  const { creators, liked, like, view, asksLeft } = useData();
   const frames = useMemo(
     () => timeline(reel.script, reel.audio, next?.series_index ?? undefined),
     [reel, next],
@@ -151,6 +153,7 @@ export function Player({
   useEffect(() => {
     if (!running) return;
     let last = performance.now(),
+      painted = 0,
       id = 0;
     const tick = (now: number) => {
       const delta = Math.min(now - last, 100);
@@ -179,18 +182,22 @@ export function Player({
         viewed.current = true;
         void callbacks.current.view(reel.id);
       }
-      setElapsed(clock.current);
+      // ~30fps is plenty for captions and progress, and halves the re-render work.
+      if (now - painted >= 33 || clock.current >= frame.duration) {
+        painted = now;
+        setElapsed(clock.current);
+      }
       if (clock.current >= frame.duration) {
         if (index + 1 < frames.length) setIndex(index + 1);
         else {
           setDone(true);
-          callbacks.current.finish();
+          callbacks.current.finish(reel.id, slot);
         }
       } else id = requestAnimationFrame(tick);
     };
     id = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(id);
-  }, [running, frame, index, frames.length, audio, unlocked, muted, reel.id, perLine]);
+  }, [running, frame, index, frames.length, audio, unlocked, muted, reel.id, perLine, slot]);
   const creator = creators.find((c) => c.id === reel.creator_id);
   const toggle = () => {
     if (done) {
@@ -312,12 +319,16 @@ export function Player({
           />
           <span>Like</span>
         </button>
-        {isOwner && <button aria-label="Note or ask" onClick={() => setSheet(true)}>
+        <button
+          aria-label={asksLeft === null ? "Ask a question" : `Ask a question, ${asksLeft} of 3 left today`}
+          onClick={() => setSheet(true)}
+        >
           <MessageCircle size={28} />
           <span>Ask</span>
-        </button>}
+          {asksLeft !== null && <small className="asks-left">{asksLeft} of 3 left today</small>}
+        </button>
       </div>
-      {isOwner && sheet && <Feedback reel={reel} close={() => setSheet(false)} />}
+      {sheet && <Feedback reel={reel} close={() => setSheet(false)} />}
     </article>
   );
-}
+});

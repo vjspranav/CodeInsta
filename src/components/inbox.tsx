@@ -16,7 +16,7 @@ type Message = {
   read_at: string | null;
 };
 export function Inbox() {
-  const { creators, userId, loading } = useData(),
+  const { creators, userId, loading, isOwner } = useData(),
     params = useSearchParams();
   const [thread, setThread] = useState(params.get("creator") ?? ""),
     [messages, setMessages] = useState<Message[]>([]),
@@ -90,7 +90,11 @@ export function Inbox() {
       )}
       {!creator ? (
         <>
-          <p className="muted">Ask a question. Build on what you learned.</p>
+          <p className="muted">
+            {isOwner
+              ? "Ask a question. Build on what you learned."
+              : "Answers to your questions show up here. Tap Ask on any reel."}
+          </p>
           {creators.map((c) => {
             const list = messages.filter((m) => m.creator_id === c.id),
               unread = list.filter(
@@ -107,7 +111,7 @@ export function Inbox() {
                   <strong>{c.display_name}</strong>
                   <p>
                     {list.at(-1)?.body_md.slice(0, 80) ??
-                      "Start a conversation"}
+                      (isOwner ? "Start a conversation" : "No answers yet")}
                   </p>
                 </div>
                 {unread > 0 && <span className="unread">{unread}</span>}
@@ -137,14 +141,24 @@ export function Inbox() {
               ))}
             {!messages.some((m) => m.creator_id === thread) && (
               <div className="empty">
-                What are you working through?
-                <br />
-                Send {creator.display_name} your first question.
+                {isOwner ? (
+                  <>
+                    What are you working through?
+                    <br />
+                    Send {creator.display_name} your first question.
+                  </>
+                ) : (
+                  <>
+                    No answers from {creator.display_name} yet.
+                    <br />
+                    Tap Ask on a reel; answers usually arrive within the hour.
+                  </>
+                )}
               </div>
             )}
             <div ref={end} />
           </div>
-          <form
+          {isOwner && <form
             className="reply"
             onSubmit={async (event) => {
               event.preventDefault();
@@ -181,7 +195,7 @@ export function Inbox() {
             >
               <Send size={22} />
             </button>
-          </form>
+          </form>}
         </>
       )}
     </main>

@@ -25,7 +25,7 @@ export function Shell({ children, isOwner }: { children: React.ReactNode; isOwne
                 { href: "/explore", label: "Explore", Icon: Compass },
                 { href: "/inbox", label: "Inbox", Icon: MessageCircle },
                 { href: "/profiles", label: "Profiles", Icon: Users },
-              ].filter(({ href }) => href !== "/inbox" || isOwner).map(({ href, label, Icon }) => (
+              ].map(({ href, label, Icon }) => (
                 <Link
                   key={href}
                   href={href}

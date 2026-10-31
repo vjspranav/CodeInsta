@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { browserDb } from "@/lib/supabase/browser";
-import { useData, type ReelRow } from "../data";
+import { DAILY_ASKS, useData, type ReelRow } from "../data";
+
 export function Feedback({
   reel,
   close,
@@ -11,9 +12,12 @@ export function Feedback({
   close: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null),
-    { userId } = useData();
+    { userId, isOwner, asksLeft, noteAsked } = useData();
   const [error, setError] = useState(""),
-    [pending, setPending] = useState(false);
+    [pending, setPending] = useState(false),
+    [queued, setQueued] = useState(false);
+  const who = reel.creator_id === "gpt" ? "GPT" : "Claude",
+    blocked = asksLeft === 0;
   useEffect(() => {
     dialog.current?.showModal();
   }, []);
@@ -26,66 +30,106 @@ export function Feedback({
         if (event.target === dialog.current) close();
       }}
     >
-      <form
-        onSubmit={async (event) => {
-          event.preventDefault();
-          setPending(true);
-          const form = new FormData(event.currentTarget);
-          const { error } = await browserDb()
-            .from("feedback")
-            .insert({
-              user_id: userId,
-              creator_id: reel.creator_id,
-              reel_id: reel.id,
-              body: String(form.get("body")).trim(),
-              kind: form.get("kind"),
-              wants: form.get("wants"),
-            });
-          setPending(false);
-          if (error) setError("Could not send. Please try again.");
-          else close();
-        }}
-      >
-        <div className="row">
-          <h2>Keep the conversation going</h2>
-          <button type="button" aria-label="Close" onClick={close}>
-            <X />
+      {queued ? (
+        <div className="ask-done">
+          <div className="row">
+            <h2>Queued</h2>
+            <button type="button" aria-label="Close" onClick={close}>
+              <X />
+            </button>
+          </div>
+          <p role="status">Queued, usually answered within the hour.</p>
+          {asksLeft !== null && (
+            <p className="muted">
+              {asksLeft} of {DAILY_ASKS} questions left today
+            </p>
+          )}
+          <button type="button" className="primary" onClick={close}>
+            Done
           </button>
         </div>
-        <p className="muted">About “{reel.title}”</p>
-        <label>
-          Your note or question
-          <textarea
-            name="body"
-            required
-            maxLength={5000}
-            autoFocus
-            placeholder="What would you like to understand next?"
-          />
-        </label>
-        <div className="row">
+      ) : (
+        <form
+          onSubmit={async (event) => {
+            event.preventDefault();
+            if (blocked) return;
+            setPending(true);
+            setError("");
+            const form = new FormData(event.currentTarget);
+            const { error } = await browserDb()
+              .from("feedback")
+              .insert({
+                user_id: userId,
+                creator_id: reel.creator_id,
+                reel_id: reel.id,
+                body: String(form.get("body")).trim(),
+                kind: isOwner ? form.get("kind") : "question",
+                wants: form.get("wants"),
+              });
+            setPending(false);
+            if (error) {
+              setError(
+                error.message?.includes("Daily question limit")
+                  ? "You've used all 3 questions for today. Try again later."
+                  : "Could not send. Please try again.",
+              );
+              return;
+            }
+            noteAsked();
+            setQueued(true);
+          }}
+        >
+          <div className="row">
+            <h2>Ask {who} about this reel</h2>
+            <button type="button" aria-label="Close" onClick={close}>
+              <X />
+            </button>
+          </div>
+          <p className="muted">About “{reel.title}”</p>
           <label>
-            Type
-            <select name="kind">
-              <option value="question">Question</option>
-              <option value="note">Note</option>
-            </select>
+            Your question
+            <textarea
+              name="body"
+              required
+              maxLength={isOwner ? 5000 : 1000}
+              autoFocus
+              disabled={blocked}
+              placeholder="What would you like to understand next?"
+            />
           </label>
-          <label>
-            Answer with
-            <select name="wants">
-              <option value="dm">A direct message</option>
-              <option value="reel">A new reel</option>
-            </select>
-          </label>
-        </div>
-        <p role="alert" className="error">
-          {error}
-        </p>
-        <button disabled={pending} className="primary">
-          {pending ? "Sending…" : "Send to creator"}
-        </button>
-      </form>
+          <fieldset className="ask-choice">
+            <legend>How should {who} answer?</legend>
+            <label>
+              <input type="radio" name="wants" value="dm" defaultChecked />
+              <span>Answer in my inbox</span>
+            </label>
+            <label>
+              <input type="radio" name="wants" value="reel" />
+              <span>Make a reel about it</span>
+            </label>
+          </fieldset>
+          {isOwner && (
+            <label>
+              Type
+              <select name="kind">
+                <option value="question">Question</option>
+                <option value="note">Note</option>
+              </select>
+            </label>
+          )}
+          {asksLeft !== null && (
+            <p className="muted" role="status">
+              {asksLeft} of {DAILY_ASKS} questions left today
+            </p>
+          )}
+          <p role="alert" className="error">
+            {error}
+          </p>
+          <button disabled={pending || blocked} className="primary">
+            {pending ? "Sending…" : `Ask ${who}`}
+          </button>
+        </form>
+      )}
     </dialog>
   );
 }

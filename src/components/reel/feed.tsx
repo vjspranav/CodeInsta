@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Flame } from "lucide-react";
 import { useData, LoadState, type ReelRow } from "../data";
 import { Player } from "./player";
@@ -19,7 +19,35 @@ export function Feed({ reelId }: { reelId?: string }) {
       ids: [],
     });
   const root = useRef<HTMLDivElement>(null),
-    initialized = useRef("");
+    initialized = useRef(""),
+    unlocked$ = useRef(false),
+    userId$ = useRef(userId);
+  unlocked$.current = unlocked;
+  userId$.current = userId;
+  // Next part of each series, computed once instead of per reel per render.
+  const nextByReel = useMemo(() => {
+    const bySeries = new Map<string, ReelRow[]>();
+    for (const r of reels)
+      if (r.series) {
+        const key = `${r.creator_id}\u0000${r.series}`;
+        (bySeries.get(key) ?? bySeries.set(key, []).get(key)!).push(r);
+      }
+    const map = new Map<string, ReelRow>();
+    for (const list of bySeries.values()) {
+      list.sort((a, b) => (a.series_index ?? 0) - (b.series_index ?? 0));
+      for (const r of list) {
+        const next = list.find((n) => (n.series_index ?? 0) > (r.series_index ?? 0));
+        if (next) map.set(r.id, next);
+      }
+    }
+    return map;
+  }, [reels]);
+  // Only the active reel +-1 mounts a Player; the rest are same-height placeholders.
+  const [center, setCenter] = useState(0);
+  useEffect(() => {
+    const i = ordered.findIndex((r) => r.id === active);
+    if (i >= 0) setCenter(i);
+  }, [active, ordered]);
   useEffect(() => {
     if (loading || !reels.length || initialized.current === (reelId ?? "feed"))
       return;
@@ -77,7 +105,7 @@ export function Feed({ reelId }: { reelId?: string }) {
     }
     setUnlocked(true);
   }, [audio]);
-  const finish = (id: string, index: number) => {
+  const finish = useCallback((id: string, index: number) => {
     setLearning((previous) => {
       const today = dateKey(),
         yesterday = new Date();
@@ -94,7 +122,7 @@ export function Feed({ reelId }: { reelId?: string }) {
       };
       try {
         localStorage.setItem(
-          `codeinsta-learning-${userId}`,
+          `codeinsta-learning-${userId$.current}`,
           JSON.stringify(updated),
         );
       } catch {}
@@ -108,7 +136,12 @@ export function Feed({ reelId }: { reelId?: string }) {
           : "smooth",
         block: "start",
       });
-  };
+  }, []);
+  const toggleMute = useCallback(() => {
+    if (!unlocked$.current) unlock();
+    setMuted((v) => !v);
+  }, [unlock]);
+  const audioBlocked = useCallback(() => setUnlocked(false), []);
   return (
     <main
       className="feed-page"
@@ -136,39 +169,27 @@ export function Feed({ reelId }: { reelId?: string }) {
       ) : (
         <>
           <div ref={root} className="feed-scroll">
-            {ordered.map((reel, i) => {
-              const next = reel.series
-                ? reels
-                    .filter(
-                      (r) =>
-                        r.creator_id === reel.creator_id &&
-                        r.series === reel.series &&
-                        (r.series_index ?? 0) > (reel.series_index ?? 0),
-                    )
-                    .sort(
-                      (a, b) => (a.series_index ?? 0) - (b.series_index ?? 0),
-                    )[0]
-                : undefined;
-              return (
-                <div className="reel-slot" key={reel.id} data-reel={reel.id}>
+            {ordered.map((reel, i) => (
+              <div className="reel-slot" key={reel.id} data-reel={reel.id}>
+                {Math.abs(i - center) <= 1 ? (
                   <Player
                     reel={reel}
-                    next={next}
+                    next={nextByReel.get(reel.id)}
                     active={active === reel.id}
                     audio={audio}
                     unlocked={unlocked}
                     muted={muted}
                     unlock={unlock}
-                    toggleMute={() => {
-                      if (muted && !unlocked) unlock();
-                      setMuted((v) => !v);
-                    }}
-                    finish={() => finish(reel.id, i)}
-                    audioBlocked={() => setUnlocked(false)}
+                    toggleMute={toggleMute}
+                    slot={i}
+                    finish={finish}
+                    audioBlocked={audioBlocked}
                   />
-                </div>
-              );
-            })}
+                ) : (
+                  <div className="reel-placeholder" aria-hidden="true" />
+                )}
+              </div>
+            ))}
           </div>
           {error && (
             <p className="toast" role="alert">

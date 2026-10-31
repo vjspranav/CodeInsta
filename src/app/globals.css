@@ -124,7 +124,6 @@ small {
   background: #0c0e14f5;
   border-top: 1px solid #292e3b;
   z-index: 30;
-  backdrop-filter: blur(16px);
 }
 .bottom-nav a {
   display: flex;
@@ -1303,4 +1302,103 @@ input {
   place-items: center;
   background: #000000a0;
   color: #fff;
+}
+.ask-choice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+}
+.ask-choice legend {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  padding: 0;
+}
+.ask-choice label {
+  position: relative;
+  display: block;
+  cursor: pointer;
+}
+.ask-choice input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+}
+.ask-choice span {
+  display: block;
+  padding: 12px 10px;
+  text-align: center;
+  font-size: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #ffffff08;
+}
+.ask-choice input:checked + span {
+  border-color: #b9aaff;
+  background: #b9aaff22;
+}
+.ask-choice input:focus-visible + span {
+  outline: 2px solid #b9aaff;
+  outline-offset: 2px;
+}
+/* Skeletons shown while a route segment loads. */
+.skeleton-page {
+  padding: calc(28px + env(safe-area-inset-top)) 20px 100px;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+.skeleton-feed {
+  height: 100%;
+  background: radial-gradient(ellipse at 40% 24%, #1a2138 0%, #0c101b 62%);
+  position: relative;
+}
+.sk {
+  background: linear-gradient(90deg, #ffffff0a 25%, #ffffff14 50%, #ffffff0a 75%);
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.4s linear infinite;
+  border-radius: 12px;
+}
+.sk-title {
+  height: 30px;
+  width: 55%;
+}
+.sk-line {
+  height: 14px;
+  width: 80%;
+}
+.sk-row {
+  height: 72px;
+}
+.sk-tile {
+  height: 120px;
+}
+.sk-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.reel-placeholder {
+  height: 100%;
+  background: radial-gradient(ellipse at 40% 24%, #1a2138 0%, #0c101b 62%);
+}
+@keyframes sk-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk {
+    animation: none;
+  }
+}
+.reel-actions .asks-left {
+  max-width: 56px;
+  font-size: 9px;
+  line-height: 1.15;
+  text-align: center;
+  color: var(--muted);
 }

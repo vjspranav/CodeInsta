@@ -97,6 +97,7 @@ export function Lab() {
                 if (muted && !unlocked) unlock();
                 setMuted((v) => !v);
               }}
+              slot={0}
               finish={() => {}}
               audioBlocked={() => setUnlocked(false)}
             />
