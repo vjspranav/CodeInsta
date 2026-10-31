@@ -36,3 +36,19 @@
   - Password sign-ups always need an invite and are created with `auth.admin.createUser({email_confirm:true})`.
   - Supabase has `enable_confirmations=true`, so public-API sign-ups stay unconfirmed and can't claim emails.
   - Google is configured in the dashboard; never `config push` without checking the diff.
+- 2026-11-01: **Interests and topic requests (user request).** The contract:
+  - `user_interests(user_id uuid pk → auth.users, areas text[] not null default '{}' (subset of TOPIC_AREAS), onboarded boolean default false, updated_at)`. RLS: a member can select/insert/update their own row.
+  - `topic_requests(id uuid pk, user_id, body text 3..200 chars, area text null, status 'pending'|'approved'|'rejected'|'done', created_at, decided_at, fulfilled_reel_id uuid null)`.
+    - A BEFORE INSERT trigger sets status='approved' if `is_owner()`, else 'pending'. It rejects the insert when the user already has ≥5 pending requests.
+    - RLS: members insert their own and select their own (the owner selects all). Only the owner updates status.
+  - **Safety:** member-written text reaches the agents only after the owner approves it. The agent inbox gets approved, not-done requests, plus `interest_counts: {area: members_interested}`. `POST /api/agent/reels` accepts `fulfills_request_id`, which sets the request to done with fulfilled_reel_id.
+  - **Onboarding:** after a first sign-in or joining, if `onboarded=false`, show `/onboarding` (pick areas as chips, at least one; optionally add topic requests), then set onboarded=true. The profile page has a "My interests" section to edit areas and add or see requests, with their statuses. The owner gets a "Topic requests" review list (approve/reject).
+  - **Feed ranking (per user, client-side in orderFeed), over unseen reels:**
+    - next part of a series you've started: +100;
+    - follow-up whose parent you liked: +60;
+    - reel that fulfilled your own request: +80;
+    - area in your interests: +40;
+    - recency: +0..20 over 14 days.
+    - About 1 in 5 slots is an exploration pick from a non-selected area, so nobody gets stuck in a bubble.
+    - Seen reels go after unseen.
+  - **Agents:** weight new posts toward the areas with the highest interest_counts, and fulfill approved requests first (adding a new series to the curriculum if needed).
