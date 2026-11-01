@@ -10,7 +10,7 @@ The orchestrator (Claude Code) maintains this file; Codex reads it. Any session,
    - `COORDINATION.md` (ownership);
    - `docs/reels/RULES.md`;
    - `docs/coordination/{claude,codex}-status.md`.
-3. Take the **first unchecked step** in the queue below whose prerequisites are met.
+3. Take the **first unchecked step** in the queue below whose prerequisites are met. **Sections run in parallel:** a step that is only waiting (on Gemini quota, Codex limits, a running render or the owner) doesn't block other sections. Each run advances the reel pipeline (B/C/F2) AND the app track (E) when both have work: start the long-running reel job in the background, then work on E.
    - Steps marked **OWNER** need the owner. Prepare everything up to that point, report what's waiting, and move on to the next independent step.
    - Steps marked **PROD** change production. Run them only if the owner approved that step in chat or added an allow rule for that command (see "Permissions").
 4. Do the step: plan in the main session, implement via low-cost subagents, and verify (tests, lint, build, QA gate).
