@@ -49,7 +49,7 @@ function withPending(base: Set<string>, pending: Map<string, boolean>): Set<stri
 }
 
 export function useFeedSession(entryReelId?: string, options: FeedSessionOptions = {}) {
-  const { library } = useLibrary();
+  const { library, markSeenInCache } = useLibrary();
   const onHaptic$ = useRef(options.onHaptic ?? haptic);
   onHaptic$.current = options.onHaptic ?? haptic;
 
@@ -197,6 +197,7 @@ export function useFeedSession(entryReelId?: string, options: FeedSessionOptions
         const { error: failure } = await db.from("views").insert({ user_id: uid, reel_id: id });
         if (failure && failure.code !== DUPLICATE) return;
         commitSeen(new Set(seen$.current).add(id));
+        markSeenInCache(id);
         void refreshStreak();
       } catch {
         // Offline or signed out: the next visit to this reel tries again.
@@ -204,7 +205,7 @@ export function useFeedSession(entryReelId?: string, options: FeedSessionOptions
         seenInFlight.current.delete(id);
       }
     },
-    [commitSeen, refreshStreak, userId],
+    [commitSeen, markSeenInCache, refreshStreak, userId],
   );
 
   return { items, liked, disliked, seen, like, dislike, markSeen, streak, error };

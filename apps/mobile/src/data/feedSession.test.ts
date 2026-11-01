@@ -7,6 +7,7 @@ import { useFeedSession } from "./feedSession";
 
 const mockFake = { current: makeFakeDb() };
 const mockLibrary: { current: unknown } = { current: null };
+const mockMarkSeenInCache = jest.fn();
 
 jest.mock("@/lib/supabase", () => ({
   db: new Proxy({}, { get: (_t, key) => (mockFake.current.db as never)[key] }),
@@ -19,6 +20,7 @@ jest.mock(
       loading: false,
       error: "",
       reload: () => {},
+      markSeenInCache: mockMarkSeenInCache,
     }),
   }),
   { virtual: true },
