@@ -32,9 +32,18 @@ brief=$(find "$Q" -maxdepth 1 -name '[0-9]*.md' | sort | head -1)
 [ -z "$brief" ] && { skip empty "empty queue"; echo "codex queue empty"; exit 0; }
 name=$(basename "$brief" .md)
 echo "codex: running $name"
-act start "$name" "started $name"
+title=$(grep -m1 '^# ' "$brief" | sed 's/^# //')
+act picked "$name" "started: ${title:-$name}"
+# Codex writes its own checkpoints into the activity page while it works (see scripts/activity/log.sh).
+progress="
+
+## Report progress as you work
+After each major step, record a checkpoint so the owner can see where you are and where you stopped:
+\`scripts/activity/log.sh codex progress $name \"<what you just finished; what is next>\"\`
+If you must stop before finishing, record \`scripts/activity/log.sh codex stopped $name \"<exactly where you stopped and what remains>\"\`.
+If you need the owner, record \`scripts/activity/log.sh codex waiting $name \"<what the owner must do>\"\`."
 "$C" exec -C "$R" -s workspace-write -c sandbox_workspace_write.network_access=true -c model_reasoning_effort=medium \
-  -o "$STATE/$name.out" "$(cat "$brief")" > "$STATE/$name.log" 2>&1
+  -o "$STATE/$name.out" "$(cat "$brief")$progress" > "$STATE/$name.log" 2>&1
 limit=$(grep -o "try again at [0-9:]* [AP]M" "$STATE/$name.log" | tail -1 | sed 's/try again at //')
 if [ -n "$limit" ]; then
   # Today at that time, or tomorrow if it has already passed.
@@ -52,5 +61,5 @@ if [ ! -s "$STATE/$name.out" ]; then
   exit 0
 fi
 mv "$brief" "$Q/done/"
-act end "$name" "$(tr '\n' ' ' < "$STATE/$name.out" | cut -c1-200)"
+act done "$name" "$(tr '\n' ' ' < "$STATE/$name.out" | cut -c1-300); waiting for Claude to review and commit"
 echo "codex: $name finished; review $STATE/$name.out and commit with [codex]"
