@@ -284,7 +284,7 @@
      "do": "sketch.box",
      "id": "lm",
      "text": "Log Matching",
-     "sub": "same index and term, same history",
+     "sub": "same entry, same past",
      "icon": "db"
     }
    ]
