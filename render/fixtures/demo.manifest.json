@@ -1,0 +1,100 @@
+{
+  "lines": [
+    {
+      "beat_index": 0,
+      "speaker": "narrator",
+      "src": "audio/b0.wav",
+      "duration_ms": 4092
+    },
+    {
+      "beat_index": 1,
+      "speaker": "rookie",
+      "src": "audio/b1.wav",
+      "duration_ms": 2604
+    },
+    {
+      "beat_index": 2,
+      "speaker": "narrator",
+      "src": "audio/b2.wav",
+      "duration_ms": 3348
+    },
+    {
+      "beat_index": 3,
+      "speaker": "rookie",
+      "src": "audio/b3.wav",
+      "duration_ms": 1488
+    },
+    {
+      "beat_index": 4,
+      "speaker": "senior",
+      "src": "audio/b4.wav",
+      "duration_ms": 2666
+    },
+    {
+      "beat_index": 5,
+      "speaker": "senior",
+      "src": "audio/b5.wav",
+      "duration_ms": 2356
+    },
+    {
+      "beat_index": 6,
+      "speaker": "senior",
+      "src": "audio/b6.wav",
+      "duration_ms": 2976
+    },
+    {
+      "beat_index": 7,
+      "speaker": "rookie",
+      "src": "audio/b7.wav",
+      "duration_ms": 1400
+    },
+    {
+      "beat_index": 8,
+      "speaker": "senior",
+      "src": "audio/b8.wav",
+      "duration_ms": 2170
+    },
+    {
+      "beat_index": 9,
+      "speaker": "senior",
+      "src": "audio/b9.wav",
+      "duration_ms": 3224
+    },
+    {
+      "beat_index": 10,
+      "speaker": "narrator",
+      "src": "audio/b10.wav",
+      "duration_ms": 3162
+    },
+    {
+      "beat_index": 11,
+      "speaker": "senior",
+      "src": "audio/b11.wav",
+      "duration_ms": 2852
+    },
+    {
+      "beat_index": 12,
+      "speaker": "senior",
+      "src": "audio/b12.wav",
+      "duration_ms": 2480
+    },
+    {
+      "beat_index": 13,
+      "speaker": "narrator",
+      "src": "audio/b13.wav",
+      "duration_ms": 2976
+    },
+    {
+      "beat_index": 14,
+      "speaker": "senior",
+      "src": "audio/b14.wav",
+      "duration_ms": 2790
+    },
+    {
+      "beat_index": 15,
+      "speaker": "rookie",
+      "src": "audio/b15.wav",
+      "duration_ms": 1922
+    }
+  ]
+}

@@ -1,0 +1,368 @@
+{
+ "version": 3,
+ "format": "story",
+ "title": "What exactly happens on a page fault?",
+ "topic": "os/memory/page-fault-lifecycle",
+ "genre": "trace",
+ "style": "editorial-dark",
+ "series": "os-virtual-memory",
+ "series_index": 3,
+ "level": "intermediate",
+ "tags": [
+  "os",
+  "memory",
+  "page-fault",
+  "linux"
+ ],
+ "cast": [
+  {
+   "id": "rookie",
+   "name": "Rookie",
+   "role": "Overconfident junior who ships things",
+   "color": "#E4572E"
+  },
+  {
+   "id": "senior",
+   "name": "Senior",
+   "role": "Calm, dry-humored staff engineer",
+   "color": "#2F6F8F"
+  }
+ ],
+ "glossary": [
+  {
+   "term": "VMA",
+   "full": "Virtual Memory Area",
+   "note": "One region of a process address space."
+  },
+  {
+   "term": "PTE",
+   "full": "Page Table Entry",
+   "note": "The entry that maps a page to a frame."
+  },
+  {
+   "term": "CR2",
+   "full": "Control Register 2",
+   "note": "Holds the faulting address on x86."
+  }
+ ],
+ "key_points": [
+  "A page fault checks the VMA, then reads the page table entry and decides.",
+  "No VMA or a permission violation ends in SIGSEGV.",
+  "Only major faults wait for disk or swap; then the instruction retries."
+ ],
+ "sources": [
+  "https://docs.kernel.org/mm/process_addrs.html"
+ ],
+ "beats": [
+  {
+   "speaker": "narrator",
+   "text": "Rookie's program touches a page it has never used. The CPU can't translate the address. It stops, and calls the kernel.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "seq.diagram",
+     "id": "f",
+     "actors": [
+      "CPU",
+      "Kernel",
+      "Disk"
+     ],
+     "messages": [
+      {
+       "from": "CPU",
+       "to": "Kernel",
+       "label": "page fault"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "rookie",
+   "text": "Wait, is that a crash?",
+   "visuals": []
+  },
+  {
+   "speaker": "senior",
+   "text": "Not yet. The address lands in CR2, and Linux enters exc_page_fault.",
+   "say": "Not yet. The address lands in C R two, and Linux enters exc underscore page underscore fault.",
+   "visuals": [
+    {
+     "do": "seq.diagram",
+     "id": "f",
+     "messages": [
+      {
+       "from": "CPU",
+       "to": "Kernel",
+       "label": "address in CR2"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "senior",
+   "text": "First question: does any VMA cover that address? A VMA is a memory region the process owns.",
+   "say": "First question: does any V M A cover that address? A V M A is a memory region the process owns.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "tree",
+     "at": 0.3,
+     "id": "k",
+     "nodes": [
+      {
+       "id": "pf",
+       "label": "fault"
+      },
+      {
+       "id": "vma",
+       "label": "VMA found?",
+       "parent": "pf"
+      },
+      {
+       "id": "seg",
+       "label": "SIGSEGV",
+       "parent": "vma"
+      },
+      {
+       "id": "pte",
+       "label": "handle_pte_fault",
+       "parent": "vma"
+      }
+     ],
+     "path": [
+      "pf",
+      "vma"
+     ]
+    },
+    {
+     "do": "define",
+     "at": 0.4,
+     "term": "VMA"
+    }
+   ]
+  },
+  {
+   "speaker": "rookie",
+   "text": "And if there isn't one?",
+   "visuals": []
+  },
+  {
+   "speaker": "senior",
+   "text": "Or the access breaks its permissions: the process gets SIGSEGV. The famous segfault.",
+   "visuals": [
+    {
+     "do": "tree",
+     "id": "k",
+     "path": [
+      "pf",
+      "vma",
+      "seg"
+     ]
+    }
+   ],
+   "say": "Or the access breaks its permissions: the process gets SIG SEGV. The famous segfault."
+  },
+  {
+   "speaker": "rookie",
+   "text": "And if there is?",
+   "visuals": []
+  },
+  {
+   "speaker": "senior",
+   "text": "Then handle_pte_fault reads the page table entry and decides.",
+   "visuals": [
+    {
+     "do": "tree",
+     "id": "k",
+     "path": [
+      "pf",
+      "vma",
+      "pte"
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "senior",
+   "text": "An empty entry gets a zeroed page, or a file's data.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "tree",
+     "at": 0.3,
+     "id": "d",
+     "nodes": [
+      {
+       "id": "p",
+       "label": "handle_pte_fault"
+      },
+      {
+       "id": "e",
+       "label": "empty: zero page or file",
+       "parent": "p"
+      },
+      {
+       "id": "s",
+       "label": "swap entry: read back",
+       "parent": "p"
+      },
+      {
+       "id": "w",
+       "label": "write-protected: copy",
+       "parent": "p"
+      }
+     ],
+     "path": [
+      "p",
+      "e"
+     ],
+     "layout": "files"
+    }
+   ]
+  },
+  {
+   "speaker": "senior",
+   "text": "A swap entry is read back.",
+   "visuals": [
+    {
+     "do": "tree",
+     "id": "d",
+     "path": [
+      "p",
+      "s"
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "senior",
+   "text": "A write-protected one is copied on write.",
+   "visuals": [
+    {
+     "do": "tree",
+     "id": "d",
+     "path": [
+      "p",
+      "w"
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "rookie",
+   "text": "Which of those is slow?",
+   "visuals": []
+  },
+  {
+   "speaker": "senior",
+   "text": "A minor fault finds the page already in memory, and only fixes the entry. A major fault must wait for disk or swap.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "timeline.track",
+     "id": "m",
+     "lanes": [
+      "Minor fault",
+      "Major fault"
+     ],
+     "blocks": [
+      {
+       "lane": "Minor fault",
+       "start": 0,
+       "end": 15,
+       "label": "fix"
+      },
+      {
+       "lane": "Major fault",
+       "start": 0,
+       "end": 15,
+       "label": "fix"
+      },
+      {
+       "lane": "Major fault",
+       "start": 15,
+       "end": 90,
+       "label": "wait for disk",
+       "tone": "accent"
+      }
+     ],
+     "span": [
+      0,
+      100
+     ],
+     "playhead": {
+      "from": 0,
+      "to": 90,
+      "ms": 2600
+     }
+    },
+    {
+     "do": "sketch.note",
+     "at": 0.6,
+     "text": "widths are illustrative"
+    }
+   ]
+  },
+  {
+   "speaker": "rookie",
+   "text": "And then?",
+   "visuals": []
+  },
+  {
+   "speaker": "senior",
+   "text": "The handler returns, the same instruction runs again, and this time the walk finds a valid entry.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "seq.diagram",
+     "id": "r",
+     "actors": [
+      "CPU",
+      "Kernel"
+     ],
+     "messages": [
+      {
+       "from": "Kernel",
+       "to": "CPU",
+       "label": "return, retry the instruction",
+       "reply": true
+      },
+      {
+       "from": "CPU",
+       "to": "Kernel",
+       "label": "walk finds a valid entry"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "rookie",
+   "text": "So the program never knew.",
+   "visuals": []
+  },
+  {
+   "speaker": "senior",
+   "text": "Only the clock did.",
+   "punchline": true,
+   "visuals": []
+  }
+ ]
+}

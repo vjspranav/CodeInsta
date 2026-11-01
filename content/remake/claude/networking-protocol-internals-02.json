@@ -1,0 +1,306 @@
+{
+ "version": 3,
+ "format": "story",
+ "title": "Why does TCP have TIME_WAIT, and what does it protect?",
+ "topic": "networking/tcp/state-machine-time-wait",
+ "genre": "myth-vs-fact",
+ "style": "sketch",
+ "series": "networking-protocol-internals",
+ "series_index": 2,
+ "level": "intermediate",
+ "tags": [
+  "networking",
+  "tcp",
+  "time-wait",
+  "linux"
+ ],
+ "cast": [
+  {
+   "id": "nova",
+   "name": "Nova",
+   "role": "Ops engineer who files a bug on sight",
+   "color": "#E4572E"
+  },
+  {
+   "id": "kit",
+   "name": "Kit",
+   "role": "Network engineer, patient, has read the RFC",
+   "color": "#2F6F8F"
+  }
+ ],
+ "glossary": [
+  {
+   "term": "FIN",
+   "full": "Finish",
+   "note": "The TCP flag that says \"I am done sending\"."
+  },
+  {
+   "term": "MSL",
+   "full": "Maximum Segment Lifetime",
+   "note": "How long a segment may live in the network."
+  },
+  {
+   "term": "ACK",
+   "full": "Acknowledgment"
+  }
+ ],
+ "key_points": [
+  "The side that closes first waits in TIME_WAIT for twice the maximum segment lifetime.",
+  "It lets a lost final ACK be answered and lets stray old segments expire.",
+  "tcp_tw_reuse helps outgoing connections without removing the protection."
+ ],
+ "sources": [
+  "https://www.rfc-editor.org/rfc/rfc9293"
+ ],
+ "beats": [
+  {
+   "speaker": "narrator",
+   "text": "A busy server shows a pile of sockets in TIME_WAIT. Nova files a bug.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "term.type",
+     "id": "sh",
+     "cmd": "ss -tan state time-wait"
+    },
+    {
+     "do": "sketch.note",
+     "at": 0.6,
+     "text": "claim: TIME_WAIT is a leak, so turn it off"
+    }
+   ],
+   "say": "A busy server shows a pile of sockets in time wait. Nova files a bug."
+  },
+  {
+   "speaker": "nova",
+   "text": "These sockets are dead. TIME_WAIT is a leak. Let's switch it off.",
+   "visuals": [],
+   "say": "These sockets are dead. time wait is a leak. Let's switch it off."
+  },
+  {
+   "speaker": "kit",
+   "text": "First: who ends up in TIME_WAIT? Whoever closes first.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "seq.diagram",
+     "id": "c",
+     "actors": [
+      "Client",
+      "Server"
+     ],
+     "messages": [
+      {
+       "from": "Client",
+       "to": "Server",
+       "label": "FIN"
+      },
+      {
+       "from": "Server",
+       "to": "Client",
+       "label": "ACK",
+       "reply": true
+      },
+      {
+       "from": "Server",
+       "to": "Client",
+       "label": "FIN",
+       "reply": true
+      },
+      {
+       "from": "Client",
+       "to": "Server",
+       "label": "last ACK"
+      }
+     ]
+    },
+    {
+     "do": "define",
+     "at": 0.2,
+     "term": "FIN"
+    }
+   ],
+   "say": "First: who ends up in time wait? Whoever closes first."
+  },
+  {
+   "speaker": "nova",
+   "text": "After that last ACK, it's finished. Why keep the socket?",
+   "visuals": [
+    {
+     "do": "sketch.note",
+     "at": 0.5,
+     "text": "client now waits in TIME_WAIT"
+    }
+   ]
+  },
+  {
+   "speaker": "kit",
+   "text": "Reason one. If that last ACK is lost, the server resends its FIN. The client must still exist to answer, or it replies with a reset.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "packet.flow",
+     "id": "p",
+     "nodes": [
+      "Client",
+      "Server"
+     ],
+     "packets": [
+      {
+       "from": "Client",
+       "to": "Server",
+       "label": "last ACK",
+       "drop": true
+      },
+      {
+       "from": "Server",
+       "to": "Client",
+       "label": "FIN again",
+       "retry": true
+      },
+      {
+       "from": "Client",
+       "to": "Server",
+       "label": "ACK again"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "nova",
+   "text": "And reason two?",
+   "visuals": []
+  },
+  {
+   "speaker": "kit",
+   "text": "Old segments. A delayed packet from the dead connection could arrive after a new one reuses the same four-tuple: both addresses and both ports.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "timeline.track",
+     "id": "w",
+     "lanes": [
+      "Old connection",
+      "New connection"
+     ],
+     "blocks": [
+      {
+       "lane": "Old connection",
+       "start": 0,
+       "end": 25,
+       "label": "closed"
+      },
+      {
+       "lane": "Old connection",
+       "start": 25,
+       "end": 75,
+       "label": "stray segment",
+       "tone": "accent"
+      },
+      {
+       "lane": "New connection",
+       "start": 40,
+       "end": 100,
+       "label": "same four-tuple"
+      }
+     ],
+     "span": [
+      0,
+      100
+     ],
+     "playhead": {
+      "from": 0,
+      "to": 50,
+      "ms": 2400
+     }
+    }
+   ]
+  },
+  {
+   "speaker": "kit",
+   "text": "So the client waits twice the maximum segment lifetime. Linux fixes that at sixty seconds, compiled in.",
+   "visuals": [
+    {
+     "do": "timeline.track",
+     "id": "w",
+     "lanes": [
+      "TIME_WAIT"
+     ],
+     "blocks": [
+      {
+       "lane": "TIME_WAIT",
+       "start": 0,
+       "end": 100,
+       "label": "waits twice the MSL",
+       "tone": "accent"
+      }
+     ],
+     "span": [
+      0,
+      100
+     ],
+     "playhead": {
+      "from": 0,
+      "to": 100,
+      "ms": 2400
+     }
+    },
+    {
+     "do": "define",
+     "at": 0.3,
+     "term": "MSL"
+    }
+   ]
+  },
+  {
+   "speaker": "nova",
+   "text": "Fine. But my client runs out of ports.",
+   "visuals": []
+  },
+  {
+   "speaker": "kit",
+   "text": "Then tcp_tw_reuse lets new outgoing connections reuse a TIME_WAIT socket, using TCP timestamps to reject old segments.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "term.type",
+     "id": "sc",
+     "cmd": "sysctl net.ipv4.tcp_tw_reuse"
+    },
+    {
+     "do": "sketch.note",
+     "at": 0.7,
+     "text": "outgoing connections only"
+    }
+   ],
+   "say": "Then T C P T W reuse lets new outgoing connections reuse a time wait socket, using TCP timestamps to reject old segments."
+  },
+  {
+   "speaker": "nova",
+   "text": "So it wasn't a leak.",
+   "visuals": []
+  },
+  {
+   "speaker": "kit",
+   "text": "It's a guarantee with a timer.",
+   "punchline": true,
+   "visuals": []
+  }
+ ]
+}

@@ -1,0 +1,422 @@
+{
+ "version": 3,
+ "format": "story",
+ "title": "How do Reno, CUBIC and BBR decide how fast to send?",
+ "topic": "networking/tcp/congestion-control-cubic-bbr",
+ "genre": "versus",
+ "style": "editorial-dark",
+ "series": "networking-protocol-internals",
+ "series_index": 1,
+ "level": "advanced",
+ "tags": [
+  "networking",
+  "tcp",
+  "congestion-control",
+  "cubic",
+  "bbr"
+ ],
+ "cast": [
+  {
+   "id": "tess",
+   "name": "Tess",
+   "role": "Network engineer who trusts loss as a signal",
+   "color": "#E4572E"
+  },
+  {
+   "id": "omar",
+   "name": "Omar",
+   "role": "Network engineer who trusts measurement",
+   "color": "#2F6F8F"
+  }
+ ],
+ "glossary": [
+  {
+   "term": "Reno",
+   "full": "A classic loss-based TCP algorithm",
+   "note": "Adds one segment per round trip, halves on loss."
+  },
+  {
+   "term": "BBR",
+   "full": "Bottleneck Bandwidth and Round-trip propagation time",
+   "note": "Paces to a measured bandwidth."
+  },
+  {
+   "term": "BDP",
+   "full": "Bandwidth-Delay Product",
+   "note": "Bandwidth times round-trip time: the volume of the pipe."
+  },
+  {
+   "term": "RTT",
+   "full": "Round-Trip Time"
+  }
+ ],
+ "key_points": [
+  "Reno and CUBIC react to loss with different growth curves.",
+  "BBR estimates bandwidth and minimum round-trip time and paces to that model.",
+  "Loss-based senders keep queues full; BBR aims for a small queue."
+ ],
+ "sources": [
+  "https://www.rfc-editor.org/rfc/rfc9438",
+  "https://queue.acm.org/detail.cfm?id=3022184"
+ ],
+ "beats": [
+  {
+   "speaker": "narrator",
+   "text": "One bottleneck link, three senders, three ideas about how fast to go.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "packet.flow",
+     "id": "net",
+     "nodes": [
+      "Sender",
+      "Router",
+      "Receiver"
+     ],
+     "packets": [
+      {
+       "from": "Sender",
+       "to": "Router",
+       "label": "data"
+      },
+      {
+       "from": "Router",
+       "to": "Receiver",
+       "label": "data"
+      },
+      {
+       "from": "Receiver",
+       "to": "Sender",
+       "label": "ack"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "tess",
+   "text": "Reno starts small and doubles its window every round trip, until a threshold.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "chart.plot",
+     "id": "cw",
+     "series": [
+      {
+       "name": "Reno",
+       "points": [
+        [
+         0,
+         2
+        ],
+        [
+         1,
+         4
+        ],
+        [
+         2,
+         8
+        ],
+        [
+         3,
+         16
+        ]
+       ]
+      }
+     ],
+     "kind": "line",
+     "xlabel": "round trips",
+     "ylabel": "data in flight (segments)"
+    },
+    {
+     "do": "sketch.note",
+     "at": 0.7,
+     "text": "illustrative shapes, not measurements"
+    },
+    {
+     "do": "define",
+     "at": 0.5,
+     "term": "Reno"
+    }
+   ]
+  },
+  {
+   "speaker": "tess",
+   "text": "Then it adds one segment per round trip. A loss halves the window.",
+   "visuals": [
+    {
+     "do": "chart.plot",
+     "id": "cw",
+     "series": [
+      {
+       "name": "Reno",
+       "points": [
+        [
+         4,
+         17
+        ],
+        [
+         5,
+         18
+        ],
+        [
+         6,
+         19
+        ],
+        [
+         7,
+         20
+        ],
+        [
+         8,
+         10
+        ],
+        [
+         9,
+         11
+        ],
+        [
+         10,
+         12
+        ],
+        [
+         11,
+         13
+        ],
+        [
+         12,
+         14
+        ],
+        [
+         13,
+         15
+        ],
+        [
+         14,
+         16
+        ],
+        [
+         15,
+         17
+        ],
+        [
+         16,
+         18
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "omar",
+   "text": "CUBIC, Linux's default, grows along a cubic curve from the last loss. It flattens near the old maximum, then probes beyond.",
+   "visuals": [
+    {
+     "do": "chart.plot",
+     "id": "cw",
+     "series": [
+      {
+       "name": "CUBIC",
+       "points": [
+        [
+         8,
+         14
+        ],
+        [
+         9,
+         17.5
+        ],
+        [
+         10,
+         19.3
+        ],
+        [
+         11,
+         19.9
+        ],
+        [
+         12,
+         20
+        ],
+        [
+         13,
+         20.1
+        ],
+        [
+         14,
+         20.8
+        ],
+        [
+         15,
+         22.5
+        ],
+        [
+         16,
+         26
+        ]
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "tess",
+   "text": "Both wait for a loss to find the limit. By then the router's buffer is full.",
+   "visuals": [
+    {
+     "do": "sketch.box",
+     "id": "q",
+     "text": "Router queue",
+     "sub": "full",
+     "icon": "db",
+     "tone": "accent"
+    }
+   ]
+  },
+  {
+   "speaker": "omar",
+   "text": "BBR doesn't wait. It measures the bottleneck bandwidth and the shortest round trip time, then paces to match.",
+   "visuals": [
+    {
+     "do": "chart.plot",
+     "id": "cw",
+     "series": [
+      {
+       "name": "BBR",
+       "points": [
+        [
+         0,
+         2
+        ],
+        [
+         1,
+         4
+        ],
+        [
+         2,
+         8
+        ],
+        [
+         3,
+         12
+        ],
+        [
+         4,
+         12
+        ],
+        [
+         8,
+         12
+        ],
+        [
+         12,
+         12
+        ],
+        [
+         16,
+         12
+        ]
+       ]
+      }
+     ]
+    },
+    {
+     "do": "define",
+     "at": 0.4,
+     "term": "BBR"
+    }
+   ],
+   "say": "B B R doesn't wait. It measures the bottleneck bandwidth and the shortest round trip time, then paces to match."
+  },
+  {
+   "speaker": "omar",
+   "text": "It keeps data in flight near the bandwidth-delay product: the pipe's volume, no more.",
+   "visuals": [
+    {
+     "do": "define",
+     "at": 0.5,
+     "term": "BDP"
+    }
+   ]
+  },
+  {
+   "speaker": "tess",
+   "text": "So the queue stays short.",
+   "visuals": [
+    {
+     "do": "sketch.box",
+     "id": "q",
+     "text": "Router queue",
+     "sub": "small with BBR",
+     "tone": "accent"
+    }
+   ]
+  },
+  {
+   "speaker": "tess",
+   "text": "But what if the link drops packets at random, like a flaky radio?",
+   "visuals": []
+  },
+  {
+   "speaker": "omar",
+   "text": "Loss-based senders back off every time. BBR doesn't treat each loss as congestion.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "sketch.box",
+     "id": "lb",
+     "text": "Loss-based",
+     "sub": "a drop means slow down",
+     "icon": "user"
+    },
+    {
+     "do": "sketch.box",
+     "id": "bb",
+     "text": "BBR",
+     "sub": "a drop is not the signal",
+     "icon": "db",
+     "tone": "accent"
+    }
+   ],
+   "say": "Loss-based senders back off every time. B B R doesn't treat each loss as congestion."
+  },
+  {
+   "speaker": "tess",
+   "text": "Where do I see this on my machine?",
+   "visuals": []
+  },
+  {
+   "speaker": "omar",
+   "text": "On Linux, the algorithm is a sysctl, and ss shows each connection's window and round trip time.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "term.type",
+     "id": "sc",
+     "cmd": "sysctl net.ipv4.tcp_congestion_control"
+    },
+    {
+     "do": "term.type",
+     "id": "ss",
+     "cmd": "ss -ti"
+    }
+   ],
+   "say": "On Linux, the algorithm is a sys C T L, and S S shows each connection's window and round trip time."
+  }
+ ]
+}

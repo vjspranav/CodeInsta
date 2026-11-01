@@ -1,0 +1,202 @@
+{
+ "version": 3,
+ "format": "story",
+ "title": "Why did one stale package name stop a StagOS build?",
+ "topic": "aosp/build/product-makefile-inheritance",
+ "genre": "commit-story",
+ "style": "terminal",
+ "series": "aosp-build-system",
+ "series_index": 3,
+ "level": "intermediate",
+ "tags": [
+  "aosp",
+  "stagos",
+  "product-packages",
+  "inherit-product",
+  "build"
+ ],
+ "cast": [
+  {
+   "id": "rookie",
+   "name": "Rookie",
+   "role": "Overconfident junior who ships things",
+   "color": "#E4572E"
+  },
+  {
+   "id": "senior",
+   "name": "Senior",
+   "role": "Calm, dry-humored staff engineer",
+   "color": "#2F6F8F"
+  }
+ ],
+ "glossary": [
+  {
+   "term": "PRODUCT_PACKAGES",
+   "full": "The list of module names a product installs",
+   "note": "It accumulates across inherited makefiles."
+  },
+  {
+   "term": "A/B",
+   "full": "Two system slots updated alternately",
+   "note": "Virtual A/B keeps the second slot as snapshots."
+  }
+ ],
+ "key_points": [
+  "PRODUCT_PACKAGES accumulates across every inherited makefile.",
+  "Each name in it must match a real module, or the build stops.",
+  "Removing a stale name fixes the error."
+ ],
+ "sources": [
+  "https://github.com/StagOS/android_build_make/commit/bba99035e74fe329c811478366159b96215d1068",
+  "https://source.android.com/docs/setup/create/new-device"
+ ],
+ "beats": [
+  {
+   "speaker": "narrator",
+   "text": "A StagOS build stops on one red line.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "term.type",
+     "id": "sh",
+     "cmd": "m",
+     "out": [
+      "… includes non-existent modules in PRODUCT_PACKAGES"
+     ]
+    },
+    {
+     "do": "sketch.note",
+     "at": 0.7,
+     "text": "error text quoted from the commit message"
+    }
+   ]
+  },
+  {
+   "speaker": "rookie",
+   "text": "Non-existent modules? I haven't added a package all week.",
+   "visuals": []
+  },
+  {
+   "speaker": "senior",
+   "text": "Nobody did. So which assumption broke? Open the case file.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "commit.story",
+     "repo": "StagOS/android_build_make",
+     "title": "Remove non existent snapuserd.recovery package",
+     "broke": "Build stops: includes non-existent modules in PRODUCT_PACKAGES"
+    }
+   ]
+  },
+  {
+   "speaker": "senior",
+   "text": "PRODUCT_PACKAGES is one big list. Every name in it must match a real module.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "code.editor",
+     "id": "f",
+     "file": "compression.mk",
+     "diff": [
+      "PRODUCT_PACKAGES += \\",
+      "    snapuserd.vendor_ramdisk \\",
+      "-    snapuserd \\",
+      "-    snapuserd.recovery"
+     ]
+    }
+   ],
+   "say": "PRODUCT PACKAGES is one big list. Every name in it must match a real module."
+  },
+  {
+   "speaker": "rookie",
+   "text": "One big list, from one file?",
+   "visuals": []
+  },
+  {
+   "speaker": "senior",
+   "text": "From every makefile you inherit. Lists pile up across them; scalars like PRODUCT_NAME take the most derived value.",
+   "visuals": [
+    {
+     "do": "sketch.note",
+     "at": 0.5,
+     "text": "lists accumulate, scalars: most derived wins"
+    }
+   ],
+   "say": "From every makefile you inherit. Lists pile up across them; scalars like PRODUCT NAME take the most derived value."
+  },
+  {
+   "speaker": "senior",
+   "text": "So one stale name anywhere stays in the list. Here, it's snapuserd.recovery.",
+   "visuals": [
+    {
+     "do": "sketch.note",
+     "at": 0.6,
+     "text": "snapuserd.recovery: nothing answers to this name"
+    }
+   ],
+   "say": "So one stale name anywhere stays in the list. Here, it's snap user D dot recovery."
+  },
+  {
+   "speaker": "rookie",
+   "text": "What did that line assume?",
+   "visuals": []
+  },
+  {
+   "speaker": "senior",
+   "text": "That a recovery build of snapuserd still exists. The commit says the recovery target was removed in an earlier change.",
+   "visuals": [],
+   "say": "That a recovery build of snap user D still exists. The commit says the recovery target was removed in an earlier change."
+  },
+  {
+   "speaker": "rookie",
+   "text": "Then the fix is just deleting it?",
+   "visuals": []
+  },
+  {
+   "speaker": "senior",
+   "text": "Yes, from both Virtual A/B compression makefiles. The list shrinks by one name.",
+   "visuals": [
+    {
+     "do": "commit.story",
+     "repo": "StagOS/android_build_make",
+     "fix": "Delete snapuserd.recovery from both compression makefiles"
+    },
+    {
+     "do": "code.editor",
+     "id": "f",
+     "diff": [
+      "+    snapuserd"
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "senior",
+   "text": "Now every name matches a module again. The commit's test note: run m, and that error is gone.",
+   "visuals": [
+    {
+     "do": "commit.story",
+     "repo": "StagOS/android_build_make",
+     "why": "Every PRODUCT_PACKAGES name resolves to a module again"
+    }
+   ],
+   "say": "Now every name matches a module again. The commit's test note: run em, and that error is gone."
+  },
+  {
+   "speaker": "rookie",
+   "text": "One stale word in a list can stop the whole build.",
+   "punchline": true,
+   "visuals": []
+  }
+ ]
+}

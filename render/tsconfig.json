@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "lib": ["DOM", "DOM.Iterable", "ES2023"],
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["src", "tests", "render.ts", "verify.ts", "verify-lib.ts", "style-sheet.ts", "prepare.ts", "measure-node.ts", "remotion.config.ts", "vitest.config.ts"]
+}

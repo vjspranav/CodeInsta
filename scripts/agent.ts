@@ -8,8 +8,12 @@ const USAGE = `usage: npm run agent -- <command>
   inbox
   requests                      approved, unfulfilled requests + new categories (read-only, records no agent run)
   post <file.json> [--parent <reel_id>] [--answers <feedback_id>] [--fulfills <request_id>] [--no-audio]
+  publish <script.json> [--fulfills <request_id>] [--answers <feedback_id> --parent <reel_id>] [--engine auto|gemini|openai|chatterbox] [--no-wait] [--dry-run]
+                                v3 story reel: validate, voice, transcript check, render + QA gate, upload mp4, post (--dry-run stops after render)
+                                --engine auto (default) = Gemini flash ~80% / OpenAI ~20% by topic hash; on the Gemini daily cap it waits
+                                (--no-wait: exit non-zero with the reset time instead)
   audio <reel_id> <file.json>   (re)render narration with Kokoro TTS and upload it
-  dm <file.md> [--feedback <feedback_id>]
+  dm <file.md> (--feedback <feedback_id> | --reply-to <reply_to_message_id>)
   catalog [all|claude|gpt]
   validate <file|dir>
 env: CODEINSTA_URL, AGENT_TOKEN (validate works offline)
@@ -26,6 +30,8 @@ function parseArgs(argv: string[]) {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--no-audio") flags["no-audio"] = "true";
+    else if (a === "--dry-run") flags["dry-run"] = "true";
+    else if (a === "--no-wait") flags["no-wait"] = "true";
     else if (a.startsWith("--")) {
       const value = argv[++i];
       if (value === undefined) fail(`missing value for ${a}`);
@@ -128,6 +134,27 @@ async function main() {
       }
       return;
     }
+    case "publish": {
+      if (!positional[0]) fail("publish needs <script.json>");
+      const engine = (flags.engine ?? "auto") as "auto" | "gemini" | "openai" | "chatterbox";
+      if (!["auto", "gemini", "openai", "chatterbox"].includes(engine)) fail(`unknown --engine ${engine}`);
+      if (!flags["dry-run"]) env(); // fail fast before spending TTS credits
+      const { publishV3 } = await import("./lib/publish-v3");
+      await publishV3({
+        file: positional[0],
+        script: readJson(positional[0]),
+        engine,
+        dryRun: Boolean(flags["dry-run"]),
+        noWait: Boolean(flags["no-wait"]),
+        fulfills: flags.fulfills,
+        answers: flags.answers,
+        parent: flags.parent,
+        call,
+        base: () => env().base,
+        fail,
+      });
+      return;
+    }
     case "audio": {
       if (!positional[0] || !positional[1]) fail("audio needs <reel_id> <file.json>");
       const v = validateReel(readJson(positional[1]));
@@ -143,10 +170,12 @@ async function main() {
     }
     case "dm": {
       if (!positional[0]) fail("dm needs <file.md>");
+      if (!flags.feedback && !flags["reply-to"]) fail("dm needs --feedback <id> or --reply-to <reply_to_message_id>");
       const body_md = readFileSync(positional[0], "utf8");
       return call("POST", "/api/agent/messages", {
         body_md,
         ...(flags.feedback ? { feedback_id: flags.feedback } : {}),
+        ...(flags["reply-to"] ? { reply_to_message_id: flags["reply-to"] } : {}),
       });
     }
     case "catalog":

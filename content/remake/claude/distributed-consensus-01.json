@@ -1,0 +1,355 @@
+{
+ "version": 3,
+ "format": "story",
+ "title": "How does Raft elect a leader when the old one dies?",
+ "topic": "distributed/consensus/raft-leader-election",
+ "genre": "story",
+ "style": "blueprint",
+ "series": "distributed-consensus",
+ "series_index": 1,
+ "level": "intermediate",
+ "tags": [
+  "distributed",
+  "raft",
+  "consensus",
+  "leader-election"
+ ],
+ "cast": [
+  {
+   "id": "ana",
+   "name": "Ana",
+   "role": "On-call engineer at 3 a.m.",
+   "color": "#E4572E"
+  },
+  {
+   "id": "ben",
+   "name": "Ben",
+   "role": "Distributed-systems veteran, calm in outages",
+   "color": "#2F6F8F"
+  }
+ ],
+ "glossary": [
+  {
+   "term": "Raft",
+   "full": "A consensus algorithm designed to be understandable",
+   "note": "Replicates a log across servers."
+  },
+  {
+   "term": "term",
+   "full": "A numbered period with at most one leader",
+   "note": "Acts as a logical clock."
+  }
+ ],
+ "key_points": [
+  "A silent leader makes a follower time out and start an election.",
+  "One vote per term, only for an up-to-date log; a majority wins.",
+  "Random timeouts make split votes rare and self-healing."
+ ],
+ "sources": [
+  "https://raft.github.io/raft.pdf",
+  "https://raft.github.io/"
+ ],
+ "beats": [
+  {
+   "speaker": "narrator",
+   "text": "Three servers. One leader. At three a.m., the leader's power cable gets kicked.",
+   "say": "Three servers. One leader. At three A M, the leader's power cable gets kicked.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "seq.diagram",
+     "id": "r",
+     "actors": [
+      "S1",
+      "S2",
+      "S3"
+     ],
+     "messages": [
+      {
+       "from": "S1",
+       "to": "S2",
+       "label": "heartbeat"
+      },
+      {
+       "from": "S1",
+       "to": "S3",
+       "label": "heartbeat"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "ana",
+   "text": "S1 sent heartbeats. Now, silence. Do the others just wait?",
+   "visuals": [],
+   "say": "S one sent heartbeats. Now, silence. Do the others just wait?"
+  },
+  {
+   "speaker": "ben",
+   "text": "They can't wait forever. Each follower runs a random timer: 150 to 300 milliseconds in the Raft paper.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "timeline.track",
+     "id": "t",
+     "lanes": [
+      "S2",
+      "S3"
+     ],
+     "blocks": [
+      {
+       "lane": "S2",
+       "start": 0,
+       "end": 190,
+       "label": "timeout"
+      },
+      {
+       "lane": "S3",
+       "start": 0,
+       "end": 260,
+       "label": "timeout"
+      }
+     ],
+     "span": [
+      0,
+      300
+     ],
+     "playhead": {
+      "from": 0,
+      "to": 190,
+      "ms": 2200
+     }
+    },
+    {
+     "do": "sketch.note",
+     "at": 0.8,
+     "text": "lengths are illustrative"
+    },
+    {
+     "do": "define",
+     "at": 0.7,
+     "term": "Raft"
+    }
+   ]
+  },
+  {
+   "speaker": "ana",
+   "text": "And a heartbeat resets it?",
+   "visuals": []
+  },
+  {
+   "speaker": "ben",
+   "text": "Every time. No heartbeat, the timer runs out. S2's runs out first.",
+   "visuals": [],
+   "say": "Every time. No heartbeat, the timer runs out. S two's runs out first."
+  },
+  {
+   "speaker": "ben",
+   "text": "S2 becomes a candidate. It adds one to its term, votes for itself, and asks for votes.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "seq.diagram",
+     "id": "v",
+     "actors": [
+      "S1",
+      "S2",
+      "S3"
+     ],
+     "messages": [
+      {
+       "from": "S2",
+       "to": "S3",
+       "label": "vote for me, term 2"
+      }
+     ]
+    },
+    {
+     "do": "define",
+     "at": 0.5,
+     "term": "term"
+    }
+   ],
+   "say": "S two becomes a candidate. It adds one to its term, votes for itself, and asks for votes."
+  },
+  {
+   "speaker": "ana",
+   "text": "Why would S3 say yes?",
+   "visuals": [],
+   "say": "Why would S three say yes?"
+  },
+  {
+   "speaker": "ben",
+   "text": "Each server gives one vote per term, saved to disk first, and only to a candidate whose log is at least as up to date as its own.",
+   "visuals": [
+    {
+     "do": "seq.diagram",
+     "id": "v",
+     "messages": [
+      {
+       "from": "S3",
+       "to": "S2",
+       "label": "vote granted",
+       "reply": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "ana",
+   "text": "That's two votes out of three. A majority.",
+   "visuals": []
+  },
+  {
+   "speaker": "ben",
+   "text": "So S2 leads term 2.",
+   "visuals": [
+    {
+     "do": "seq.diagram",
+     "id": "v",
+     "messages": [
+      {
+       "from": "S2",
+       "to": "S3",
+       "label": "heartbeat, term 2"
+      }
+     ]
+    }
+   ],
+   "say": "So S two leads term 2."
+  },
+  {
+   "speaker": "ana",
+   "text": "What if S2 and S3 time out together?",
+   "visuals": [],
+   "say": "What if S two and S three time out together?"
+  },
+  {
+   "speaker": "ben",
+   "text": "A split vote. Each votes for itself, neither gets a majority, and the term ends with no leader.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "seq.diagram",
+     "id": "s",
+     "actors": [
+      "S1",
+      "S2",
+      "S3"
+     ],
+     "messages": [
+      {
+       "from": "S2",
+       "to": "S3",
+       "label": "vote for me, term 3"
+      },
+      {
+       "from": "S3",
+       "to": "S2",
+       "label": "vote for me, term 3"
+      },
+      {
+       "from": "S3",
+       "to": "S2",
+       "label": "no: I voted for myself",
+       "reply": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "ana",
+   "text": "So they deadlock forever?",
+   "visuals": []
+  },
+  {
+   "speaker": "ben",
+   "text": "No. Timers re-randomize, one usually fires first, and it wins in a new term.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "timeline.track",
+     "id": "t2",
+     "lanes": [
+      "S2",
+      "S3"
+     ],
+     "blocks": [
+      {
+       "lane": "S2",
+       "start": 0,
+       "end": 170,
+       "label": "timeout",
+       "tone": "accent"
+      },
+      {
+       "lane": "S3",
+       "start": 0,
+       "end": 240,
+       "label": "timeout"
+      }
+     ],
+     "span": [
+      0,
+      300
+     ],
+     "playhead": {
+      "from": 0,
+      "to": 170,
+      "ms": 2000
+     }
+    }
+   ]
+  },
+  {
+   "speaker": "ben",
+   "text": "If S1 wakes up, any message with a higher term makes it step down.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "seq.diagram",
+     "id": "w",
+     "actors": [
+      "S1",
+      "S2"
+     ],
+     "messages": [
+      {
+       "from": "S2",
+       "to": "S1",
+       "label": "heartbeat, term 3"
+      },
+      {
+       "from": "S1",
+       "to": "S2",
+       "label": "term 3, I follow you",
+       "reply": true
+      }
+     ]
+    }
+   ],
+   "say": "If S one wakes up, any message with a higher term makes it step down."
+  }
+ ]
+}

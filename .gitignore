@@ -20,3 +20,4 @@ yarn-error.log*
 
 tts/.venv/
 tts/cache/
+docs/coordination/codex-queue/.state/

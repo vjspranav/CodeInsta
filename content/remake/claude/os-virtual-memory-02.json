@@ -1,0 +1,256 @@
+{
+ "version": 3,
+ "format": "story",
+ "title": "Does a context switch always flush the TLB?",
+ "topic": "os/memory/tlb-and-asid",
+ "genre": "myth-vs-fact",
+ "style": "terminal",
+ "series": "os-virtual-memory",
+ "series_index": 2,
+ "level": "advanced",
+ "tags": [
+  "os",
+  "memory",
+  "tlb",
+  "pcid",
+  "asid"
+ ],
+ "cast": [
+  {
+   "id": "zed",
+   "name": "Zed",
+   "role": "Repeats rules he read years ago",
+   "color": "#E4572E"
+  },
+  {
+   "id": "abi",
+   "name": "Abi",
+   "role": "Kernel dev who reads the manual",
+   "color": "#2F6F8F"
+  }
+ ],
+ "glossary": [
+  {
+   "term": "TLB",
+   "full": "Translation Lookaside Buffer",
+   "note": "A small cache of finished address translations."
+  },
+  {
+   "term": "PCID",
+   "full": "Process-Context Identifier",
+   "note": "An x86 tag on TLB entries, held in the low bits of CR3."
+  },
+  {
+   "term": "ASID",
+   "full": "Address Space Identifier",
+   "note": "The arm64 tag on TLB entries."
+  },
+  {
+   "term": "TTBR",
+   "full": "Translation Table Base Register",
+   "note": "Holds the arm64 page-table base and the ASID."
+  }
+ ],
+ "key_points": [
+  "Without PCID, a CR3 write drops all non-global TLB entries.",
+  "With PCID or ASID tags, entries from different address spaces can coexist.",
+  "Setting bit 63 on the CR3 write tells x86 not to flush."
+ ],
+ "sources": [
+  "https://docs.kernel.org/arch/x86/tlb.html"
+ ],
+ "beats": [
+  {
+   "speaker": "narrator",
+   "text": "Zed repeats a rule he read years ago, as if it were physics.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "sketch.note",
+     "at": 0.5,
+     "text": "claim: every context switch flushes the whole TLB"
+    }
+   ]
+  },
+  {
+   "speaker": "zed",
+   "text": "Every context switch throws away the whole TLB. It has to.",
+   "say": "Every context switch throws away the whole T L B. It has to.",
+   "visuals": []
+  },
+  {
+   "speaker": "abi",
+   "text": "The TLB caches translations, virtual page to frame. A hit is instant. A miss means a page walk.",
+   "say": "The T L B caches translations, virtual page to frame. A hit is instant. A miss means a page walk.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "db.table",
+     "id": "tlb",
+     "name": "TLB",
+     "columns": [
+      "vpage",
+      "frame"
+     ],
+     "rows": [
+      [
+       "0x400",
+       "0x91"
+      ]
+     ]
+    },
+    {
+     "do": "define",
+     "at": 0.3,
+     "term": "TLB"
+    }
+   ]
+  },
+  {
+   "speaker": "abi",
+   "text": "Why ever flush? Two processes can use the same virtual page for different frames.",
+   "visuals": [
+    {
+     "do": "sketch.note",
+     "at": 0.4,
+     "text": "A and B both use page 0x400: A is in frame 0x91, B in frame 0x2c"
+    }
+   ]
+  },
+  {
+   "speaker": "abi",
+   "text": "Untagged, B would hit A's entry: the wrong frame.",
+   "visuals": [
+    {
+     "do": "sketch.note",
+     "at": 0.4,
+     "text": "B hits A's entry: wrong frame"
+    }
+   ]
+  },
+  {
+   "speaker": "abi",
+   "text": "So without PCID, loading CR3 on a switch drops every non-global entry, and the next accesses all miss.",
+   "say": "So without P C I D, loading C R three on a switch drops every non-global entry, and the next accesses all miss.",
+   "visuals": [
+    {
+     "do": "define",
+     "at": 0.3,
+     "term": "PCID"
+    }
+   ]
+  },
+  {
+   "speaker": "zed",
+   "text": "Brutal. So the myth is right.",
+   "visuals": []
+  },
+  {
+   "speaker": "abi",
+   "text": "Only on old settings. With PCID, the low twelve bits of CR3 tag each entry.",
+   "say": "Only on old settings. With P C I D, the low twelve bits of C R three tag each entry.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "db.table",
+     "id": "tlb2",
+     "name": "TLB with tags",
+     "columns": [
+      "vpage",
+      "pcid",
+      "frame"
+     ],
+     "rows": [
+      [
+       "0x400",
+       1,
+       "0x91"
+      ],
+      [
+       "0x400",
+       2,
+       "0x2c"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "abi",
+   "text": "Both entries coexist. Bit sixty-three set on the CR3 write says: don't flush.",
+   "say": "Both entries coexist. Bit sixty-three set on the C R three write says: don't flush.",
+   "visuals": [
+    {
+     "do": "code.show",
+     "id": "cr3",
+     "lang": "text",
+     "title": "CR3 write, simplified",
+     "code": [
+      "CR3[11:0]  = PCID",
+      "CR3[63]    = 1: no flush",
+      "mov cr3, rax"
+     ],
+     "highlight": [
+      2
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "zed",
+   "text": "And ARM?",
+   "visuals": []
+  },
+  {
+   "speaker": "abi",
+   "text": "Arm64 tags entries with an ASID, held in the TTBR. Cleaning other cores differs: x86 sends interrupts, arm64 broadcasts TLB invalidate instructions.",
+   "say": "Arm sixty-four tags entries with an A S I D, held in the T T B R. Cleaning other cores differs: x eighty-six sends interrupts, arm sixty-four broadcasts T L B invalidate instructions.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "sketch.box",
+     "id": "x86",
+     "text": "x86",
+     "sub": "PCID tag, interrupts to other cores",
+     "icon": "user"
+    },
+    {
+     "do": "sketch.box",
+     "id": "arm",
+     "text": "arm64",
+     "sub": "ASID tag, broadcast TLB invalidate",
+     "icon": "db",
+     "tone": "accent"
+    },
+    {
+     "do": "define",
+     "at": 0.3,
+     "term": "ASID"
+    }
+   ]
+  },
+  {
+   "speaker": "zed",
+   "text": "So a switch can be just a register write.",
+   "visuals": []
+  },
+  {
+   "speaker": "abi",
+   "text": "Yes. A flush is a choice, not a law.",
+   "punchline": true,
+   "visuals": []
+  }
+ ]
+}

@@ -1,0 +1,244 @@
+{
+ "version": 3,
+ "format": "story",
+ "title": "What is a dominator tree, and why does every optimizer query it?",
+ "topic": "compilers/ssa/dominator-trees",
+ "genre": "predict-it",
+ "style": "terminal",
+ "series": "compilers-ssa-and-ir",
+ "series_index": 2,
+ "level": "intermediate",
+ "tags": [
+  "compilers",
+  "ssa",
+  "dominators",
+  "llvm"
+ ],
+ "cast": [
+  {
+   "id": "priya",
+   "name": "Priya",
+   "role": "Optimizer intern, quick to guess",
+   "color": "#E4572E"
+  },
+  {
+   "id": "ravi",
+   "name": "Ravi",
+   "role": "LLVM maintainer who asks one question at a time",
+   "color": "#2F6F8F"
+  }
+ ],
+ "glossary": [
+  {
+   "term": "dominance frontier",
+   "full": "Blocks reached from a block that it doesn't strictly dominate",
+   "note": "Where phi nodes belong."
+  },
+  {
+   "term": "phi node",
+   "full": "A merge that picks a value by the incoming edge",
+   "note": "Sits at the start of a join block."
+  }
+ ],
+ "key_points": [
+  "X dominates Y when every path from the entry to Y goes through X.",
+  "The immediate dominators form a tree that many passes query.",
+  "The dominance frontier is where phi nodes are placed."
+ ],
+ "sources": [
+  "https://www.cs.rice.edu/~keith/EMBED/dom.pdf",
+  "https://llvm.org/docs/LangRef.html"
+ ],
+ "beats": [
+  {
+   "speaker": "narrator",
+   "text": "Four blocks. Ravi hands Priya a pencil and one question.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "code.show",
+     "id": "cfg",
+     "lang": "text",
+     "title": "cfg.txt",
+     "code": [
+      "A: br c, B, C",
+      "B: br D",
+      "C: br D",
+      "D: ret"
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "ravi",
+   "text": "Rule: block X dominates block Y if every path from the entry A to Y goes through X.",
+   "visuals": [
+    {
+     "do": "sketch.note",
+     "at": 0.4,
+     "text": "X dominates Y: every path from A to Y passes through X"
+    }
+   ]
+  },
+  {
+   "speaker": "ravi",
+   "text": "Question: which block is the closest dominator of D? B, C or A?",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "sketch.box",
+     "id": "cb",
+     "text": "B",
+     "sub": "candidate",
+     "icon": "user"
+    },
+    {
+     "do": "sketch.box",
+     "id": "cc",
+     "text": "C",
+     "sub": "candidate",
+     "icon": "user"
+    },
+    {
+     "do": "sketch.box",
+     "id": "ca",
+     "text": "A",
+     "sub": "candidate",
+     "icon": "user"
+    }
+   ]
+  },
+  {
+   "speaker": "ravi",
+   "text": "Guess before I flip the card.",
+   "visuals": []
+  },
+  {
+   "speaker": "priya",
+   "text": "B. It feeds D directly.",
+   "visuals": []
+  },
+  {
+   "speaker": "ravi",
+   "text": "Flip. It's A.",
+   "visuals": [
+    {
+     "do": "sketch.box",
+     "id": "ca",
+     "text": "A",
+     "sub": "closest dominator",
+     "tone": "accent"
+    },
+    {
+     "do": "sketch.box",
+     "id": "cb",
+     "text": "B",
+     "sub": "skipped by the path A, C, D",
+     "icon": "user",
+     "tone": "grey"
+    },
+    {
+     "do": "sketch.box",
+     "id": "cc",
+     "text": "C",
+     "sub": "skipped by the path A, B, D",
+     "icon": "user",
+     "tone": "grey"
+    }
+   ]
+  },
+  {
+   "speaker": "ravi",
+   "text": "One path goes A, C, D and never touches B. Another goes A, B, D and never touches C. Only A is on every path.",
+   "visuals": []
+  },
+  {
+   "speaker": "priya",
+   "text": "So A is D's parent in the dominator tree?",
+   "visuals": []
+  },
+  {
+   "speaker": "ravi",
+   "text": "Yes. Link each block to its immediate dominator and you get a tree rooted at the entry.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "tree",
+     "at": 0.3,
+     "id": "dt",
+     "nodes": [
+      {
+       "id": "a",
+       "label": "A"
+      },
+      {
+       "id": "b",
+       "label": "B",
+       "parent": "a"
+      },
+      {
+       "id": "c",
+       "label": "C",
+       "parent": "a"
+      },
+      {
+       "id": "d",
+       "label": "D",
+       "parent": "a"
+      }
+     ],
+     "path": [
+      "a",
+      "d"
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "priya",
+   "text": "What is a tree like that good for?",
+   "visuals": []
+  },
+  {
+   "speaker": "ravi",
+   "text": "Passes ask it constantly. Is a definition above every use? Can this code hoist out of a loop? Is that edge a loop back to a dominator?",
+   "visuals": [
+    {
+     "do": "sketch.note",
+     "at": 0.4,
+     "text": "SSA validity · loop hoisting · value numbering · loop detection"
+    }
+   ]
+  },
+  {
+   "speaker": "ravi",
+   "text": "And D is where B and C stop dominating. That frontier is exactly where a phi node belongs.",
+   "visuals": [
+    {
+     "do": "define",
+     "at": 0.3,
+     "term": "dominance frontier"
+    }
+   ]
+  },
+  {
+   "speaker": "priya",
+   "text": "Cooper, Harvey and Kennedy build this tree fast?",
+   "visuals": []
+  },
+  {
+   "speaker": "ravi",
+   "text": "By visiting blocks in reverse postorder and intersecting each block's predecessors' answers, until nothing changes.",
+   "visuals": []
+  }
+ ]
+}

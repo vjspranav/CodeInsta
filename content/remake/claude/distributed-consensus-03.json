@@ -1,0 +1,310 @@
+{
+ "version": 3,
+ "format": "story",
+ "title": "How do Paxos prepare and accept choose exactly one value?",
+ "topic": "distributed/consensus/paxos-single-decree",
+ "genre": "analogy",
+ "style": "paper-cutout",
+ "series": "distributed-consensus",
+ "series_index": 3,
+ "level": "advanced",
+ "tags": [
+  "distributed",
+  "paxos",
+  "consensus",
+  "quorum"
+ ],
+ "cast": [
+  {
+   "id": "dana",
+   "name": "Dana",
+   "role": "Courier who wants tacos recorded",
+   "color": "#E4572E"
+  },
+  {
+   "id": "eli",
+   "name": "Eli",
+   "role": "Courier who wants sushi recorded",
+   "color": "#2F6F8F"
+  }
+ ],
+ "glossary": [
+  {
+   "term": "Paxos",
+   "full": "A family of consensus protocols from Leslie Lamport",
+   "note": "Single-decree Paxos chooses one value."
+  },
+  {
+   "term": "quorum",
+   "full": "A majority of the acceptors",
+   "note": "Any two quorums share at least one acceptor."
+  }
+ ],
+ "key_points": [
+  "Prepare blocks stale proposals and reveals earlier accepts.",
+  "A proposer must reuse the highest-numbered accepted value it hears about.",
+  "Any two majorities overlap, so only one value is ever chosen."
+ ],
+ "sources": [
+  "https://lamport.azurewebsites.net/pubs/paxos-simple.pdf"
+ ],
+ "beats": [
+  {
+   "speaker": "narrator",
+   "text": "Three clerks, each with a notebook. Two couriers who both want their lunch order recorded. Exactly one order may ever be chosen.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "seq.diagram",
+     "id": "r1",
+     "actors": [
+      "Dana",
+      "Clerk A",
+      "Clerk B",
+      "Clerk C",
+      "Eli"
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "dana",
+   "text": "I take ticket one. Clerks, promise to ignore any lower ticket, and tell me what you've already accepted.",
+   "visuals": [
+    {
+     "do": "seq.diagram",
+     "id": "r1",
+     "messages": [
+      {
+       "from": "Dana",
+       "to": "Clerk A",
+       "label": "prepare 1"
+      },
+      {
+       "from": "Dana",
+       "to": "Clerk B",
+       "label": "prepare 1"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "narrator",
+   "text": "A and B promise, and report that they've accepted nothing yet.",
+   "visuals": [
+    {
+     "do": "seq.diagram",
+     "id": "r1",
+     "messages": [
+      {
+       "from": "Clerk A",
+       "to": "Dana",
+       "label": "promise, none",
+       "reply": true
+      },
+      {
+       "from": "Clerk B",
+       "to": "Dana",
+       "label": "promise, none",
+       "reply": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "dana",
+   "text": "A majority promised. Write this down: ticket one, tacos.",
+   "visuals": [
+    {
+     "do": "seq.diagram",
+     "id": "r1",
+     "messages": [
+      {
+       "from": "Dana",
+       "to": "Clerk A",
+       "label": "accept 1: tacos"
+      },
+      {
+       "from": "Dana",
+       "to": "Clerk B",
+       "label": "accept 1: tacos"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "narrator",
+   "text": "Two of three notebooks say tacos. Tacos are chosen.",
+   "visuals": [
+    {
+     "do": "sketch.note",
+     "at": 0.5,
+     "text": "2 of 3 clerks hold tacos: chosen"
+    }
+   ]
+  },
+  {
+   "speaker": "eli",
+   "text": "Ticket two. Clerks B and C, promise me, and report.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "seq.diagram",
+     "id": "r2",
+     "actors": [
+      "Dana",
+      "Clerk A",
+      "Clerk B",
+      "Clerk C",
+      "Eli"
+     ],
+     "messages": [
+      {
+       "from": "Eli",
+       "to": "Clerk B",
+       "label": "prepare 2"
+      },
+      {
+       "from": "Eli",
+       "to": "Clerk C",
+       "label": "prepare 2"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "narrator",
+   "text": "B reports tacos, accepted under ticket one. C reports nothing.",
+   "visuals": [
+    {
+     "do": "seq.diagram",
+     "id": "r2",
+     "messages": [
+      {
+       "from": "Clerk B",
+       "to": "Eli",
+       "label": "promise, accepted 1: tacos",
+       "reply": true
+      },
+      {
+       "from": "Clerk C",
+       "to": "Eli",
+       "label": "promise, none",
+       "reply": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "eli",
+   "text": "I wanted sushi.",
+   "visuals": []
+  },
+  {
+   "speaker": "narrator",
+   "text": "The rule: if anyone reports an accepted value, the proposer must propose the highest-numbered one. Eli can't pick sushi.",
+   "visuals": [
+    {
+     "do": "sketch.note",
+     "at": 0.5,
+     "text": "must reuse the highest accepted value: tacos"
+    }
+   ]
+  },
+  {
+   "speaker": "eli",
+   "text": "Fine. Ticket two, tacos.",
+   "visuals": [
+    {
+     "do": "seq.diagram",
+     "id": "r2",
+     "messages": [
+      {
+       "from": "Eli",
+       "to": "Clerk B",
+       "label": "accept 2: tacos"
+      },
+      {
+       "from": "Eli",
+       "to": "Clerk C",
+       "label": "accept 2: tacos"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "dana",
+   "text": "Where does the analogy stop?",
+   "visuals": []
+  },
+  {
+   "speaker": "narrator",
+   "text": "Clerks never lose notebooks. Real Paxos acceptors write their state to disk before replying. And couriers can outbid each other forever, so real systems elect one leader.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "define",
+     "at": 0.3,
+     "term": "Paxos"
+    },
+    {
+     "do": "sketch.note",
+     "at": 0.5,
+     "text": "real acceptors persist state before replying"
+    }
+   ]
+  },
+  {
+   "speaker": "narrator",
+   "text": "But the core holds. Any two quorums, meaning majorities, share a clerk, so a later round always hears about an earlier choice.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "sketch.box",
+     "id": "maj1",
+     "text": "Dana's majority",
+     "sub": "Clerk A, Clerk B",
+     "icon": "user"
+    },
+    {
+     "do": "sketch.box",
+     "id": "maj2",
+     "text": "Eli's majority",
+     "sub": "Clerk B, Clerk C",
+     "icon": "user"
+    },
+    {
+     "do": "sketch.box",
+     "id": "overlap",
+     "text": "Clerk B",
+     "sub": "in both",
+     "icon": "db",
+     "tone": "accent"
+    },
+    {
+     "do": "define",
+     "at": 0.2,
+     "term": "quorum"
+    }
+   ]
+  }
+ ]
+}

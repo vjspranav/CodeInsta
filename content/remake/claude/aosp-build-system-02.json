@@ -1,0 +1,280 @@
+{
+ "version": 3,
+ "format": "story",
+ "title": "How do Soong, Kati and ninja split the work in one m?",
+ "topic": "aosp/build/kati-ninja-pipeline",
+ "genre": "trace",
+ "style": "blueprint",
+ "series": "aosp-build-system",
+ "series_index": 2,
+ "level": "intermediate",
+ "tags": [
+  "aosp",
+  "soong",
+  "kati",
+  "ninja",
+  "build"
+ ],
+ "cast": [
+  {
+   "id": "rookie",
+   "name": "Rookie",
+   "role": "Overconfident junior who ships things",
+   "color": "#E4572E"
+  },
+  {
+   "id": "senior",
+   "name": "Senior",
+   "role": "Calm, dry-humored staff engineer",
+   "color": "#2F6F8F"
+  }
+ ],
+ "glossary": [
+  {
+   "term": "GNU",
+   "full": "GNU's Not Unix",
+   "note": "The project behind GNU make."
+  },
+  {
+   "term": "Kati",
+   "full": "A GNU make clone that emits Ninja files",
+   "note": "Reads Android.mk and the product config."
+  },
+  {
+   "term": "soong_ui",
+   "full": "The build conductor that runs Soong, Kati and Ninja"
+  }
+ ],
+ "key_points": [
+  "m starts soong_ui, which runs Soong and Kati and then one Ninja.",
+  "Soong reads Android.bp; Kati reads Android.mk and the product config.",
+  "soong_ui writes a combined Ninja file that includes both generated files."
+ ],
+ "sources": [
+  "https://source.android.com/docs/setup/build",
+  "https://android.googlesource.com/platform/build/soong/"
+ ],
+ "beats": [
+  {
+   "speaker": "narrator",
+   "text": "Rookie types one letter, m, and hits Enter. A whole Android build starts. Who actually does the work?",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "term.type",
+     "id": "sh",
+     "cmd": "m"
+    }
+   ],
+   "say": "Rookie types one letter, em, and hits Enter. A whole Android build starts. Who actually does the work?"
+  },
+  {
+   "speaker": "rookie",
+   "text": "Isn't m just a shell function? What does it call?",
+   "visuals": []
+  },
+  {
+   "speaker": "senior",
+   "text": "It runs build/soong/soong_ui.bash in make mode. That starts soong_ui, the conductor.",
+   "say": "It runs build slash soong slash soong underscore U I dot bash in make mode. That starts soong underscore U I, the conductor.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "seq.diagram",
+     "id": "b",
+     "actors": [
+      "You",
+      "soong_ui",
+      "Soong",
+      "Kati",
+      "ninja"
+     ],
+     "messages": [
+      {
+       "from": "You",
+       "to": "soong_ui",
+       "label": "m"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "rookie",
+   "text": "A conductor needs an orchestra.",
+   "visuals": []
+  },
+  {
+   "speaker": "senior",
+   "text": "First player: Soong. It reads every Android.bp and writes out/soong/build.ninja.",
+   "say": "First player: Soong. It reads every Android dot B P and writes out slash soong slash build dot ninja.",
+   "visuals": [
+    {
+     "do": "seq.diagram",
+     "id": "b",
+     "messages": [
+      {
+       "from": "soong_ui",
+       "to": "Soong",
+       "label": "read every .bp"
+      },
+      {
+       "from": "Soong",
+       "to": "soong_ui",
+       "label": "build.ninja",
+       "reply": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "rookie",
+   "text": "And the old Android.mk files?",
+   "say": "And the old Android dot M K files?",
+   "visuals": []
+  },
+  {
+   "speaker": "senior",
+   "text": "Kati reads those with the product config. It's a GNU make clone that writes a second Ninja file.",
+   "say": "Kati reads those with the product config. It's a G N U make clone that writes a second Ninja file.",
+   "visuals": [
+    {
+     "do": "seq.diagram",
+     "id": "b",
+     "messages": [
+      {
+       "from": "soong_ui",
+       "to": "Kati",
+       "label": ".mk + product config"
+      },
+      {
+       "from": "Kati",
+       "to": "soong_ui",
+       "label": "second ninja file",
+       "reply": true
+      }
+     ]
+    },
+    {
+     "do": "define",
+     "at": 0.6,
+     "term": "Kati"
+    }
+   ]
+  },
+  {
+   "speaker": "rookie",
+   "text": "Two Ninja files. Do they fight?",
+   "visuals": []
+  },
+  {
+   "speaker": "senior",
+   "text": "No. soong_ui writes one combined file that includes both.",
+   "say": "No. soong underscore U I writes one combined file that includes both.",
+   "visuals": [
+    {
+     "do": "seq.diagram",
+     "id": "b",
+     "messages": [
+      {
+       "from": "soong_ui",
+       "to": "ninja",
+       "label": "combined.ninja"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "senior",
+   "text": "They even talk. Soong writes a makefile of its own, which Kati includes, so make's image rules can package Soong modules.",
+   "visuals": [
+    {
+     "do": "seq.diagram",
+     "id": "b",
+     "messages": [
+      {
+       "from": "Soong",
+       "to": "Kati",
+       "label": "Soong's .mk, written earlier"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "rookie",
+   "text": "So who actually compiles?",
+   "visuals": []
+  },
+  {
+   "speaker": "senior",
+   "text": "One Ninja process. It runs the real compiler commands across the whole merged graph.",
+   "visuals": [
+    {
+     "do": "seq.diagram",
+     "id": "b",
+     "messages": [
+      {
+       "from": "ninja",
+       "to": "You",
+       "label": "built artifacts",
+       "reply": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "narrator",
+   "text": "The results land under out/target/product, in a folder named for the device.",
+   "say": "The results land under out slash target slash product, in a folder named for the device.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "tree",
+     "at": 0.2,
+     "id": "out",
+     "nodes": [
+      {
+       "id": "out",
+       "label": "out"
+      },
+      {
+       "id": "t",
+       "label": "target",
+       "parent": "out"
+      },
+      {
+       "id": "p",
+       "label": "product",
+       "parent": "t"
+      },
+      {
+       "id": "d",
+       "label": "<device>",
+       "parent": "p"
+      }
+     ],
+     "path": [
+      "out",
+      "t",
+      "p",
+      "d"
+     ],
+     "layout": "files"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,290 @@
+{
+ "version": 3,
+ "format": "story",
+ "title": "How does a 4-level x86-64 page walk turn a virtual address into a physical one?",
+ "topic": "os/memory/page-table-walk",
+ "genre": "analogy",
+ "style": "newsprint",
+ "series": "os-virtual-memory",
+ "series_index": 1,
+ "level": "intermediate",
+ "tags": [
+  "os",
+  "memory",
+  "paging",
+  "x86-64",
+  "tlb"
+ ],
+ "cast": [
+  {
+   "id": "mo",
+   "name": "Mo",
+   "role": "New parcel clerk",
+   "color": "#E4572E"
+  },
+  {
+   "id": "ines",
+   "name": "Ines",
+   "role": "Veteran who knows the building",
+   "color": "#2F6F8F"
+  }
+ ],
+ "glossary": [
+  {
+   "term": "TLB",
+   "full": "Translation Lookaside Buffer",
+   "note": "A small cache of finished address translations."
+  },
+  {
+   "term": "CR3",
+   "full": "Control Register 3",
+   "note": "Holds the physical base of the top page table."
+  },
+  {
+   "term": "PTE",
+   "full": "Page Table Entry",
+   "note": "The last-level entry that names a frame."
+  }
+ ],
+ "key_points": [
+  "A page walk is four dependent table lookups, each indexed by 9 bits of the address.",
+  "CR3 holds the top table; each entry names the next table, and the last names the frame.",
+  "TLBs and huge pages exist to avoid the full walk."
+ ],
+ "sources": [
+  "https://docs.kernel.org/mm/page_tables.html"
+ ],
+ "beats": [
+  {
+   "speaker": "narrator",
+   "text": "Mo delivers parcels to a building with four directories, one per floor. Each parcel label holds five numbers.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "db.table",
+     "id": "lab",
+     "name": "parcel label",
+     "columns": [
+      "pgd",
+      "pud",
+      "pmd",
+      "pte",
+      "offset"
+     ],
+     "rows": [
+      [
+       254,
+       233,
+       225,
+       212,
+       "0xe18"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "mo",
+   "text": "So four numbers pick rows on four floors?",
+   "visuals": []
+  },
+  {
+   "speaker": "ines",
+   "text": "That's the trick your CPU uses. A virtual address is 48 bits: four nine-bit indexes, then a twelve-bit offset.",
+   "visuals": [
+    {
+     "do": "sketch.note",
+     "at": 0.6,
+     "text": "4 × 9 bits + 12 bits = 48 bits"
+    }
+   ]
+  },
+  {
+   "speaker": "mo",
+   "text": "Where do I start?",
+   "visuals": []
+  },
+  {
+   "speaker": "ines",
+   "text": "The CR3 register holds the physical address of the top directory. Index times eight picks the entry.",
+   "say": "The C R three register holds the physical address of the top directory. Index times eight picks the entry.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "tree",
+     "at": 0.3,
+     "id": "w",
+     "nodes": [
+      {
+       "id": "cr3",
+       "label": "CR3"
+      },
+      {
+       "id": "pgd",
+       "label": "pgd",
+       "parent": "cr3"
+      },
+      {
+       "id": "pud",
+       "label": "pud",
+       "parent": "pgd"
+      },
+      {
+       "id": "pmd",
+       "label": "pmd",
+       "parent": "pud"
+      },
+      {
+       "id": "pte",
+       "label": "pte",
+       "parent": "pmd"
+      },
+      {
+       "id": "fr",
+       "label": "frame",
+       "parent": "pte"
+      }
+     ],
+     "path": [
+      "cr3",
+      "pgd"
+     ],
+     "layout": "files"
+    }
+   ]
+  },
+  {
+   "speaker": "ines",
+   "text": "That entry's address bits name the next directory. Repeat: pud, pmd, pte.",
+   "visuals": [
+    {
+     "do": "tree",
+     "id": "w",
+     "path": [
+      "cr3",
+      "pgd",
+      "pud",
+      "pmd",
+      "pte"
+     ]
+    }
+   ],
+   "say": "That entry's address bits name the next directory. Repeat: P U D, P M D, P T E."
+  },
+  {
+   "speaker": "ines",
+   "text": "The last entry names the frame. Add the offset, and you're at the byte.",
+   "visuals": [
+    {
+     "do": "tree",
+     "id": "w",
+     "path": [
+      "cr3",
+      "pgd",
+      "pud",
+      "pmd",
+      "pte",
+      "fr"
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "mo",
+   "text": "Four lookups, to read one byte?",
+   "visuals": []
+  },
+  {
+   "speaker": "ines",
+   "text": "Here the analogy stops. Floors cost nothing to visit, but these directories live in RAM. A TLB miss means four dependent memory reads.",
+   "say": "Here the analogy stops. Floors cost nothing to visit, but these directories live in RAM. A T L B miss means four dependent memory reads.",
+   "visuals": [
+    {
+     "do": "define",
+     "at": 0.5,
+     "term": "TLB"
+    }
+   ]
+  },
+  {
+   "speaker": "ines",
+   "text": "Each waits for the one before. So the CPU caches finished translations in the TLB, and a huge page stops the walk early.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "sketch.box",
+     "id": "tlb",
+     "text": "TLB",
+     "sub": "caches a finished translation",
+     "icon": "db",
+     "tone": "accent"
+    },
+    {
+     "do": "sketch.box",
+     "id": "huge",
+     "text": "Huge page",
+     "sub": "walk stops one level early",
+     "icon": "user"
+    }
+   ],
+   "say": "Each waits for the one before. So the CPU caches finished translations in the T L B, and a huge page stops the walk early."
+  },
+  {
+   "speaker": "mo",
+   "text": "What does Linux call these floors?",
+   "visuals": []
+  },
+  {
+   "speaker": "ines",
+   "text": "pgd, p4d, pud, pmd, pte. With four levels, the p4d level is folded away.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "tree",
+     "at": 0.4,
+     "id": "names",
+     "nodes": [
+      {
+       "id": "a",
+       "label": "pgd"
+      },
+      {
+       "id": "b",
+       "label": "p4d (folded)",
+       "parent": "a"
+      },
+      {
+       "id": "c",
+       "label": "pud",
+       "parent": "b"
+      },
+      {
+       "id": "d",
+       "label": "pmd",
+       "parent": "c"
+      },
+      {
+       "id": "e",
+       "label": "pte",
+       "parent": "d"
+      }
+     ],
+     "layout": "files"
+    }
+   ],
+   "say": "P G D, P four D, P U D, P M D, P T E. With four levels, the P four D level is folded away."
+  }
+ ]
+}

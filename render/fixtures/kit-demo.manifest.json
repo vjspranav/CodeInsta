@@ -1,0 +1,58 @@
+{
+  "lines": [
+    {
+      "beat_index": 0,
+      "speaker": "narrator",
+      "src": "kit-demo/b0.wav",
+      "duration_ms": 7742
+    },
+    {
+      "beat_index": 1,
+      "speaker": "senior",
+      "src": "kit-demo/b1.wav",
+      "duration_ms": 3484
+    },
+    {
+      "beat_index": 2,
+      "speaker": "rookie",
+      "src": "kit-demo/b2.wav",
+      "duration_ms": 3871
+    },
+    {
+      "beat_index": 3,
+      "speaker": "narrator",
+      "src": "kit-demo/b3.wav",
+      "duration_ms": 3484
+    },
+    {
+      "beat_index": 4,
+      "speaker": "senior",
+      "src": "kit-demo/b4.wav",
+      "duration_ms": 3871
+    },
+    {
+      "beat_index": 5,
+      "speaker": "rookie",
+      "src": "kit-demo/b5.wav",
+      "duration_ms": 5806
+    },
+    {
+      "beat_index": 6,
+      "speaker": "senior",
+      "src": "kit-demo/b6.wav",
+      "duration_ms": 3871
+    },
+    {
+      "beat_index": 7,
+      "speaker": "rookie",
+      "src": "kit-demo/b7.wav",
+      "duration_ms": 3097
+    },
+    {
+      "beat_index": 8,
+      "speaker": "narrator",
+      "src": "kit-demo/b8.wav",
+      "duration_ms": 2710
+    }
+  ]
+}

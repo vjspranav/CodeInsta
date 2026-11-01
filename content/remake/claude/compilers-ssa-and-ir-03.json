@@ -1,0 +1,250 @@
+{
+ "version": 3,
+ "format": "story",
+ "title": "What is getelementptr in LLVM IR, really?",
+ "topic": "compilers/ir/llvm-ir-structure",
+ "genre": "myth-vs-fact",
+ "style": "editorial-dark",
+ "series": "compilers-ssa-and-ir",
+ "series_index": 3,
+ "level": "intermediate",
+ "tags": [
+  "compilers",
+  "llvm",
+  "ir",
+  "getelementptr"
+ ],
+ "cast": [
+  {
+   "id": "jo",
+   "name": "Jo",
+   "role": "Confident dev who bets lunch",
+   "color": "#E4572E"
+  },
+  {
+   "id": "mina",
+   "name": "Mina",
+   "role": "Compiler maintainer, dry and precise",
+   "color": "#2F6F8F"
+  }
+ ],
+ "glossary": [
+  {
+   "term": "GEP",
+   "full": "getelementptr",
+   "note": "LLVM address arithmetic: base pointer plus scaled indices."
+  },
+  {
+   "term": "IR",
+   "full": "Intermediate Representation",
+   "note": "The compiler's internal program form."
+  }
+ ],
+ "key_points": [
+  "LLVM IR nests module, function, basic block, instruction.",
+  "A block ends with exactly one terminator.",
+  "getelementptr only computes an address; load and store touch memory."
+ ],
+ "sources": [
+  "https://llvm.org/docs/LangRef.html",
+  "https://llvm.org/docs/GetElementPtr.html"
+ ],
+ "beats": [
+  {
+   "speaker": "narrator",
+   "text": "Jo is sure about one instruction. She bets lunch on it.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "sketch.note",
+     "at": 0.4,
+     "text": "claim: getelementptr reads the array element"
+    }
+   ]
+  },
+  {
+   "speaker": "jo",
+   "text": "GEP fetches the array element. It's in the name: get element.",
+   "say": "G E P fetches the array element. It's in the name: get element.",
+   "visuals": [
+    {
+     "do": "define",
+     "at": 0.4,
+     "term": "GEP"
+    }
+   ]
+  },
+  {
+   "speaker": "mina",
+   "text": "Bet accepted. First, how LLVM IR is organized.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "tree",
+     "at": 0.3,
+     "id": "ir",
+     "nodes": [
+      {
+       "id": "m",
+       "label": "module"
+      },
+      {
+       "id": "f",
+       "label": "function @get",
+       "parent": "m"
+      },
+      {
+       "id": "b",
+       "label": "block entry",
+       "parent": "f"
+      },
+      {
+       "id": "g",
+       "label": "getelementptr",
+       "parent": "b"
+      },
+      {
+       "id": "l",
+       "label": "load",
+       "parent": "b"
+      },
+      {
+       "id": "r",
+       "label": "ret",
+       "parent": "b"
+      }
+     ]
+    }
+   ],
+   "say": "Bet accepted. First, how L L V M I R is organized."
+  },
+  {
+   "speaker": "mina",
+   "text": "A module holds functions. A function is a list of basic blocks. A block is a list of instructions.",
+   "visuals": [
+    {
+     "do": "tree",
+     "id": "ir",
+     "path": [
+      "m",
+      "f",
+      "b",
+      "g"
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "mina",
+   "text": "Every block ends with exactly one terminator, like ret, br or switch. Phi nodes may only open a block, and every value has a type.",
+   "visuals": [
+    {
+     "do": "tree",
+     "id": "ir",
+     "path": [
+      "b",
+      "r"
+     ]
+    }
+   ],
+   "say": "Every block ends with exactly one terminator, like ret, B R or switch. Phi nodes may only open a block, and every value has a type."
+  },
+  {
+   "speaker": "jo",
+   "text": "Fine. Where's my gep?",
+   "visuals": []
+  },
+  {
+   "speaker": "mina",
+   "text": "Third line. It takes a base pointer and an index.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "code.show",
+     "id": "ir",
+     "lang": "llvm",
+     "title": "get.ll",
+     "code": [
+      "define i32 @get(ptr %p, i64 %i) {",
+      "entry:",
+      "  %addr = getelementptr i32, ptr %p, i64 %i",
+      "  %v = load i32, ptr %addr",
+      "  ret i32 %v",
+      "}"
+     ],
+     "highlight": [
+      3
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "mina",
+   "text": "It computes p plus i times four. That's all. It touches no memory.",
+   "visuals": [
+    {
+     "do": "sketch.note",
+     "at": 0.5,
+     "text": "p + i × 4: an address, no memory read"
+    }
+   ]
+  },
+  {
+   "speaker": "jo",
+   "text": "Then who reads the element?",
+   "visuals": []
+  },
+  {
+   "speaker": "mina",
+   "text": "The load, on the next line.",
+   "visuals": [
+    {
+     "do": "sketch.note",
+     "at": 0.4,
+     "text": "load: the actual memory access"
+    }
+   ]
+  },
+  {
+   "speaker": "mina",
+   "text": "GEP computes where. Load does the access. Splitting them keeps address math optimizable like any other arithmetic.",
+   "visuals": [],
+   "say": "G E P computes where. Load does the access. Splitting them keeps address math optimizable like any other arithmetic."
+  },
+  {
+   "speaker": "mina",
+   "text": "On arm64, clang folds the pair into one load, with the index shifted left by two.",
+   "visuals": [
+    {
+     "do": "term.type",
+     "id": "asm",
+     "cmd": "clang -S -x ir get.ll -o -",
+     "out": [
+      "ldr w0, [x0, x1, lsl #2]"
+     ]
+    },
+    {
+     "do": "sketch.note",
+     "at": 0.7,
+     "text": "observed on arm64, output trimmed to the load line"
+    }
+   ],
+   "say": "On arm sixty-four, clang folds the pair into one load, with the index shifted left by two."
+  },
+  {
+   "speaker": "jo",
+   "text": "Lunch is on me.",
+   "punchline": true,
+   "visuals": []
+  }
+ ]
+}

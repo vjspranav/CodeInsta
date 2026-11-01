@@ -1,0 +1,303 @@
+{
+ "version": 3,
+ "format": "story",
+ "title": "Why can't a Raft leader commit old entries by counting replicas?",
+ "topic": "distributed/consensus/raft-log-replication-safety",
+ "genre": "interview",
+ "style": "sketch",
+ "series": "distributed-consensus",
+ "series_index": 2,
+ "level": "advanced",
+ "tags": [
+  "distributed",
+  "raft",
+  "consensus",
+  "log-replication",
+  "safety"
+ ],
+ "cast": [
+  {
+   "id": "mira",
+   "name": "Mira",
+   "role": "Interviewer who asks one bounded question",
+   "color": "#2F6F8F"
+  },
+  {
+   "id": "theo",
+   "name": "Theo",
+   "role": "Candidate, fast and a little too sure",
+   "color": "#E4572E"
+  }
+ ],
+ "glossary": [
+  {
+   "term": "Raft",
+   "full": "A consensus algorithm designed to be understandable",
+   "note": "Replicates a log across servers."
+  },
+  {
+   "term": "term",
+   "full": "A numbered period with at most one leader",
+   "note": "Acts as a logical clock."
+  },
+  {
+   "term": "no-op",
+   "full": "No operation",
+   "note": "An empty entry a new leader appends to commit older ones."
+  }
+ ],
+ "key_points": [
+  "Majority replication alone does not make an old-term entry safe (Figure 8).",
+  "A leader commits only entries from its own term by counting replicas.",
+  "Committing one current-term entry commits everything before it."
+ ],
+ "sources": [
+  "https://raft.github.io/raft.pdf"
+ ],
+ "beats": [
+  {
+   "speaker": "narrator",
+   "text": "Whiteboard interview. Five Raft servers, each log entry tagged with the term that wrote it. Alpha leads term 2, and has copied its newest entry to beta.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "db-focus"
+    },
+    {
+     "do": "db.table",
+     "id": "l1",
+     "name": "Raft logs",
+     "columns": [
+      "server",
+      "log (term of each entry)"
+     ],
+     "rows": [
+      [
+       "alpha",
+       "1 2"
+      ],
+      [
+       "beta",
+       "1 2"
+      ],
+      [
+       "gamma",
+       "1"
+      ],
+      [
+       "delta",
+       "1"
+      ],
+      [
+       "epsilon",
+       "1"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "mira",
+   "text": "Proposed rule: once a majority stores an entry, it's committed. Agree?",
+   "visuals": []
+  },
+  {
+   "speaker": "theo",
+   "text": "A majority has it, so it's safe. Always.",
+   "visuals": []
+  },
+  {
+   "speaker": "mira",
+   "text": "Alpha crashes. Epsilon wins term 3 with votes from gamma and delta, and writes its own entry in that slot.",
+   "visuals": [
+    {
+     "do": "clear"
+    },
+    {
+     "do": "layout",
+     "template": "db-focus"
+    },
+    {
+     "do": "db.table",
+     "id": "l2",
+     "name": "Raft logs",
+     "columns": [
+      "server",
+      "log (term of each entry)"
+     ],
+     "rows": [
+      [
+       "alpha",
+       "1 2"
+      ],
+      [
+       "beta",
+       "1 2"
+      ],
+      [
+       "gamma",
+       "1"
+      ],
+      [
+       "delta",
+       "1"
+      ],
+      [
+       "epsilon",
+       "1 3"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "mira",
+   "text": "Epsilon crashes. Alpha restarts, wins term 4, and copies its term 2 entry to gamma.",
+   "visuals": [
+    {
+     "do": "clear"
+    },
+    {
+     "do": "layout",
+     "template": "db-focus"
+    },
+    {
+     "do": "db.table",
+     "id": "l3",
+     "name": "Raft logs",
+     "columns": [
+      "server",
+      "log (term of each entry)"
+     ],
+     "rows": [
+      [
+       "alpha",
+       "1 2"
+      ],
+      [
+       "beta",
+       "1 2"
+      ],
+      [
+       "gamma",
+       "1 2"
+      ],
+      [
+       "delta",
+       "1"
+      ],
+      [
+       "epsilon",
+       "1 3"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "theo",
+   "text": "Three servers hold it. Majority. Committed.",
+   "visuals": []
+  },
+  {
+   "speaker": "mira",
+   "text": "Alpha crashes again. Epsilon returns. Its last entry is term 3, newer than term 2, so beta, gamma and delta vote for it.",
+   "visuals": [
+    {
+     "do": "sketch.note",
+     "at": 0.6,
+     "text": "the newer last term wins the vote"
+    }
+   ]
+  },
+  {
+   "speaker": "mira",
+   "text": "Epsilon leads term 5, overwriting that slot everywhere.",
+   "visuals": [
+    {
+     "do": "clear"
+    },
+    {
+     "do": "layout",
+     "template": "db-focus"
+    },
+    {
+     "do": "db.table",
+     "id": "l4",
+     "name": "Raft logs",
+     "columns": [
+      "server",
+      "log (term of each entry)"
+     ],
+     "rows": [
+      [
+       "alpha",
+       "1 2"
+      ],
+      [
+       "beta",
+       "1 3"
+      ],
+      [
+       "gamma",
+       "1 3"
+      ],
+      [
+       "delta",
+       "1 3"
+      ],
+      [
+       "epsilon",
+       "1 3"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "theo",
+   "text": "But a majority had it! It looked committed, and vanished.",
+   "visuals": []
+  },
+  {
+   "speaker": "theo",
+   "text": "Redraw one edge: a leader never counts replicas to commit an old-term entry. Only entries from its own term.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "sketch.box",
+     "id": "rule",
+     "text": "Count replicas only for entries from the leader's own term",
+     "sub": "the commit rule",
+     "tone": "accent"
+    }
+   ]
+  },
+  {
+   "speaker": "mira",
+   "text": "Once one current-term entry sits on a majority, everything before it is committed too. Logs agreeing on one entry agree on all earlier ones.",
+   "visuals": [
+    {
+     "do": "sketch.box",
+     "id": "lm",
+     "text": "Log Matching",
+     "sub": "same index and term, same history",
+     "icon": "db"
+    }
+   ]
+  },
+  {
+   "speaker": "theo",
+   "text": "So replicate something from its own term first.",
+   "visuals": []
+  },
+  {
+   "speaker": "mira",
+   "text": "Many implementations append a no-op on election for that.",
+   "visuals": []
+  }
+ ]
+}

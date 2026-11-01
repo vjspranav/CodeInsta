@@ -1,0 +1,279 @@
+{
+ "version": 3,
+ "format": "story",
+ "title": "Why does SSA need phi nodes?",
+ "topic": "compilers/ssa/phi-nodes-and-construction",
+ "genre": "story",
+ "style": "newsprint",
+ "series": "compilers-ssa-and-ir",
+ "series_index": 1,
+ "level": "intermediate",
+ "tags": [
+  "compilers",
+  "ssa",
+  "phi",
+  "llvm",
+  "dominance"
+ ],
+ "cast": [
+  {
+   "id": "kai",
+   "name": "Kai",
+   "role": "Junior compiler dev whose optimizer folds constants",
+   "color": "#E4572E"
+  },
+  {
+   "id": "noor",
+   "name": "Noor",
+   "role": "Optimizer lead, patient and exact",
+   "color": "#2F6F8F"
+  }
+ ],
+ "glossary": [
+  {
+   "term": "SSA",
+   "full": "Static Single Assignment",
+   "note": "Every variable is assigned exactly once."
+  },
+  {
+   "term": "phi node",
+   "full": "A merge that picks a value by the incoming edge",
+   "note": "Sits at the start of a join block."
+  },
+  {
+   "term": "dominance frontier",
+   "full": "Blocks reached from a block that it doesn't strictly dominate",
+   "note": "Where phi nodes belong."
+  },
+  {
+   "term": "LLVM",
+   "full": "Low Level Virtual Machine",
+   "note": "The compiler infrastructure whose IR uses SSA."
+  }
+ ],
+ "key_points": [
+  "At a join, renaming alone cannot choose between x1 and x2; a phi node does.",
+  "Cytron places phis at the iterated dominance frontier of each variable's definitions.",
+  "LLVM mem2reg promotes stack slots to SSA the same way."
+ ],
+ "sources": [
+  "https://dl.acm.org/doi/10.1145/115372.115320",
+  "https://llvm.org/docs/Passes.html"
+ ],
+ "beats": [
+  {
+   "speaker": "narrator",
+   "text": "Kai's optimizer folds constants. Today it folds one too many.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "code.show",
+     "id": "src",
+     "lang": "c",
+     "title": "source",
+     "code": [
+      "if (c)  x = 1;",
+      "else    x = 2;",
+      "use(x);"
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "kai",
+   "text": "I renamed each assignment so every variable is set exactly once. Single assignment. Clean.",
+   "visuals": [
+    {
+     "do": "define",
+     "at": 0.5,
+     "term": "SSA"
+    },
+    {
+     "do": "code.editor",
+     "id": "ssa",
+     "file": "renamed",
+     "lines": [
+      "then: x1 = 1",
+      "else: x2 = 2"
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "kai",
+   "text": "So which one does the use read: x1 or x2?",
+   "visuals": [],
+   "say": "So which one does the use read: x one or x two?"
+  },
+  {
+   "speaker": "noor",
+   "text": "That depends on which way the branch went. Renaming can't decide that at compile time.",
+   "visuals": []
+  },
+  {
+   "speaker": "kai",
+   "text": "My pass guesses x2, the last one it saw.",
+   "visuals": [
+    {
+     "do": "code.editor",
+     "id": "ssa",
+     "lines": [
+      "join: use(x2)"
+     ]
+    },
+    {
+     "do": "sketch.note",
+     "at": 0.6,
+     "text": "wrong whenever c is true"
+    }
+   ],
+   "say": "My pass guesses x two, the last one it saw."
+  },
+  {
+   "speaker": "noor",
+   "text": "And whenever c is true, you've shipped a bug.",
+   "punchline": true,
+   "visuals": []
+  },
+  {
+   "speaker": "noor",
+   "text": "The fix is a phi node at the top of the join block. It picks x1 if control came from then, and x2 if from else.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "code.show",
+     "id": "src",
+     "lang": "c",
+     "title": "source",
+     "code": [
+      "if (c)  x = 1;",
+      "else    x = 2;",
+      "use(x);"
+     ]
+    },
+    {
+     "do": "code.editor",
+     "id": "ssa2",
+     "file": "in SSA",
+     "lines": [
+      "then: x1 = 1",
+      "else: x2 = 2",
+      "join: x3 = phi(x1, x2)",
+      "      use(x3)"
+     ]
+    },
+    {
+     "do": "define",
+     "at": 0.3,
+     "term": "phi node"
+    }
+   ],
+   "say": "The fix is a phi node at the top of the join block. It picks x one if control came from then, and x two if from else."
+  },
+  {
+   "speaker": "kai",
+   "text": "Great. But where do they go? Everywhere?",
+   "visuals": []
+  },
+  {
+   "speaker": "noor",
+   "text": "Everywhere is slow. Cytron's algorithm places the fewest. For each variable, start with the blocks that define it.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "sketch.box",
+     "id": "defs",
+     "text": "Defining blocks of x",
+     "sub": "then, else",
+     "icon": "user"
+    }
+   ]
+  },
+  {
+   "speaker": "noor",
+   "text": "Take their iterated dominance frontier: blocks they reach but don't strictly dominate. Put a phi at each.",
+   "visuals": [
+    {
+     "do": "sketch.box",
+     "id": "df",
+     "text": "Frontier",
+     "sub": "join",
+     "icon": "db",
+     "tone": "accent"
+    },
+    {
+     "do": "sketch.arrow",
+     "from": "defs",
+     "to": "df"
+    },
+    {
+     "do": "define",
+     "at": 0.4,
+     "term": "dominance frontier"
+    }
+   ]
+  },
+  {
+   "speaker": "kai",
+   "text": "And renaming every use?",
+   "visuals": []
+  },
+  {
+   "speaker": "noor",
+   "text": "One walk down the dominator tree. Each use takes the newest name above it.",
+   "visuals": [
+    {
+     "do": "tree",
+     "at": 0.3,
+     "id": "dt",
+     "nodes": [
+      {
+       "id": "e",
+       "label": "entry"
+      },
+      {
+       "id": "t",
+       "label": "then",
+       "parent": "e"
+      },
+      {
+       "id": "l",
+       "label": "else",
+       "parent": "e"
+      },
+      {
+       "id": "j",
+       "label": "join",
+       "parent": "e"
+      }
+     ],
+     "path": [
+      "e",
+      "j"
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "kai",
+   "text": "So the pass reads x3, and folds nothing wrong.",
+   "visuals": [],
+   "say": "So the pass reads x three, and folds nothing wrong."
+  },
+  {
+   "speaker": "noor",
+   "text": "LLVM's mem2reg uses the same idea to turn stack slots into SSA values.",
+   "say": "L L V M's mem two reg uses the same idea to turn stack slots into S S A values.",
+   "visuals": []
+  }
+ ]
+}

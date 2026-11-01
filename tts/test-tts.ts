@@ -33,8 +33,10 @@ async function main() {
     const wall = (Date.now() - t0) / 1000;
     console.log(`[${e}] audio ${(r.total_ms / 1000).toFixed(1)}s, render ${wall.toFixed(1)}s => ${(wall / (r.total_ms / 1000)).toFixed(2)} s per audio-second`);
     for (const l of r.lines) {
-      const res = spawnSync("/opt/homebrew/bin/ffmpeg", ["-hide_banner", "-i", l.wav, "-af", "volumedetect", "-f", "null", "-"], { encoding: "utf8" });
+      const res = spawnSync("/opt/homebrew/bin/ffmpeg", ["-hide_banner", "-i", l.wav, "-af", "volumedetect,silencedetect=n=-35dB:d=0.12", "-f", "null", "-"], { encoding: "utf8" });
       const m = (res.stderr as string).match(/mean_volume: (\S+) dB[\s\S]*max_volume: (\S+) dB/);
+      const pauses = ((res.stderr as string).match(/silence_duration: [\d.]+/g) ?? []).map((x) => x.split(": ")[1].slice(0, 4)).join(",");
+      console.log(`  pauses[${pauses}]`);
       console.log(`  beat ${l.beat_index} ${l.speaker}: ${l.duration_ms}ms mean ${m?.[1]} max ${m?.[2]} dB  ${l.wav}`);
     }
   }

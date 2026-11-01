@@ -1,0 +1,315 @@
+{
+ "version": 3,
+ "format": "story",
+ "title": "Why did Android replace Makefiles with Android.bp?",
+ "topic": "aosp/build/soong-blueprint",
+ "genre": "versus",
+ "style": "terminal",
+ "series": "aosp-build-system",
+ "series_index": 1,
+ "level": "intermediate",
+ "tags": [
+  "aosp",
+  "soong",
+  "blueprint",
+  "make",
+  "build"
+ ],
+ "cast": [
+  {
+   "id": "mia",
+   "name": "Mia",
+   "role": "Tooling dev who wants answers without running a build",
+   "color": "#E4572E"
+  },
+  {
+   "id": "dev",
+   "name": "Dev",
+   "role": "Build veteran who has debugged every Makefile",
+   "color": "#2F6F8F"
+  }
+ ],
+ "glossary": [
+  {
+   "term": "GNU",
+   "full": "GNU's Not Unix",
+   "note": "The project behind GNU make."
+  },
+  {
+   "term": "Soong",
+   "full": "Android's build front end",
+   "note": "Go code that turns Android.bp into Ninja rules."
+  },
+  {
+   "term": "Blueprint",
+   "full": "The parser library Soong is built on",
+   "note": "Reads Android.bp files."
+  },
+  {
+   "term": "Ninja",
+   "full": "A small, fast build executor",
+   "note": "Runs the generated build.ninja."
+  }
+ ],
+ "key_points": [
+  "Android.mk is make code you must run to understand; Android.bp is declarative data.",
+  "Soong turns Android.bp into build.ninja, and mutators clone modules into variants.",
+  "Make is more flexible; Blueprint is faster to parse and analyze."
+ ],
+ "sources": [
+  "https://source.android.com/docs/setup/reference/androidbp",
+  "https://android.googlesource.com/platform/build/soong/"
+ ],
+ "beats": [
+  {
+   "speaker": "narrator",
+   "text": "Same tiny program, two build files. Mia's tool has to list what each one builds, without running a build.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "sketch.box",
+     "id": "tool",
+     "text": "Listing tool",
+     "sub": "no build allowed",
+     "icon": "user",
+     "tone": "accent"
+    }
+   ]
+  },
+  {
+   "speaker": "mia",
+   "text": "Exhibit A: the old Android.mk.",
+   "say": "Exhibit A: the old Android dot M K.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "split"
+    },
+    {
+     "do": "code.show",
+     "id": "mk",
+     "lang": "make",
+     "title": "Android.mk",
+     "code": [
+      "LOCAL_PATH := $(call my-dir)",
+      "include $(CLEAR_VARS)",
+      "LOCAL_MODULE := hello",
+      "LOCAL_SRC_FILES := hello.c",
+      "ifeq ($(TARGET_ARCH),arm64)",
+      "LOCAL_CFLAGS += -DFAST",
+      "endif",
+      "include $(BUILD_EXECUTABLE)"
+     ],
+     "highlight": [
+      5,
+      6,
+      7
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "dev",
+   "text": "That's GNU make. The ifeq is code, so you only learn what gets built by running it.",
+   "say": "That's G N U make. The if E Q is code, so you only learn what gets built by running it.",
+   "visuals": [
+    {
+     "do": "define",
+     "term": "GNU"
+    }
+   ]
+  },
+  {
+   "speaker": "mia",
+   "text": "So to list modules, I'd execute thousands of these. Every build does exactly that.",
+   "visuals": []
+  },
+  {
+   "speaker": "dev",
+   "text": "Exhibit B: Android.bp.",
+   "say": "Exhibit B: Android dot B P.",
+   "visuals": [
+    {
+     "do": "code.show",
+     "id": "bp",
+     "lang": "blueprint",
+     "title": "Android.bp",
+     "code": [
+      "cc_binary {",
+      "    name: \"hello\",",
+      "    srcs: [\"hello.c\"],",
+      "    arch: {",
+      "        arm64: {",
+      "            cflags: [\"-DFAST\"],",
+      "        },",
+      "    },",
+      "}"
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "mia",
+   "text": "No loops. No if. Just a module type and properties.",
+   "visuals": []
+  },
+  {
+   "speaker": "dev",
+   "text": "A parser reads it like data. Per-architecture differences are just nested properties.",
+   "visuals": []
+  },
+  {
+   "speaker": "mia",
+   "text": "So where does the build logic live?",
+   "visuals": []
+  },
+  {
+   "speaker": "dev",
+   "text": "In Go. The Blueprint library parses every Android.bp, and Soong defines module types like cc_binary.",
+   "say": "In Go. The Blueprint library parses every Android dot B P, and Soong defines module types like C C binary.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "sketch.box",
+     "id": "bp",
+     "text": "Android.bp",
+     "sub": "module files",
+     "icon": "db"
+    },
+    {
+     "do": "sketch.box",
+     "id": "blue",
+     "text": "Blueprint",
+     "sub": "parser"
+    },
+    {
+     "do": "sketch.box",
+     "id": "soong",
+     "text": "Soong",
+     "sub": "module types",
+     "icon": "user",
+     "tone": "accent"
+    },
+    {
+     "do": "sketch.arrow",
+     "from": "bp",
+     "to": "blue"
+    },
+    {
+     "do": "sketch.arrow",
+     "from": "blue",
+     "to": "soong"
+    }
+   ]
+  },
+  {
+   "speaker": "dev",
+   "text": "Soong writes out/soong/build.ninja, and Ninja runs it.",
+   "say": "Soong writes out slash soong slash build dot ninja, and Ninja runs it.",
+   "visuals": [
+    {
+     "do": "sketch.box",
+     "id": "ninja",
+     "text": "build.ninja",
+     "sub": "what Ninja runs",
+     "icon": "db"
+    },
+    {
+     "do": "sketch.arrow",
+     "from": "soong",
+     "to": "ninja"
+    }
+   ]
+  },
+  {
+   "speaker": "mia",
+   "text": "But the phone needs arm64 and arm builds of hello.",
+   "visuals": [],
+   "say": "But the phone needs arm sixty-four and arm builds of hello."
+  },
+  {
+   "speaker": "dev",
+   "text": "Mutators clone each module into variants: architecture, core or vendor, shared or static.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "tree",
+     "at": 0.3,
+     "id": "var",
+     "nodes": [
+      {
+       "id": "hello",
+       "label": "hello"
+      },
+      {
+       "id": "a",
+       "label": "arm64 core",
+       "parent": "hello"
+      },
+      {
+       "id": "b",
+       "label": "arm64 vendor",
+       "parent": "hello"
+      },
+      {
+       "id": "c",
+       "label": "arm core",
+       "parent": "hello"
+      }
+     ]
+    },
+    {
+     "do": "sketch.note",
+     "at": 0.6,
+     "text": "example variants"
+    }
+   ]
+  },
+  {
+   "speaker": "mia",
+   "text": "So does make lose?",
+   "visuals": []
+  },
+  {
+   "speaker": "dev",
+   "text": "Need arbitrary logic per file? Make wins. Need a fast graph a tool can read? Blueprint wins.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "sketch.box",
+     "id": "m",
+     "text": "make",
+     "sub": "powerful, must run",
+     "icon": "user"
+    },
+    {
+     "do": "sketch.box",
+     "id": "b",
+     "text": "Blueprint",
+     "sub": "limited, readable as data",
+     "icon": "db",
+     "tone": "accent"
+    }
+   ]
+  },
+  {
+   "speaker": "mia",
+   "text": "Then my tool reads Android.bp as plain data, and never runs it.",
+   "say": "Then my tool reads Android dot B P as plain data, and never runs it.",
+   "punchline": true,
+   "visuals": []
+  }
+ ]
+}

@@ -1,0 +1,263 @@
+{
+ "version": 3,
+ "format": "story",
+ "title": "How does TLS 1.3 reach encryption in one round trip?",
+ "topic": "networking/tls/tls13-handshake",
+ "genre": "trace",
+ "style": "blueprint",
+ "series": "networking-protocol-internals",
+ "series_index": 3,
+ "level": "advanced",
+ "tags": [
+  "networking",
+  "tls",
+  "handshake",
+  "x25519"
+ ],
+ "cast": [
+  {
+   "id": "rookie",
+   "name": "Rookie",
+   "role": "Overconfident junior who ships things",
+   "color": "#E4572E"
+  },
+  {
+   "id": "senior",
+   "name": "Senior",
+   "role": "Calm, dry-humored staff engineer",
+   "color": "#2F6F8F"
+  }
+ ],
+ "glossary": [
+  {
+   "term": "TLS",
+   "full": "Transport Layer Security",
+   "note": "Encrypts the connection and proves the server's identity."
+  },
+  {
+   "term": "ECDHE",
+   "full": "Elliptic-Curve Diffie-Hellman Ephemeral",
+   "note": "Two one-time key pairs make one shared secret."
+  },
+  {
+   "term": "HKDF",
+   "full": "HMAC-based Key Derivation Function",
+   "note": "Turns a shared secret into keys."
+  }
+ ],
+ "key_points": [
+  "The key share rides in ClientHello, so one round trip is enough.",
+  "After ServerHello the certificate and Finished are encrypted.",
+  "Early data can be replayed, so only safe-to-repeat requests should use it."
+ ],
+ "sources": [
+  "https://www.rfc-editor.org/rfc/rfc8446"
+ ],
+ "beats": [
+  {
+   "speaker": "narrator",
+   "text": "You press Enter on an https address. Before one page byte moves, two computers must agree on a secret, in public.",
+   "say": "You press Enter on an H T T P S address. Before one page byte moves, two computers must agree on a secret, in public.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "seq.diagram",
+     "id": "h",
+     "actors": [
+      "Browser",
+      "Server"
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "rookie",
+   "text": "How do you agree on a secret in public?",
+   "visuals": []
+  },
+  {
+   "speaker": "senior",
+   "text": "Each side makes a one-time key pair. The ClientHello carries the browser's public half, an X25519 key share, guessing which group the server accepts.",
+   "say": "Each side makes a one-time key pair. The Client Hello carries the browser's public half, an X two five five one nine key share, guessing which group the server accepts.",
+   "visuals": [
+    {
+     "do": "seq.diagram",
+     "id": "h",
+     "messages": [
+      {
+       "from": "Browser",
+       "to": "Server",
+       "label": "ClientHello + key_share"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "rookie",
+   "text": "And the server?",
+   "visuals": []
+  },
+  {
+   "speaker": "senior",
+   "text": "ServerHello carries its public half. Now both run ECDHE, mix the result with HKDF, and hold the same handshake secrets. Nobody sent a secret.",
+   "say": "Server Hello carries its public half. Now both run E C D H E, mix the result with H K D F, and hold the same handshake secrets. Nobody sent a secret.",
+   "visuals": [
+    {
+     "do": "seq.diagram",
+     "id": "h",
+     "messages": [
+      {
+       "from": "Server",
+       "to": "Browser",
+       "label": "ServerHello + key_share",
+       "reply": true
+      }
+     ]
+    },
+    {
+     "do": "define",
+     "at": 0.3,
+     "term": "ECDHE"
+    },
+    {
+     "do": "define",
+     "at": 0.8,
+     "term": "HKDF"
+    }
+   ]
+  },
+  {
+   "speaker": "rookie",
+   "text": "So the certificate still travels in the clear?",
+   "visuals": []
+  },
+  {
+   "speaker": "senior",
+   "text": "No. Everything after ServerHello is encrypted: EncryptedExtensions, Certificate, CertificateVerify, Finished.",
+   "say": "No. Everything after Server Hello is encrypted: Encrypted Extensions, Certificate, Certificate Verify, Finished.",
+   "visuals": [
+    {
+     "do": "seq.diagram",
+     "id": "h",
+     "messages": [
+      {
+       "from": "Server",
+       "to": "Browser",
+       "label": "Certificate + Finished, encrypted",
+       "reply": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "rookie",
+   "text": "And then?",
+   "visuals": []
+  },
+  {
+   "speaker": "senior",
+   "text": "It verifies the certificate chain, the signature and the Finished check, then sends its own Finished and the request.",
+   "visuals": [
+    {
+     "do": "seq.diagram",
+     "id": "h",
+     "messages": [
+      {
+       "from": "Browser",
+       "to": "Server",
+       "label": "Finished + request, encrypted"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "rookie",
+   "text": "How many round trips was that?",
+   "visuals": []
+  },
+  {
+   "speaker": "senior",
+   "text": "One. TLS 1.2 needed two.",
+   "say": "One. T L S one point two needed two.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "timeline.track",
+     "id": "rt",
+     "lanes": [
+      "TLS 1.2",
+      "TLS 1.3"
+     ],
+     "blocks": [
+      {
+       "lane": "TLS 1.2",
+       "start": 0,
+       "end": 2,
+       "label": "two round trips"
+      },
+      {
+       "lane": "TLS 1.3",
+       "start": 0,
+       "end": 1,
+       "label": "one round trip",
+       "tone": "accent"
+      }
+     ],
+     "span": [
+      0,
+      2
+     ],
+     "playhead": {
+      "from": 0,
+      "to": 1,
+      "ms": 1800
+     }
+    },
+    {
+     "do": "define",
+     "at": 0.1,
+     "term": "TLS"
+    }
+   ]
+  },
+  {
+   "speaker": "rookie",
+   "text": "Can it go faster?",
+   "visuals": []
+  },
+  {
+   "speaker": "senior",
+   "text": "With a pre-shared key from an earlier visit, early data rides in the first flight. It can be replayed, so use it only for requests that are safe to repeat.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "sketch.box",
+     "id": "zero",
+     "text": "Early data",
+     "sub": "sent in the first flight",
+     "icon": "user"
+    },
+    {
+     "do": "sketch.box",
+     "id": "safe",
+     "text": "Replayable",
+     "sub": "only safe-to-repeat requests",
+     "icon": "db",
+     "tone": "accent"
+    }
+   ]
+  }
+ ]
+}

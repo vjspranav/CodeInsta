@@ -168,7 +168,7 @@
         {
           "do": "sketch.note",
           "text": "p99 latency: 8 s",
-          "at": 0.85
+          "at": 0.78
         },
         {
           "do": "define",
@@ -333,7 +333,7 @@
         {
           "do": "sketch.note",
           "text": "write storm",
-          "at": 0.4
+          "at": 0
         }
       ]
     },
@@ -532,7 +532,7 @@
           "instant": true
         }
       ],
-      "hold_ms": 600
+      "hold_ms": 200
     },
     {
       "speaker": "senior",

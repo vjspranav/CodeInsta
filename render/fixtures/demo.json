@@ -1,0 +1,171 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "Why does the like button hang?",
+  "topic": "scaling/likes",
+  "tags": ["databases", "sharding", "cache"],
+  "level": "beginner",
+  "cast": [
+    {"id": "rookie", "name": "Rookie", "role": "ships fast", "color": "#E4572E"},
+    {"id": "senior", "name": "Senior", "role": "dry humor", "color": "#2F6F8F"}
+  ],
+  "glossary": [
+    {"term": "Shard", "full": "One slice of a big table, on its own server", "note": "split by a key such as post_id"},
+    {"term": "Replica", "full": "A live copy of data, for safety and speed"},
+    {"term": "Fan-out", "full": "Copying one post into every follower's feed"},
+    {"term": "Cache", "full": "A small, fast shelf in front of the database"}
+  ],
+  "key_points": [
+    "One database cannot absorb a million taps.",
+    "Shard to split writes, replicate to survive.",
+    "Cache what everyone keeps asking for."
+  ],
+  "expect": [
+    {"beat": 1, "at": 0.9, "kind": "heart.filled"},
+    {"beat": 3, "at": 0.9, "kind": "toast.visible", "text": "Couldn't like this post. Try again."},
+    {"beat": 6, "at": 0.95, "kind": "table.rows", "target": "likes#0", "count": 2},
+    {"beat": 10, "at": 0.9, "kind": "text.visible", "text": "App server"}
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "Rookie just shipped the like button. Friday, four fifty-eight p m.",
+      "visuals": [
+        {"do": "layout", "template": "phone-left+board-right", "at": "start"},
+        {"do": "phone.show", "at": "start"},
+        {"do": "sketch.note", "text": "Friday 4:58 PM. What could go wrong?", "at": 0.6}
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Works on my laptop. It's instant. Ship it!",
+      "say": "Works on my laptop. It's instant. Ship it!",
+      "visuals": [
+        {"do": "phone.tap", "target": "heart", "at": "start"},
+        {"do": "sketch.box", "text": "My laptop", "sub": "3 ms", "icon": "client", "at": 0.5}
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "On launch day, a million people tap the heart at once.",
+      "visuals": [
+        {"do": "phone.feed", "at": "start"},
+        {"do": "phone.tap", "target": "heart", "at": 0.3},
+        {"do": "phone.spinner", "at": 0.75}
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Why is it just spinning?",
+      "visuals": [
+        {"do": "phone.toast", "text": "Couldn't like this post. Try again.", "kind": "error", "at": 0.6},
+        {"do": "sketch.box", "text": "Launch day", "sub": "1M taps", "icon": "user", "tone": "accent", "at": 0.5}
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Every like walks to one database, far away.",
+      "visuals": [
+        {"do": "layout", "template": "db-focus", "at": "start"},
+        {"do": "db.table", "id": "likes", "title": "likes", "cols": ["post_id", "user", "at"], "rows": [["101", "ana", "9:01"], ["102", "bo", "9:01"], ["101", "cy", "9:02"]], "at": "start"},
+        {"do": "sketch.box", "text": "One database", "sub": "far away", "icon": "db", "tone": "accent", "at": 0.55}
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "One new row per tap. Watch it pile up.",
+      "visuals": [
+        {"do": "db.insert", "table": "likes", "row": ["103", "dee", "9:02"], "at": "start"},
+        {"do": "db.insert", "table": "likes", "row": ["102", "eli", "9:03"], "at": 0.5},
+        {"do": "db.insert", "table": "likes", "row": ["101", "fay", "9:03"], "at": 0.8}
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "So we split the table by post. That is sharding.",
+      "visuals": [
+        {"do": "db.shard", "table": "likes", "n": 3, "by": "post_id", "at": 0.3},
+        {"do": "define", "term": "Shard", "at": 0.45},
+        {"do": "focus", "id": "likes#1", "at": "end"}
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "And if a shard dies?",
+      "visuals": [
+        {"do": "focus", "at": "start"},
+        {"do": "sketch.note", "text": "A shard goes dark", "at": 0.3}
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Then every shard keeps a live copy.",
+      "visuals": [
+        {"do": "db.replicate", "table": "likes#0", "n": 1, "at": 0.3},
+        {"do": "define", "term": "Replica", "at": 0.5}
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Next, the feed. One post fans out to every follower.",
+      "visuals": [
+        {"do": "layout", "template": "db-focus", "at": "start"},
+        {"do": "db.table", "id": "posts", "title": "posts", "cols": ["post_id", "author", "text"], "rows": [["101", "maya", "hello"], ["205", "trail", "sunrise"]], "at": "start"},
+        {"do": "db.fanout", "table": "posts", "row": 1, "followers": ["ana", "bo", "cy", "dee"], "label": "feed", "at": 0.5},
+        {"do": "define", "term": "Fan-out", "at": 0.5}
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Reads are the real problem. So Senior adds a cache.",
+      "visuals": [
+        {"do": "layout", "template": "board-full", "at": "start"},
+        {"do": "sketch.box", "id": "app", "text": "App server", "icon": "server", "at": "start"},
+        {"do": "cache.miss", "id": "c", "key": "feed:42", "at": 0.45},
+        {"do": "sketch.arrow", "from": "app", "to": "c", "label": "GET feed:42", "at": 0.55}
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "The first request misses. The second one hits.",
+      "visuals": [
+        {"do": "cache.hit", "id": "c", "key": "feed:42", "value": "posts", "at": 0.6}
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Here is the whole fix, in a single line.",
+      "visuals": [
+        {"do": "code.show", "title": "feed.ts", "code": ["async function feed(id) {", "  return cache.get(id) ?? db.load(id)", "}"], "highlight": [2], "at": "start"}
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "StagOS hit the very same wall, in a real commit.",
+      "visuals": [
+        {"do": "clear", "at": "start"},
+        {"do": "commit.story", "repo": "StagOS/frameworks_base", "title": "Binder calls stalled the UI", "broke": "Every tap blocked on a slow lookup.", "fix": "Cache the result, refresh in the background.", "why": "Hot reads skip the slow path entirely.", "at": "start"}
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Check your logs before you blame the network.",
+      "visuals": [
+        {"do": "layout", "template": "split", "at": "start"},
+        {"do": "term.type", "cmd": "adb logcat | grep Feed", "out": ["Feed: load 2400ms", "Feed: cache MISS"], "at": "start"},
+        {"do": "sketch.note", "text": "2.4 seconds. That is the bug.", "at": 0.6}
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Now it's instant. For everyone.",
+      "visuals": [
+        {"do": "layout", "template": "phone-left+board-right", "at": "start"},
+        {"do": "phone.show", "state": "loading", "at": "start"},
+        {"do": "phone.instant", "label": "42 ms", "at": 0.2},
+        {"do": "phone.tap", "target": "heart", "at": 0.5},
+        {"do": "sketch.box", "text": "Instant", "sub": "42 ms", "icon": "cache", "tone": "accent", "at": 0.6}
+      ]
+    }
+  ]
+}
