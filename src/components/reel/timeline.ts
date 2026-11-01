@@ -265,6 +265,57 @@ export function scoreFeed<T extends FeedRow>(
   return scores;
 }
 
+const seriesKey = (r: FeedRow) => (r.series && r.series_index != null ? `${r.creator_id}/${r.series}` : null);
+const isPart = (r: FeedRow) => /\/part-\d+$/.test(r.topic ?? "");
+
+/**
+ * Unwatched reels of one series always play in series_index order: the series' slots keep their ranked
+ * positions but are refilled lowest index first. Parts of one story (topic ending in /part-N) also play
+ * back to back, so Part 2 follows Part 1 directly. Owner rule: a later part never shows before an earlier one.
+ */
+export function seriesInOrder<T extends FeedRow>(list: T[]): T[] {
+  const groups = new Map<string, T[]>();
+  for (const r of list) {
+    const k = seriesKey(r);
+    if (k) groups.set(k, [...(groups.get(k) ?? []), r]);
+  }
+  for (const g of groups.values()) g.sort((a, b) => a.series_index! - b.series_index!);
+  const used = new Map<string, number>();
+  const slotted = list.map((r) => {
+    const k = seriesKey(r);
+    if (!k) return r;
+    const i = used.get(k) ?? 0;
+    used.set(k, i + 1);
+    return groups.get(k)![i];
+  });
+  const out: T[] = [];
+  const placed = new Set<string>();
+  for (const r of slotted) {
+    if (placed.has(r.id)) continue;
+    out.push(r);
+    placed.add(r.id);
+    const k = seriesKey(r);
+    if (!k || !isPart(r)) continue;
+    for (const next of groups.get(k)!) {
+      if (next.series_index! > r.series_index! && isPart(next) && !placed.has(next.id)) {
+        out.push(next);
+        placed.add(next.id);
+      }
+    }
+  }
+  return out;
+}
+
+/** Opening Part N directly: any unwatched earlier parts of the same story play first. */
+export function withEarlierParts<T extends FeedRow>(target: T, all: T[], seen: Set<string>): T[] {
+  const k = seriesKey(target);
+  if (!k || !isPart(target)) return [target];
+  const earlier = all
+    .filter((r) => seriesKey(r) === k && isPart(r) && r.series_index! < target.series_index! && !seen.has(r.id))
+    .sort((a, b) => a.series_index! - b.series_index!);
+  return [...earlier, target];
+}
+
 export function orderFeed<T extends FeedRow>(
   rows: T[],
   seen: Set<string>,
@@ -287,7 +338,7 @@ export function orderFeed<T extends FeedRow>(
   };
   const unseen = rows.filter((r) => !seen.has(r.id)),
     seenRows = mix(rows.filter((r) => seen.has(r.id)));
-  if (!context) return [...mix(unseen), ...seenRows];
+  if (!context) return [...seriesInOrder(mix(unseen)), ...seenRows];
   const scores = scoreFeed(rows, seen, context),
     remaining = [...unseen].sort(
       (a, b) =>
@@ -302,5 +353,5 @@ export function orderFeed<T extends FeedRow>(
       index = explore ? remaining.findIndex(outside) : -1;
     ordered.push(remaining.splice(Math.max(0, index), 1)[0]);
   }
-  return [...ordered, ...seenRows];
+  return [...seriesInOrder(ordered), ...seenRows];
 }

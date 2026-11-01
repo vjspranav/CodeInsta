@@ -86,3 +86,4 @@ The user does not want to relay messages between agents. From now on:
 - 2026-11-01: stand-in edit in src/components/catalog.tsx + globals.css: 'My interests' / 'Review topic requests' are now settings-row buttons (owner feedback: looked like plain text).
 
 - 2026-11-01: archive-and-remake groundwork: migration `0010_archive_reels.sql` written (NOT applied). Stand-in edit in Codex-owned `src/components/data.tsx`: the reels query now has `.is("archived_at", null)`. Also filtered in agent catalog and inbox routes; `scripts/seed.ts` upsert replaced with explicit live-row check (partial unique index cannot be an onConflict target). The reels POST needs no change (its 23505 still maps to 409). Run the migration right before deploying: the filter errors until the column exists.
+- 2026-11-01: stand-in edit in src/components/reel/{timeline.ts,feed.tsx}: series order rule (seriesInOrder, withEarlierParts) + tests.

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Flame } from "lucide-react";
 import { useData, LoadState, type ReelRow } from "../data";
 import { Player } from "./player";
-import { orderFeed } from "./timeline";
+import { orderFeed, withEarlierParts } from "./timeline";
 type Learning = { day: string; streak: number; ids: string[] };
 const dateKey = () => new Date().toLocaleDateString("en-CA");
 export function Feed({ reelId }: { reelId?: string }) {
@@ -52,8 +52,11 @@ export function Feed({ reelId }: { reelId?: string }) {
     if (loading || !reels.length || initialized.current === (reelId ?? "feed"))
       return;
     initialized.current = reelId ?? "feed";
+    const target = reelId ? reels.find((r) => r.id === reelId) : undefined;
     const list = reelId
-      ? reels.filter((r) => r.id === reelId)
+      ? target
+        ? withEarlierParts(target, reels, seen)
+        : []
       : orderFeed(reels, seen, { areas, liked, disliked, fulfilled });
     setOrdered(list);
     setActive(list[0]?.id ?? "");

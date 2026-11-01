@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { validateReel, type ReelElement } from "../../lib/reel-schema";
-import { bubbleContent, center, orderFeed, scoreFeed, timeline, wordTimings } from "./timeline";
+import { bubbleContent, center, orderFeed, scoreFeed, seriesInOrder, timeline, withEarlierParts, wordTimings } from "./timeline";
 import { isAllowed } from "../../lib/supabase/allowlist";
 import { readdirSync } from "node:fs";
 const file = readdirSync("content/examples").find((name) =>
@@ -254,5 +254,41 @@ describe("speech-bound chat bubbles", () => {
     expect(bubbleContent(frame, frame.elements[1], 2500)).toBe("The cache is empty.");
     expect(bubbleContent(frame, frame.elements[0], 6600)).toBe("Now I see.");
     expect(bubbleContent(frame, frame.elements[0], 7500)).toBeNull();
+  });
+});
+
+describe("series order (owner: Part 2 must never come before Part 1)", () => {
+  const part = (id: string, n: number, created: string, extra: Partial<{ creator_id: string; series: string; topic: string }> = {}) => ({
+    id,
+    creator_id: "claude",
+    created_at: created,
+    series: "system-design-stories",
+    series_index: n,
+    topic: `distributed/feeds/instagram-feed/part-${n}`,
+    ...extra,
+  });
+  const other = (id: string, created: string) => ({ id, creator_id: "gpt", created_at: created, topic: "os/x" });
+
+  it("plays Part 1 before Part 2 even when Part 2 is newer or scores higher", () => {
+    const rows = [other("a", "2026-11-01T10:00:00Z"), part("p2", 2, "2026-11-01T12:00:00Z"), part("p1", 1, "2026-11-01T09:00:00Z")];
+    for (const context of [undefined, { areas: ["distributed"], liked: new Set<string>(), disliked: new Set<string>(), fulfilled: new Set<string>() }]) {
+      const ids = orderFeed(rows, new Set(), context).map((r) => r.id);
+      expect(ids.indexOf("p1")).toBeLessThan(ids.indexOf("p2"));
+      expect(ids.indexOf("p2")).toBe(ids.indexOf("p1") + 1);
+    }
+  });
+  it("keeps non-part series in index order without forcing them adjacent", () => {
+    const s = (id: string, n: number, c: string) => ({ id, creator_id: "claude", created_at: c, series: "aosp-build", series_index: n, topic: `aosp/build/t${n}` });
+    const ids = seriesInOrder([s("b3", 3, "c"), other("x", "d"), s("b1", 1, "a"), other("y", "e"), s("b2", 2, "b")]).map((r) => r.id);
+    expect(ids).toEqual(["b1", "x", "b2", "y", "b3"]);
+  });
+  it("shows Part 2 first only when Part 1 was already watched", () => {
+    const rows = [part("p2", 2, "2026-11-01T12:00:00Z"), part("p1", 1, "2026-11-01T09:00:00Z")];
+    expect(orderFeed(rows, new Set(["p1"])).map((r) => r.id)).toEqual(["p2", "p1"]);
+  });
+  it("a direct link to Part 2 plays an unwatched Part 1 first", () => {
+    const p1 = part("p1", 1, "a"), p2 = part("p2", 2, "b");
+    expect(withEarlierParts(p2, [p2, p1], new Set()).map((r) => r.id)).toEqual(["p1", "p2"]);
+    expect(withEarlierParts(p2, [p2, p1], new Set(["p1"])).map((r) => r.id)).toEqual(["p2"]);
   });
 });
