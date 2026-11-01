@@ -88,3 +88,7 @@ Without them, the run prepares everything, writes "waiting for OWNER approval: <
 - Briefs live in `docs/coordination/codex-queue/NN-name.md`. Finished ones move to `done/`.
 - `scripts/schedule/codex-queue.sh` runs the oldest pending brief headless when no Codex job is running and the last recorded rate-limit reset time has passed. It records a new reset time if Codex says "usage limit … try again at …".
 - Codex can't write `.git`: Claude reviews and commits Codex output with `[codex]`.
+
+## Agent activity
+Open `docs/coordination/activity.html` to see which agent ran when and what it did (status badge per agent, 48 h timeline, event table). Events go to the gitignored `docs/coordination/.activity.jsonl` via `scripts/activity/log.sh <claude|codex> <start|end|limited|failed|skipped> <job> "<summary>"`; `codex-queue.sh` and the Claude continuation prompt log automatically, and `node scripts/activity/report.mjs` rebuilds the page. One-time history import: `node scripts/activity/backfill.mjs`. Keep it fresh when both agents are down: `cp scripts/schedule/dev.vjspranav.codeinsta.activity-report.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/dev.vjspranav.codeinsta.activity-report.plist` (every 15 min).
+

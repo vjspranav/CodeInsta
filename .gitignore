@@ -22,3 +22,7 @@ tts/.venv/
 tts/cache/
 docs/coordination/codex-queue/.state/
 docs/coordination/.claude-run.lock
+docs/coordination/.activity.jsonl
+docs/coordination/.activity.jsonl.tmp
+docs/coordination/activity.html
+docs/coordination/activity.html.tmp
