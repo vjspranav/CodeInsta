@@ -143,3 +143,8 @@ Verification: `npm run lint` exits 0 (19 existing renderer warnings, no errors);
 ## Task 11 — GPT seed remakes (in progress, 2026-11-01)
 
 Dispatch grants Codex ownership of `content/remake/gpt/**`. Rewriting all 15 original topics as v3 stories; source seeds remain unchanged. Delegated disjoint authoring groups; final validation uses temporary 155 wpm silent manifests and only each story's selected style. No commits, deployments, production access, paid TTS, or video renders.
+
+
+## C1 — GPT creator playbook v3 (2026-11-01)
+
+Replaced the legacy GPT creator workflow in `agents/codex/PLAYBOOK.md` with v3 Story publishing, all requested publish flags, quota-based sequential Gemini batches, request/DM/follow-up priority, GPT ownership and curriculum handoffs, series order, style/genre rotation, live research, adaptive even-level ML, and full QA/safe-zone rules. Verified documented agent commands against `scripts/agent.ts` and publishing behavior against `scripts/lib/publish-v3.ts`; static content, legacy-removal, emoji, and whitespace checks passed. No blockers for this documentation change; no git operations, token use, production calls, publishing, or rendering were performed. Only the playbook and this status file were edited.
