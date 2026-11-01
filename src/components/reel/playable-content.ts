@@ -1,7 +1,6 @@
 import { validateReel, type Reel } from "../../lib/reel-schema";
 
-/** Format Lab experiments stay out of regular feed and catalog lists. */
-export const isLabReel = (reel: { topic: string }) => /^(lab|lab-v3)\//.test(reel.topic);
+export { isLabReel } from "../../../packages/shared/src/validation";
 
 /** Video reels do not need a legacy script. Never feed v3 beats into the live timeline. */
 export function playableContent(

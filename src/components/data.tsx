@@ -15,14 +15,9 @@ import { type Reel } from "@/lib/reel-schema";
 import { isLabReel, playableContent } from "./reel/playable-content";
 export { isLabReel } from "./reel/playable-content";
 import type { AudioJson } from "@/lib/reel-audio";
-export type Category = { slug: string; label: string; description: string };
-export type Creator = {
-  id: string;
-  display_name: string;
-  handle: string;
-  bio: string;
-  avatar_url: string | null;
-};
+import type { Category, Creator } from "../../packages/shared/src/types";
+import { DAILY_ASKS } from "../../packages/shared/src/validation";
+export type { Category, Creator };
 export type ReelRow = {
   id: string;
   creator_id: string;
@@ -41,8 +36,7 @@ export type ReelRow = {
   genre?: string | null;
   style?: string | null;
 };
-/** Format Lab experiments (topic lab/…) are kept out of every public list. */
-export const DAILY_ASKS = 3;
+export { DAILY_ASKS };
 type Data = {
   isOwner: boolean;
   reels: ReelRow[];

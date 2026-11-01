@@ -26,3 +26,10 @@ docs/coordination/.activity.jsonl
 docs/coordination/.activity.jsonl.tmp
 docs/coordination/activity.html
 docs/coordination/activity.html.tmp
+
+# mobile app (apps/mobile)
+apps/mobile/credentials/
+apps/mobile/.env.local
+apps/mobile/android/
+apps/mobile/ios/
+apps/mobile/.expo/

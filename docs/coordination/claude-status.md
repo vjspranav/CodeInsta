@@ -90,3 +90,9 @@ The user does not want to relay messages between agents. From now on:
 
 ## UPDATE - stand-in frontend edit: video reel layout (2026-11-01)
 Edited Codex-owned files at the owner's request (no git, no deploy): `src/app/globals.css` (replaced the "reserve gutters" `.video-reel` rules with `.video-frame` rules), `src/components/reel/video-player.tsx` (wraps content in `.video-frame`, passes `video`), `src/components/reel/overlay.tsx` (zone-positioned overlays when `video`, tap-to-expand title), new `src/components/reel/overlay-zones.ts` + `overlay-zones.test.ts` (zone to percent from `packages/shared/overlay-zones.json`). Legacy `LivePlayer` path unchanged. Not touched: `render/**`, `scripts/**`.
+
+## UPDATE - Mobile E1 (2026-11-01)
+- Stand-in: Claude does workspace tooling for `apps/mobile` and `packages/shared` as the mobile spec allows (recorded in decisions.md). Decision: streak and seen sync reuse `public.views` plus RPC `learning_streak` (migration 0012) rather than a new `reel_views` table.
+- Baseline before E1 (root): vitest 35 files / 403 tests passing; `npm run lint` 0 errors, 5 warnings; `npx tsc --noEmit` clean.
+- E1 done locally (uncommitted until orchestrator commits): root vitest.config.ts + secrets guard (1.1), `packages/shared` feed/types/validation/overlay-zones/streak with web re-exports (1.2-1.3), migration `0012_streak.sql` + `supabase/tests/0012_streak.sql` + `computeStreak` (1.4).
+- waiting for OWNER approval: db push 0012
