@@ -298,7 +298,7 @@
      "do": "sketch.box",
      "id": "b",
      "text": "Blueprint",
-     "sub": "limited, readable as data",
+     "sub": "limited, just data",
      "icon": "db",
      "tone": "accent"
     }
