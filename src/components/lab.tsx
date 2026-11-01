@@ -33,7 +33,7 @@ export function Lab() {
     setUnlocked(true);
   }, [audio]);
   const order = (r: ReelRow) => {
-    const i = (FORMATS as readonly string[]).indexOf(r.script.format ?? "");
+    const i = (FORMATS as readonly string[]).indexOf(r.script?.format ?? "");
     return i < 0 ? FORMATS.length : i;
   };
   const sorted = [...labReels].sort((a, b) => order(a) - order(b));
@@ -60,11 +60,11 @@ export function Lab() {
               }}
             >
               <span className="lab-format">
-                {FORMAT_NAMES[reel.script.format ?? ""] ?? reel.topic.replace("lab/", "")}
+                {FORMAT_NAMES[reel.script?.format ?? ""] ?? reel.topic.replace("lab/", "")}
               </span>
               <h2>{reel.title}</h2>
               <ul className="lab-cast">
-                {(reel.script.cast ?? []).map((member) => (
+                {(reel.script?.cast ?? []).map((member) => (
                   <li key={member.id}>
                     <i style={{ background: palette[member.color] }} />
                     <strong>{member.name}</strong>

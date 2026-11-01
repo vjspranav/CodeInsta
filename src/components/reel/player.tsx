@@ -1,21 +1,14 @@
 "use client";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import {
-  Heart,
-  MessageCircle,
-  Pause,
-  Play,
-  Volume2,
-  VolumeX,
-} from "lucide-react";
+import { Heart, Play } from "lucide-react";
 import { motion } from "framer-motion";
-import { Avatar, useData, type ReelRow } from "../data";
+import { useData, type ReelRow } from "../data";
 import { lineAt, timeline } from "./timeline";
 import { pickVoice } from "./voices";
 import { Stage } from "./stage";
-import { Feedback } from "./feedback";
-type Props = {
+import { ReelOverlay } from "./overlay";
+import { VideoPlayer } from "./video-player";
+export type PlayerProps = {
   reel: ReelRow;
   next?: ReelRow;
   active: boolean;
@@ -28,7 +21,12 @@ type Props = {
   finish: (id: string, slot: number) => void;
   audioBlocked: () => void;
 };
-export const Player = memo(function Player({
+export const Player = memo(function Player(props: PlayerProps) {
+  if (props.reel.video_url) return <VideoPlayer {...props} />;
+  if (!props.reel.script) return null;
+  return <LivePlayer {...props} reel={{ ...props.reel, script: props.reel.script }} />;
+});
+const LivePlayer = memo(function LivePlayer({
   reel,
   next,
   active,
@@ -40,11 +38,11 @@ export const Player = memo(function Player({
   slot,
   finish,
   audioBlocked,
-}: Props) {
-  const { creators, liked, like, view, asksLeft } = useData();
+}: PlayerProps & { reel: ReelRow & { script: NonNullable<ReelRow["script"]> } }) {
+  const { like, view } = useData();
   const frames = useMemo(
     () => timeline(reel.script, reel.audio, next?.series_index ?? undefined),
-    [reel, next],
+    [reel.script, reel.audio, next?.series_index],
   );
   const [index, setIndex] = useState(0),
     [elapsed, setElapsed] = useState(0),
@@ -198,7 +196,6 @@ export const Player = memo(function Player({
     id = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(id);
   }, [running, frame, index, frames.length, audio, unlocked, muted, reel.id, perLine, slot]);
-  const creator = creators.find((c) => c.id === reel.creator_id);
   const toggle = () => {
     if (done) {
       setIndex(0);
@@ -277,58 +274,7 @@ export const Player = memo(function Player({
           </motion.span>
         )}
       </div>
-      <div className="sound-controls">
-        {!unlocked && (
-          <button className="sound-pill" onClick={unlock}>
-            Tap for sound 🔊
-          </button>
-        )}
-        <button aria-label={muted ? "Unmute" : "Mute"} onClick={toggleMute}>
-          {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-        </button>
-        <button aria-label={paused ? "Play" : "Pause"} onClick={toggle}>
-          {paused ? <Play size={20} /> : <Pause size={20} />}
-        </button>
-      </div>
-      <div className="reel-meta">
-        <Link className="creator-link" href={`/c/${reel.creator_id}`}>
-          <Avatar creator={creator} />
-          <strong>{creator?.handle ?? reel.creator_id}</strong>
-          <span className="creator-badge">
-            {reel.creator_id === "gpt" ? "Build & debug" : "Under the hood"}
-          </span>
-        </Link>
-        <h1>{reel.title}</h1>
-        <p className="tags">{reel.tags.map((tag) => `#${tag}`).join(" ")}</p>
-        {next && (
-          <Link className="next-chip" href={`/reel/${next.id}`}>
-            Next in series · Part {next.series_index} →
-          </Link>
-        )}
-        {done && <span className="completion">✓ Learned</span>}
-      </div>
-      <div className="reel-actions">
-        <button
-          aria-label={liked.has(reel.id) ? "Unlike" : "Like"}
-          aria-pressed={liked.has(reel.id)}
-          onClick={() => void like(reel.id)}
-        >
-          <Heart
-            size={29}
-            fill={liked.has(reel.id) ? "currentColor" : "none"}
-          />
-          <span>Like</span>
-        </button>
-        <button
-          aria-label={asksLeft === null ? "Ask a question" : `Ask a question, ${asksLeft} of 3 left today`}
-          onClick={() => setSheet(true)}
-        >
-          <MessageCircle size={28} />
-          <span>Ask</span>
-          {asksLeft !== null && <small className="asks-left">{asksLeft} of 3 left today</small>}
-        </button>
-      </div>
-      {sheet && <Feedback reel={reel} close={() => setSheet(false)} />}
+      <ReelOverlay {...{ reel, next, unlocked, muted, paused, done, sheet, unlock, toggleMute, toggle, setSheet }} />
     </article>
   );
 });

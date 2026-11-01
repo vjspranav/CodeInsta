@@ -65,6 +65,11 @@ describe("membership gate", () => {
     expect((await middleware(request("/api/agent/reels"))).headers.get("location")).toBeNull();
     expect(mocks.getUser).not.toHaveBeenCalled();
   });
+  it("keeps About public for signed-out visitors", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: null } });
+    expect((await middleware(request("/about"))).headers.get("location")).toBeNull();
+    expect(mocks.maybeSingle).not.toHaveBeenCalled();
+  });
   it("routes signed-out users to login", async () => {
     mocks.getUser.mockResolvedValue({ data: { user: null } });
     expect((await middleware(request("/"))).headers.get("location")).toBe("https://codeinsta.test/login");

@@ -13,7 +13,7 @@ export async function middleware(request: NextRequest) {
   if (path.startsWith("/api/agent/") || path === "/api/agent")
     return NextResponse.next();
   let response = NextResponse.next({ request });
-  const publicPage = ["/login", "/join", "/auth/callback", "/auth/google", "/auth/google/nonce", "/auth/bootstrap", "/not-invited", "/privacy"].includes(
+  const publicPage = ["/login", "/join", "/auth/callback", "/auth/google", "/auth/google/nonce", "/auth/bootstrap", "/not-invited", "/privacy", "/about"].includes(
     path,
   );
   if (

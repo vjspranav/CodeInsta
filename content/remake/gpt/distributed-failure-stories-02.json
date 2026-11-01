@@ -1,0 +1,324 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "Measure the retry amplification",
+  "topic": "distributed/failures/retry-storms-backoff-jitter",
+  "genre": "build-along",
+  "style": "blueprint",
+  "series": "distributed-failure-stories",
+  "series_index": 2,
+  "tags": [
+    "distributed",
+    "retries",
+    "jitter",
+    "idempotency"
+  ],
+  "level": "intermediate",
+  "cast": [
+    {
+      "id": "rookie",
+      "name": "Tess",
+      "role": "Curious junior engineer who states the plausible wrong assumption",
+      "color": "#E4572E"
+    },
+    {
+      "id": "senior",
+      "name": "Omar",
+      "role": "Calm staff engineer who asks for evidence and explains the mechanism",
+      "color": "#2F6F8F"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "idempotency key",
+      "full": "Identifier shared by retries of one operation",
+      "note": "Use only when the provider supports saving and returning a prior outcome."
+    }
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "Tess draws a payment path: client, service, storage. Then adds retry loops everywhere.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "seq.diagram",
+          "id": "retry",
+          "actors": [
+            "Client",
+            "Service",
+            "Storage"
+          ],
+          "messages": [
+            {
+              "from": "Client",
+              "to": "Service",
+              "label": "payment request"
+            },
+            {
+              "from": "Service",
+              "to": "Storage",
+              "label": "write"
+            }
+          ],
+          "at": "start"
+        },
+        {
+          "do": "sketch.note",
+          "text": "illustrative topology; no measured traffic",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Three attempts per layer, including the first try. Every component gets another chance. What could go wrong?",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "Tess adds retry loops everywhere",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Three layers with three tries each can yield twenty-seven downstream tries for one request.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "tree",
+          "id": "attempts",
+          "nodes": [
+            {
+              "id": "request",
+              "label": "1 logical request"
+            },
+            {
+              "id": "client",
+              "label": "3 client tries",
+              "parent": "request"
+            },
+            {
+              "id": "service",
+              "label": "3 per call",
+              "parent": "client"
+            },
+            {
+              "id": "storage",
+              "label": "3 per call",
+              "parent": "service"
+            }
+          ],
+          "path": [
+            "request",
+            "client",
+            "service",
+            "storage"
+          ],
+          "at": "start"
+        },
+        {
+          "do": "sketch.note",
+          "text": "illustrative arithmetic: 3 × 3 × 3",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "I will add exponential backoff. Surely waiting longer stops everybody colliding again?",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "Tess types a fixed backoff",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Backoff alone can synchronize clients. Add jitter by choosing a random delay inside a capped exponential window.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "code.editor",
+          "id": "policy",
+          "title": "Illustrative retry policy",
+          "lines": [
+            "window = min(cap, base * 2**attempt)",
+            "delay = random(0, window)"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Then one layer owns retries. But how do I stop it trying all night?",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "Tess adds deadline check",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Bound attempts and the overall deadline. A retry budget also limits recovery traffic across requests.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "code.editor",
+          "id": "bounds",
+          "title": "Bound the work",
+          "lines": [
+            "if attempts >= limit: stop",
+            "if budget is empty: stop",
+            "if deadline_left <= delay: stop"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "The payment timed out. I can send a new payment now, because the first failed.",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "payment timed out",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "The write may have committed before its reply was lost. Timeout means unknown, not failed.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "seq.diagram",
+          "id": "outcome",
+          "actors": [
+            "Service",
+            "Provider"
+          ],
+          "messages": [
+            {
+              "from": "Service",
+              "to": "Provider",
+              "label": "payment accepted"
+            },
+            {
+              "from": "Provider",
+              "to": "Service",
+              "label": "reply lost",
+              "reply": true
+            }
+          ],
+          "at": "start"
+        },
+        {
+          "do": "sketch.note",
+          "text": "request outcome unknown",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Reuse one idempotency key for the same operation, under the provider’s deduplication contract.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "code.editor",
+          "id": "dedupe",
+          "title": "Provider-supported idempotency",
+          "lines": [
+            "same key → same logical operation",
+            "provider returns saved outcome",
+            "no duplicate side effect"
+          ],
+          "at": "start"
+        },
+        {
+          "do": "define",
+          "term": "idempotency key",
+          "at": "start"
+        },
+        {
+          "do": "sketch.note",
+          "text": "same key → same logical operation"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Exactly. That contract needs to cover your retry window. Count application attempts separately from transport retransmissions.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "sketch.note",
+          "text": "request ID → application attempt count",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "I am deleting the extra retry loops. One owner, bounded work, jitter, and the same payment key.",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "Tess edits the design",
+          "at": "start"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    "https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/"
+  ],
+  "key_points": [
+    "Retries at multiple layers multiply downstream attempts during a slow dependency.",
+    "Use a single retry owner, capped exponential backoff with jitter, an attempt limit, and an overall deadline or budget.",
+    "A timeout leaves the outcome unknown; use a stored idempotency result before retrying side effects."
+  ],
+  "expect": [
+    {
+      "beat": 2,
+      "at": "end",
+      "kind": "text.visible",
+      "text": "illustrative arithmetic: 3 × 3 × 3"
+    },
+    {
+      "beat": 9,
+      "at": "end",
+      "kind": "text.visible",
+      "text": "same key → same logical operation"
+    }
+  ]
+}

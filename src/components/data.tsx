@@ -11,8 +11,11 @@ import {
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { browserDb } from "@/lib/supabase/browser";
-import { validateReel, type Reel } from "@/lib/reel-schema";
+import { type Reel } from "@/lib/reel-schema";
+import { isLabReel, playableContent } from "./reel/playable-content";
+export { isLabReel } from "./reel/playable-content";
 import type { AudioJson } from "@/lib/reel-audio";
+export type Category = { slug: string; label: string; description: string };
 export type Creator = {
   id: string;
   display_name: string;
@@ -29,19 +32,29 @@ export type ReelRow = {
   series: string | null;
   series_index: number | null;
   created_at: string;
-  script: Reel;
+  script: Reel | null;
+  video_url?: string | null;
+  poster_url?: string | null;
+  glossary?: { term: string; full: string; note?: string }[] | null;
   audio: AudioJson | null;
   parent_reel_id?: string | null;
+  genre?: string | null;
+  style?: string | null;
 };
 /** Format Lab experiments (topic lab/…) are kept out of every public list. */
 export const DAILY_ASKS = 3;
-export const isLabReel = (reel: { topic: string }) => reel.topic.startsWith("lab/");
 type Data = {
   isOwner: boolean;
   reels: ReelRow[];
   labReels: ReelRow[];
   creators: Creator[];
   liked: Set<string>;
+  disliked: Set<string>;
+  categories: Category[];
+  pendingRequests: number;
+  refreshRequests: () => Promise<void>;
+  refreshCategories: () => Promise<void>;
+  dislike: (id: string) => Promise<string>;
   seen: Set<string>;
   userId: string;
   areas: string[];
@@ -60,9 +73,15 @@ const Context = createContext<Data | null>(null);
 export function DataProvider({ children, isOwner }: { children: React.ReactNode; isOwner: boolean }) {
   const path = usePathname(),
     router = useRouter();
-  const isPublic = ["/login", "/join", "/not-invited", "/auth/callback", "/auth/google", "/auth/google/nonce", "/privacy"].includes(path);
+  const isPublic = ["/login", "/join", "/not-invited", "/auth/callback", "/auth/google", "/auth/google/nonce", "/privacy", "/about"].includes(path);
   const [allReels, setReels] = useState<ReelRow[]>([]),
     [creators, setCreators] = useState<Creator[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [pendingRequests, setPendingRequests] = useState(0);
+  const [disliked, setDisliked] = useState(new Set<string>());
+  const disliked$ = useRef(disliked);
+  const dislikePending = useRef(new Set<string>());
+  disliked$.current = disliked;
   const [liked, setLiked] = useState(new Set<string>()),
     [seen, setSeen] = useState(new Set<string>());
   const [areas, setAreas] = useState<string[]>([]),
@@ -85,6 +104,27 @@ export function DataProvider({ children, isOwner }: { children: React.ReactNode;
   liked$.current = liked;
   seen$.current = seen;
   user$.current = userId;
+  const refreshCategories = useCallback(async () => {
+    const { data, error } = await browserDb().from("categories").select("slug, label, description").order("label");
+    if (error) throw new Error(error.message);
+    setCategories(data ?? []);
+  }, []);
+  const refreshRequests = useCallback(async () => {
+    if (!isOwner) return;
+    const { count, error } = await browserDb().from("topic_requests").select("id", { count: "exact", head: true }).eq("status", "pending");
+    if (!error) setPendingRequests(count ?? 0);
+  }, [isOwner]);
+  useEffect(() => {
+    if (isPublic || !isOwner) return;
+    const refresh = () => { if (!document.hidden) void refreshRequests(); };
+    refresh();
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [isPublic, isOwner, refreshRequests]);
   const load = useCallback(async (silent: boolean) => {
     if (inFlight.current) return;
     inFlight.current = true;
@@ -101,9 +141,9 @@ export function DataProvider({ children, isOwner }: { children: React.ReactNode;
       if (authError || !user) throw new Error("Please sign in again.");
       setUserId(user.id);
       const results = await Promise.all([
-        db.from("reels").select("*").order("created_at", { ascending: false }),
+        db.from("reels").select("*").is("archived_at", null).order("created_at", { ascending: false }),
         db.from("creators").select("*"),
-        db.from("likes").select("reel_id"),
+        db.from("likes").select("reel_id").eq("user_id", user.id),
         db.from("views").select("reel_id"),
         db.from("user_interests").select("areas, onboarded").eq("user_id", user.id).maybeSingle(),
         db
@@ -117,7 +157,13 @@ export function DataProvider({ children, isOwner }: { children: React.ReactNode;
           .select("id", { count: "exact", head: true })
           .eq("user_id", user.id)
           .gte("created_at", new Date(Date.now() - 24 * 3600_000).toISOString()),
+        db.from("categories").select("slug, label, description").order("label"),
+        db.from("dislikes").select("reel_id").eq("user_id", user.id),
       ]);
+      if (results[7].error) throw results[7].error;
+      if (results[8].error) throw results[8].error;
+      setCategories(results[7].data ?? []);
+      setDisliked(new Set((results[8].data ?? []).map((row: { reel_id: string }) => row.reel_id)));
       // Best-effort: the DB trigger is the real limit; this only drives the counter.
       if (!results[6].error) setAsked(results[6].count ?? 0);
       for (const result of results.slice(0, 4)) if (result.error) throw result.error;
@@ -142,9 +188,9 @@ export function DataProvider({ children, isOwner }: { children: React.ReactNode;
           fresh.set(row.id, hit);
           return [hit.row];
         }
-        const valid = validateReel(row.script);
-        if (!valid.ok) return [];
-        const next = { ...row, script: valid.reel } as ReelRow;
+        const content = playableContent(row.script, row.video_url);
+        if (!content) return [];
+        const next: ReelRow = { ...row, ...content };
         fresh.set(row.id, { sig, row: next });
         return [next];
       });
@@ -225,6 +271,31 @@ export function DataProvider({ children, isOwner }: { children: React.ReactNode;
       return next;
     });
   }, []);
+  const dislike = useCallback(async (id: string): Promise<string> => {
+    if (dislikePending.current.has(id)) return "Please wait for your previous change.";
+    dislikePending.current.add(id);
+    const remove = disliked$.current.has(id);
+    const update = (selected: boolean) => {
+      const next = new Set(disliked$.current);
+      if (selected) next.add(id); else next.delete(id);
+      disliked$.current = next;
+      setDisliked(next);
+    };
+    update(!remove);
+    try {
+      const db = browserDb();
+      const { error } = remove
+        ? await db.from("dislikes").delete().eq("user_id", user$.current).eq("reel_id", id)
+        : await db.from("dislikes").insert({ user_id: user$.current, reel_id: id });
+      if (error && error.code !== "23505") throw error;
+      return "";
+    } catch {
+      update(remove);
+      return "Could not save your preference. Try again.";
+    } finally {
+      dislikePending.current.delete(id);
+    }
+  }, []);
   const view = useCallback(async (id: string) => {
     if (seen$.current.has(id)) return;
     const { error } = await browserDb()
@@ -238,6 +309,7 @@ export function DataProvider({ children, isOwner }: { children: React.ReactNode;
   const value = useMemo(
     () => ({
       isOwner,
+      categories, pendingRequests, refreshRequests, refreshCategories, disliked, dislike,
       reels,
       labReels,
       creators,
@@ -255,7 +327,7 @@ export function DataProvider({ children, isOwner }: { children: React.ReactNode;
       like,
       view,
     }),
-    [isOwner, reels, labReels, creators, liked, seen, userId, areas, fulfilled, asksLeft, noteAsked, saveInterests, loading, error, reload, like, view],
+    [categories, pendingRequests, refreshRequests, refreshCategories, disliked, dislike, isOwner, reels, labReels, creators, liked, seen, userId, areas, fulfilled, asksLeft, noteAsked, saveInterests, loading, error, reload, like, view],
   );
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
@@ -299,9 +371,9 @@ export function Avatar({ creator }: { creator?: Creator }) {
           alt=""
         />
       ) : creator?.id === "claude" ? (
-        "✳"
+        "C"
       ) : (
-        "⌘"
+        "G"
       )}
     </span>
   );

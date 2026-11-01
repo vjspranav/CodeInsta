@@ -151,3 +151,16 @@ describe("reel v2 contract", () => {
     expect(validateReel(reel).ok).toBe(true);
   });
 });
+
+
+describe("publishing preference metadata", () => {
+  it("preserves genre and style for the agent API and dislike ranking", () => {
+    const result = validateReel({ ...example(), genre: "trace", style: "blueprint" });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.reel).toMatchObject({ genre: "trace", style: "blueprint" });
+  });
+  it.each(["", "Story", "bad/style", "x".repeat(33)])("rejects invalid genre/style slug %j", (slug) => {
+    expect(validateReel({ ...example(), genre: slug }).ok).toBe(false);
+    expect(validateReel({ ...example(), style: slug }).ok).toBe(false);
+  });
+});

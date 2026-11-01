@@ -1,0 +1,256 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "Why root cannot rewrite ro properties",
+  "topic": "aosp/boot/init-property-service",
+  "genre": "story",
+  "style": "blueprint",
+  "series": "aosp-boot-sequence",
+  "series_index": 3,
+  "tags": [
+    "aosp",
+    "properties",
+    "init",
+    "selinux"
+  ],
+  "level": "intermediate",
+  "cast": [
+    {
+      "id": "rookie",
+      "name": "Isha",
+      "role": "Junior Android platform engineer",
+      "color": "#E4572E"
+    },
+    {
+      "id": "senior",
+      "name": "Kai",
+      "role": "Calm Android platform engineer",
+      "color": "#2F6F8F"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "AOSP",
+      "full": "Android Open Source Project",
+      "note": "The open-source Android platform."
+    },
+    {
+      "term": "SELinux",
+      "full": "Security-Enhanced Linux",
+      "note": "Mandatory access control used by Android."
+    }
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "On a disposable Android Open Source Project test image, Isha reads a fictional ro.demo.mode property, then tries to replace it from a root shell.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "term.type",
+          "id": "try",
+          "cmd": "getprop ro.demo.mode\nsetprop ro.demo.mode test",
+          "out": "Fictional lab commands; exact error text varies"
+        },
+        {
+          "do": "define",
+          "term": "AOSP"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "I have root. Why did the write fail? I thought root could change every property.",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "id": "claim",
+          "text": "Root shell ≠ every property is writable"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Two gates are involved. Security-Enhanced Linux policy controls whether this caller may set the property's labeled type; the property service also rejects replacing an existing read-only ro value.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "seq.diagram",
+          "id": "write",
+          "actors": [
+            "setprop",
+            "Policy",
+            "Service"
+          ],
+          "messages": [
+            {
+              "from": "setprop",
+              "to": "Policy",
+              "label": "allowed?"
+            },
+            {
+              "from": "Policy",
+              "to": "Service",
+              "label": "authorized",
+              "reply": true
+            },
+            {
+              "from": "Service",
+              "to": "setprop",
+              "label": "ro already set",
+              "reply": true
+            }
+          ]
+        },
+        {
+          "do": "define",
+          "term": "SELinux"
+        },
+        {
+          "do": "sketch.note",
+          "id": "reveal-note",
+          "text": "ro value already set: reject"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "So even an allowed caller cannot use the normal property service to overwrite this already initialized ro value?",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "id": "question",
+          "text": "Permission to ask ≠ permission to replace"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Correct. Root does not bypass the property service or its policy checks. Writable properties still need an allowed name and permission for their labeled type.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "tree",
+          "id": "gates",
+          "nodes": [
+            {
+              "id": "request",
+              "label": "setprop request"
+            },
+            {
+              "id": "access",
+              "label": "SELinux check",
+              "parent": "request"
+            },
+            {
+              "id": "service",
+              "label": "property service",
+              "parent": "access"
+            },
+            {
+              "id": "write",
+              "label": "allowed write?",
+              "parent": "service"
+            }
+          ],
+          "path": [
+            "request",
+            "access",
+            "service",
+            "write"
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Isha finds the fictional value's build-time producer, changes the test image input, rebuilds it, and boots that image to verify the result.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "code.editor",
+          "id": "repair",
+          "lang": "sh",
+          "lines": [
+            "# Find the property's producer",
+            "rg 'ro.demo.mode' device/",
+            "# Change the lab build input",
+            "# rebuild, boot, then inspect"
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "I will fix the producer for that boot-time value. Runtime state needs a writable property with appropriate policy, not a shell variable or a bigger hammer.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "timeline.track",
+          "id": "ownership",
+          "lanes": [
+            "Build",
+            "Boot",
+            "Run"
+          ],
+          "span": [
+            0,
+            100
+          ],
+          "blocks": [
+            {
+              "lane": "Build",
+              "start": 0,
+              "end": 34,
+              "label": "define"
+            },
+            {
+              "lane": "Boot",
+              "start": 34,
+              "end": 67,
+              "label": "publish"
+            },
+            {
+              "lane": "Run",
+              "start": 67,
+              "end": 100,
+              "label": "ro fixed"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "key_points": [
+    "SELinux authorization and the read-only rule are separate checks.",
+    "Root does not make an initialized ro property writable through the normal service.",
+    "Change a boot-time producer or use a policy-approved writable runtime property."
+  ],
+  "expect": [
+    {
+      "beat": 2,
+      "kind": "text.visible",
+      "text": "ro value already set: reject",
+      "note": "Read-only rejection is visible with the service explanation."
+    }
+  ],
+  "sources": [
+    "https://android.googlesource.com/platform/system/core/+/refs/heads/main/init/property_service.cpp",
+    "https://source.android.com/docs/security/features/selinux"
+  ]
+}

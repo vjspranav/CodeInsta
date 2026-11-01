@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { serverDb } from "@/lib/supabase/server";
 import { getMembershipAdmin, bootstrapOwner } from "@/lib/supabase/membership";
 import { validInvite } from "@/lib/supabase/invites";
+import { isAllowed } from "@/lib/supabase/allowlist";
 export async function authenticate(
   _previous: { error: string },
   form: FormData,
@@ -15,6 +16,9 @@ export async function authenticate(
   const invite = String(form.get("invite") ?? "").trim();
   if (signup) {
     if (!invite) return { error: "Enter an invite code to create an account." };
+    // An invite proves membership eligibility, not ownership of an email address.
+    // Never pre-confirm an owner address through the password signup path.
+    if (isAllowed(email)) return { error: "Use Google to sign in with an owner email." };
     const { data, error } = await getMembershipAdmin().from("invites").select("max_uses, uses, expires_at").eq("code", invite).maybeSingle();
     if (error) return { error: "Could not check your invite. Please retry." };
     if (!validInvite(data)) return { error: "This invite is invalid, expired, or fully used." };

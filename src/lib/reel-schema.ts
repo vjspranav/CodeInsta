@@ -123,6 +123,9 @@ export const sceneSchema = z.strictObject({
 export const reelSchema = z.strictObject({
   version: z.union([z.literal(1), z.literal(2)]),
   format: formatSchema.optional(),
+  // Additive for legacy reels; new publications declare both per the creator rules.
+  genre: z.string().regex(/^[a-z0-9-]{2,32}$/).optional(),
+  style: z.string().regex(/^[a-z0-9-]{2,32}$/).optional(),
   cast: z.array(castMemberSchema).min(1).max(4).optional(),
   title: nonempty,
   hook: nonempty,

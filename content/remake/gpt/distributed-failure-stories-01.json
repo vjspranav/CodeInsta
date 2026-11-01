@@ -1,0 +1,353 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "Make stale leaders fail at the storage boundary",
+  "topic": "distributed/failures/partitions-split-brain",
+  "tags": [
+    "distributed",
+    "fencing",
+    "split-brain"
+  ],
+  "level": "intermediate",
+  "series": "distributed-failure-stories",
+  "series_index": 1,
+  "genre": "analogy",
+  "style": "paper-cutout",
+  "cast": [
+    {
+      "id": "rookie",
+      "name": "Tess",
+      "role": "Junior engineer treating an expiring lease as a kill switch",
+      "color": "#E4572E"
+    },
+    {
+      "id": "senior",
+      "name": "Omar",
+      "role": "Distributed-systems engineer who puts the final check at storage",
+      "color": "#2F6F8F"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "lease",
+      "full": "Time-limited permission to act",
+      "note": "Expiry changes what the lock service grants; it cannot stop a paused process."
+    },
+    {
+      "term": "fencing token",
+      "full": "Monotonically increasing generation number checked by the resource",
+      "note": "Every protected write carries its acquisition token."
+    },
+    {
+      "term": "atomic",
+      "full": "Indivisible as one operation",
+      "note": "The stored highest token and accepted write must change together."
+    }
+  ],
+  "key_points": [
+    "A lease expiring cannot stop an old process from waking and sending a delayed write.",
+    "Each acquisition needs a higher fencing token carried with every protected write.",
+    "Storage must atomically reject tokens lower than the highest token it has accepted."
+  ],
+  "sources": [
+    "https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html"
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "Imagine two librarians reserving one checkout slip. In a shared file service, two workers protect the same illustrative document row through a lock service.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "split",
+          "at": "start"
+        },
+        {
+          "do": "db.table",
+          "id": "doc",
+          "name": "document · illustrative rows",
+          "columns": [
+            "key",
+            "body",
+            "highest_token"
+          ],
+          "cols": [
+            "key",
+            "body",
+            "highest_token"
+          ],
+          "rows": [
+            [
+              "report",
+              "draft A",
+              0
+            ],
+            [
+              "plan",
+              "draft B",
+              0
+            ]
+          ],
+          "at": "start"
+        },
+        {
+          "do": "sketch.box",
+          "id": "lock",
+          "text": "lock service",
+          "sub": "issues leases",
+          "icon": "service",
+          "tone": "accent",
+          "at": "start"
+        },
+        {
+          "do": "sketch.box",
+          "id": "storage",
+          "text": "storage",
+          "sub": "accepts writes",
+          "icon": "storage",
+          "at": "start"
+        },
+        {
+          "do": "sketch.note",
+          "text": "analogy: one checkout slip",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "I thought one lease meant one writer. When it expires, should the old worker not stop being a problem?",
+      "visuals": []
+    },
+    {
+      "speaker": "senior",
+      "text": "A lease is time-limited permission, not a remote kill switch. A worker may pause, lose contact, then resume with its old belief.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "define",
+          "term": "lease",
+          "at": "start"
+        },
+        {
+          "do": "timeline.track",
+          "id": "pause",
+          "lanes": [
+            "lock service",
+            "worker A",
+            "worker B"
+          ],
+          "span": [
+            0,
+            100
+          ],
+          "blocks": [
+            {
+              "lane": "worker A",
+              "start": 8,
+              "end": 43,
+              "label": "A pauses"
+            },
+            {
+              "lane": "lock service",
+              "start": 40,
+              "end": 58,
+              "label": "expires"
+            },
+            {
+              "lane": "worker B",
+              "start": 58,
+              "end": 84,
+              "label": "new lease"
+            }
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "This fictional incident uses illustrative tokens. Worker A wakes late; worker B already wrote a newer draft.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "db.table",
+          "id": "doc",
+          "name": "document · illustrative values",
+          "columns": [
+            "key",
+            "body",
+            "highest_token"
+          ],
+          "cols": [
+            "key",
+            "body",
+            "highest_token"
+          ],
+          "rows": [
+            [
+              "report",
+              "draft B",
+              42
+            ],
+            [
+              "plan",
+              "draft B",
+              0
+            ]
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "A sends its write: token forty-one. Storage remembers forty-two. Must the lock service reach across the network and stop it?",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "seq.diagram",
+          "id": "writes",
+          "actors": [
+            "worker A",
+            "worker B",
+            "storage"
+          ],
+          "messages": [
+            {
+              "from": "worker B",
+              "to": "storage",
+              "label": "write token 42"
+            },
+            {
+              "from": "worker A",
+              "to": "storage",
+              "label": "late write token 41"
+            }
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "No. Every grant needs a higher fencing token, carried by each write. Storage remembers the highest accepted token and rejects lower ones, even after a worker wakes.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "define",
+          "term": "fencing token",
+          "at": "start"
+        },
+        {
+          "do": "db.table",
+          "id": "guarded",
+          "name": "atomic storage check · illustrative",
+          "columns": [
+            "incoming_token",
+            "stored_highest",
+            "decision"
+          ],
+          "cols": [
+            "incoming_token",
+            "stored_highest",
+            "decision"
+          ],
+          "rows": [
+            [
+              42,
+              42,
+              "current token"
+            ],
+            [
+              41,
+              42,
+              "reject stale"
+            ]
+          ],
+          "at": "start"
+        },
+        {
+          "do": "sketch.note",
+          "text": "stale token 41 rejected",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "The check and write must be atomic. Otherwise two requests could read the old value before either stores its token.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "define",
+          "term": "atomic",
+          "at": "start"
+        },
+        {
+          "do": "code.show",
+          "id": "rule",
+          "lang": "text",
+          "title": "storage boundary",
+          "code": [
+            "accept only if incoming_token >= highest_token",
+            "then update data and highest_token together"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Then I put the gate at storage: atomically accept only a current or newer token, and update the row with it. The old worker can wake; it cannot overwrite.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "sketch.box",
+          "id": "storage-final",
+          "text": "Storage gate",
+          "sub": "atomic token check + write"
+        },
+        {
+          "do": "sketch.note",
+          "text": "Old permit: rejected at the desk"
+        }
+      ]
+    }
+  ],
+  "expect": [
+    {
+      "beat": 5,
+      "at": "end",
+      "kind": "table.rows",
+      "target": "guarded",
+      "count": 2,
+      "note": "Show the two illustrative storage decisions after the stale-write rule is stated."
+    },
+    {
+      "beat": 5,
+      "at": "end",
+      "kind": "text.visible",
+      "text": "stale token 41 rejected",
+      "note": "The visible note states the storage decision."
+    }
+  ]
+}

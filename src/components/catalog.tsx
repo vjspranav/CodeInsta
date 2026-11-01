@@ -1,11 +1,9 @@
 "use client";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, ChevronRight, ClipboardCheck, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
-import { TOPIC_AREAS } from "@/lib/reel-schema";
 import { Avatar, LoadState, useData, type ReelRow } from "./data";
 import { signOut } from "@/app/login/actions";
-import { MyInterests, ReviewRequests, TopicRequests } from "./interests";
 export function ReelGrid({ reels }: { reels: ReelRow[] }) {
   return (
     <div className="reel-grid">
@@ -26,10 +24,11 @@ export function ReelGrid({ reels }: { reels: ReelRow[] }) {
   );
 }
 export function Explore() {
-  const { reels, loading, error } = useData(),
-    [area, setArea] = useState<string>("aosp"),
+  const { reels, loading, error, categories } = useData(),
+    [area, setArea] = useState<string>(""),
     [series, setSeries] = useState("");
-  const filtered = reels.filter((r) => r.topic.split("/")[0] === area),
+  const selected = categories.find((c) => c.slug === area) ?? categories[0];
+  const filtered = reels.filter((r) => r.topic.split("/")[0] === selected?.slug),
     groups = Array.from(new Set(filtered.map((r) => r.series ?? "Standalone")));
   return (
     <main className="content-page">
@@ -38,20 +37,16 @@ export function Explore() {
         <h1>Explore</h1>
       </header>
       <div className="topic-tabs" aria-label="Topic areas">
-        {TOPIC_AREAS.map((topic) => (
+        {categories.map((category) => (
           <button
-            key={topic}
-            aria-pressed={topic === area}
+            key={category.slug}
+            aria-pressed={category.slug === selected?.slug}
             onClick={() => {
-              setArea(topic);
+              setArea(category.slug);
               setSeries("");
             }}
           >
-            {topic === "aosp"
-              ? "AOSP"
-              : topic === "os"
-                ? "Operating systems"
-                : topic}
+            {category.label}
           </button>
         ))}
       </div>
@@ -60,10 +55,9 @@ export function Explore() {
       ) : (
         <>
           <h2>
-            {area === "aosp"
-              ? "Inside Android"
-              : area.charAt(0).toUpperCase() + area.slice(1)}
+            {selected?.label ?? "Categories"}
           </h2>
+          <p className="muted">{selected?.description}</p>
           <p className="muted">
             {filtered.length} reels. Pick a series and go deeper.
           </p>
@@ -119,11 +113,23 @@ export function Profiles({ creatorId }: { creatorId?: string }) {
             <ArrowUpRight />
           </Link>
         ))}
-        <MyInterests />
-        <TopicRequests />
-        {isOwner && <ReviewRequests />}
+        <nav className="settings-list" aria-label="Your settings">
+          <Link href="/interests">
+            <SlidersHorizontal size={20} strokeWidth={1.75} aria-hidden />
+            <span>My interests</span>
+            <ChevronRight size={18} strokeWidth={1.75} aria-hidden />
+          </Link>
+          {isOwner && (
+            <Link href="/admin/requests">
+              <ClipboardCheck size={20} strokeWidth={1.75} aria-hidden />
+              <span>Review topic requests</span>
+              <ChevronRight size={18} strokeWidth={1.75} aria-hidden />
+            </Link>
+          )}
+        </nav>
         {isOwner && <Link className="primary" href="/invites">Invite friends</Link>}
         {isOwner && <Link className="primary lab-link" href="/lab">Format Lab</Link>}
+        <p className="profile-links"><Link href="/privacy">Privacy</Link><Link href="/about">About</Link></p>
         <form action={signOut}>
           <button className="signout">Sign out</button>
         </form>

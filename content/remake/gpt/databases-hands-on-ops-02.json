@@ -1,0 +1,301 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "DELETE did not shrink the table",
+  "topic": "databases/postgres/vacuum-bloat-autovacuum",
+  "genre": "myth-vs-fact",
+  "style": "editorial-dark",
+  "series": "databases-hands-on-ops",
+  "series_index": 2,
+  "tags": [
+    "databases",
+    "postgres",
+    "vacuum",
+    "autovacuum"
+  ],
+  "level": "intermediate",
+  "cast": [
+    {
+      "id": "rookie",
+      "name": "Mira",
+      "role": "Curious junior engineer who states the plausible wrong assumption",
+      "color": "#E4572E"
+    },
+    {
+      "id": "senior",
+      "name": "Dev",
+      "role": "Calm staff engineer who asks for evidence and explains the mechanism",
+      "color": "#2F6F8F"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "MVCC",
+      "full": "Multi-Version Concurrency Control",
+      "note": "PostgreSQL keeps row versions so concurrent transactions can see a consistent view."
+    },
+    {
+      "term": "VACUUM FULL",
+      "full": "PostgreSQL table-rewriting vacuum operation",
+      "note": "Can return space to the operating system, but rewrites the table and takes an exclusive lock."
+    }
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "Cleanup day. Mira deletes old orders, then stares at the stubbornly large table file.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "db-focus"
+        },
+        {
+          "do": "db.table",
+          "id": "orders",
+          "name": "orders (illustrative rows)",
+          "columns": [
+            "order_id",
+            "status",
+            "version"
+          ],
+          "rows": [
+            [
+              101,
+              "paid",
+              "visible"
+            ],
+            [
+              102,
+              "deleted",
+              "old version"
+            ],
+            [
+              103,
+              "paid",
+              "visible"
+            ]
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "The rows vanished, but the file did not shrink. Did PostgreSQL keep my rubbish?",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "MYTH: DELETE shrinks the file",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Not necessarily. Multi-Version Concurrency Control keeps old row versions until no transaction needs them.",
+      "visuals": [
+        {
+          "do": "define",
+          "term": "MVCC",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Then what changes when ordinary VACUUM processes those dead versions?",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "Mira traces old row version",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "It makes dead space reusable inside the relation. Usually that space is not returned to the operating system.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "timeline.track",
+          "id": "space",
+          "lanes": [
+            "Dead versions",
+            "Table space",
+            "Operating system"
+          ],
+          "span": [
+            0,
+            100
+          ],
+          "blocks": [
+            {
+              "lane": "Dead versions",
+              "start": 0,
+              "end": 40,
+              "label": "cleanup"
+            },
+            {
+              "lane": "Table space",
+              "start": 40,
+              "end": 100,
+              "label": "available for reuse"
+            }
+          ],
+          "at": "start"
+        },
+        {
+          "do": "sketch.note",
+          "text": "FACT: reusable space inside relation",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Can I treat the dead-tuple estimate as an exact measurement of table bloat?",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "Mira: exact bloat number?",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "No. Treat estimates and autovacuum timestamps as clues; compare trends, transaction age, and workload.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "db-focus"
+        },
+        {
+          "do": "db.table",
+          "id": "signals",
+          "name": "maintenance clues",
+          "columns": [
+            "signal",
+            "meaning"
+          ],
+          "rows": [
+            [
+              "estimated dead tuples",
+              "rough clue"
+            ],
+            [
+              "last autovacuum",
+              "recent activity"
+            ],
+            [
+              "old transaction",
+              "possible cleanup horizon"
+            ]
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "If cleanup is behind, should I immediately lower this table’s autovacuum scale factor?",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "Mira: tune threshold now?",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Check blockers and vacuum capacity first. Threshold tuning cannot explain why cleanup falls behind.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "sketch.note",
+          "text": "check blockers → capacity → thresholds",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "What if I need the file itself to shrink and return disk space?",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "Mira: reclaim disk space?",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "VACUUM FULL rewrites the table. It can return space, but needs extra disk and an ACCESS EXCLUSIVE lock.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "code.editor",
+          "id": "vacuum",
+          "title": "Two different operations",
+          "lines": [
+            "VACUUM orders;",
+            "VACUUM FULL orders;"
+          ],
+          "at": "start"
+        },
+        {
+          "do": "define",
+          "term": "VACUUM FULL",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "I will inspect old transactions first. The maintenance window can wait; perhaps the next inserts can reuse this space.",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "Mira records safe next step",
+          "at": "start"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    "https://www.postgresql.org/docs/current/routine-vacuuming.html",
+    "https://www.postgresql.org/docs/current/sql-vacuum.html"
+  ],
+  "key_points": [
+    "DELETE leaves obsolete row versions until cleanup is safe; ordinary VACUUM makes space reusable within the relation.",
+    "Dead-tuple and autovacuum statistics are diagnostic clues, not exact bloat measurements.",
+    "VACUUM FULL rewrites the table, needs extra disk space, and takes an ACCESS EXCLUSIVE lock."
+  ],
+  "expect": [
+    {
+      "beat": 0,
+      "at": 0.5,
+      "kind": "table.rows",
+      "target": "orders",
+      "count": 3
+    },
+    {
+      "beat": 4,
+      "at": "end",
+      "kind": "text.visible",
+      "text": "FACT: reusable space inside relation"
+    }
+  ]
+}

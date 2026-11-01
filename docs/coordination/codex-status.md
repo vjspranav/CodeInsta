@@ -1,5 +1,9 @@
 # Codex status
 
+## Task 10 ownership — independent review, 2026-11-01
+
+Codex owns the new `docs/reels/RULES.md`, `docs/reels/GENRES.md`, and `docs/coordination/review-2026-11-01.md` for this dispatch. Review evidence is local under `/tmp/codeinsta-review-2026-11-01/`. No commits, deployments, production calls or edits to Claude-owned paths are authorized in this task.
+
 Updated: 2026-10-31. Dispatch: frontend, audio player, auth, PWA, GPT playbook.
 
 ## Implemented
@@ -108,3 +112,34 @@ Implementation references: [Google server-side token/CSRF verification](https://
 - Feed: `orderFeed(rows, seen, context)` implements the decision's scoring (+100 next part, +60 liked parent follow-up, +80 own fulfilled request, +40 interest area, +0..20 recency over 14 days, every fifth slot an out-of-area pick, seen last). Tests added in `timeline.test.ts`.
 - `agents/codex/PLAYBOOK.md`: fulfil approved requests first, then weight toward top `interest_counts`.
 - Not exercised against a live Supabase or in a browser. No commit.
+
+## Editorial app UI and video playback — 2026-11-01
+
+Implemented this dispatch without staging or committing. Existing orchestrator edits were preserved; no files under `render/**`, `tts/**`, `scripts/**`, `supabase/**`, or `src/app/api/agent/**` were edited.
+
+- Restyled the app with black/neutral surfaces, system typography, a restrained blue action accent, 1.75-stroke icons, quieter headers/tab bar, neutral profile grids, spacious inbox rows, and consistent controls. Semantic red remains for likes/errors. Removed gradients, ambient glows, blurred backdrops and shimmering gradients, including the legacy reel stage; loading skeletons remain as solid pulsing blocks. About retains all its text and the “who built what” diagram, with simpler process rows and neutral diagram groups.
+- `Player` selects native full-viewport video whenever `video_url` exists; script-only reels retain the live timeline/audio player. Extracted a common overlay so creator links, likes, asks, sound controls, completion and next-series links stay consistent. Video supports playsInline, metadata preloading, muted autoplay before unlock, gesture-based audio unlock, pause/resume, double-tap likes, currentTime progress, three-second view recording, completion/auto-advance, and retry messaging. It pauses offscreen, on backgrounding, when manually paused, and while feedback is open. Cancellable playback effects prevent late autoplay rejections from restarting an offscreen video.
+- Active ±1 virtualization remains intact. Mounted neighbor videos preload metadata, including the next feed reel; distant reels stay placeholders. Persistent data caching and route skeletons are preserved. Timeline memoization depends on script/audio/series values, so sound or activity changes do not regenerate legacy frames.
+- Data loading now accepts video reels without a valid v1/v2 script, keeps legacy script validation for script-only reels, and carries `video_url` and glossary data. Lab safely handles video-only rows too. `/reel/[id]` uses the same Feed/Player path.
+- Updated GPT playbook: isolated tool-less writer for `from_owner:false`, verified commit stories without on-screen hashes, short real snippets, and v1/v2 publishing until the orchestrator switches to v3. Preserved the orchestrator's genre/style/dislike guidance.
+- Root ESLint ignores now cover nested dependency/output directories and Python virtualenvs. The original full lint traversed generated Remotion output and vendored Gradio JavaScript. Renderer source is still linted. Root Next TypeScript excludes the separate `render` package, which owns its own tsconfig and `npm run typecheck`. During concurrent renderer work, the root build briefly encountered a missing `C` theme export in renderer Captions; no renderer code was changed to address it.
+
+Verification: `npm test` passes **186 tests across 16 files**, including ten new playback/loading tests. `npm run lint` passes with 19 existing warnings in renderer source and no errors. `npm run build` passes on Next 15.5.28. `git diff --check` passes. Production-server smoke requests to About and login both returned HTTP 200; the temporary server was stopped.
+
+Visual/integration limits: headless Chrome aborted with SIGABRT in this sandbox, so no screenshot review is claimed. Real-device Safari audio unlock, authenticated feed interaction and actual remote-video loading remain integration checks for the orchestrator. No deployment, database writes, dependency installation, or git commit.
+
+## Categories, owner review, About link, and private dislikes — 2026-11-01
+
+Completed the requested frontend dispatch without staging or committing. Existing orchestrator edits were preserved. No files under `render/**`, `tts/**`, `scripts/**`, `supabase/**`, or `src/app/api/agent/**` were edited by this dispatch.
+
+- `/interests` now owns the interests editor and personal request list/input, linked from Profiles. Category chips have labels/descriptions and no emoji decorations. Interests, onboarding, and Explore share categories loaded from `categories`; the unused hard-coded interest labels were removed. Explore matches the first topic segment to the category slug. Onboarding exposes loading/retry states for category fetch failures.
+- Owner Profile badge uses an exact head-only pending-count query, refreshed on focus/visibility and after review. `/admin/requests` uses the existing server-side `requireOwner` redirect guard and owner-scoped browser queries for pending requests, member emails, dates, and ten recent decisions. New-category approval has label and editable auto-derived slug fields; existing-category approval uses the DB category select. Both approvals and rejection call `review_topic_request` with its migration 0007 argument names and display RPC errors. Successful review refreshes requests, badge, and categories.
+- Profiles includes About beside Privacy/sign-out. Added signed-out `/about` middleware coverage; middleware itself was not changed by this dispatch.
+- The shared reel overlay offers private, count-free ThumbsDown “Not for me” feedback with optimistic state, save-failure rollback, and a six-second “Got it, fewer like this” notice with Undo. DataProvider fetches the user's dislikes alongside likes and exposes nullable reel genre/style. Feed initialization passes dislikes into ranking: unseen matching genre/style gets −60; genre alone gets −25, without stacking duplicate dislikes or removing any reel. Seen ordering stays unchanged. Existing session order stays stable while a reel plays; subsequent feed initialization uses the updated preferences.
+- Ranking tests cover exact penalties, no duplicate stacking, null metadata, style-only matches, seen reels, per-user context, and retaining all topics.
+
+Verification: `npm run lint` exits 0 (19 existing renderer warnings, no errors); `npm test` passes **189 tests across 16 files**; `npm run build` exits 0 with `/interests` and `/admin/requests`; `git diff --check` passes. Live Supabase writes and authenticated browser interactions were not exercised in this headless dispatch.
+
+## Task 11 — GPT seed remakes (in progress, 2026-11-01)
+
+Dispatch grants Codex ownership of `content/remake/gpt/**`. Rewriting all 15 original topics as v3 stories; source seeds remain unchanged. Delegated disjoint authoring groups; final validation uses temporary 155 wpm silent manifests and only each story's selected style. No commits, deployments, production access, paid TTS, or video renders.

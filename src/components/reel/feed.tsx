@@ -7,7 +7,7 @@ import { orderFeed } from "./timeline";
 type Learning = { day: string; streak: number; ids: string[] };
 const dateKey = () => new Date().toLocaleDateString("en-CA");
 export function Feed({ reelId }: { reelId?: string }) {
-  const { reels, seen, loading, error, userId, areas, liked, fulfilled } = useData();
+  const { reels, seen, loading, error, userId, areas, liked, disliked, fulfilled } = useData();
   const [ordered, setOrdered] = useState<ReelRow[]>([]),
     [active, setActive] = useState(""),
     [unlocked, setUnlocked] = useState(false),
@@ -54,10 +54,10 @@ export function Feed({ reelId }: { reelId?: string }) {
     initialized.current = reelId ?? "feed";
     const list = reelId
       ? reels.filter((r) => r.id === reelId)
-      : orderFeed(reels, seen, { areas, liked, fulfilled });
+      : orderFeed(reels, seen, { areas, liked, disliked, fulfilled });
     setOrdered(list);
     setActive(list[0]?.id ?? "");
-  }, [loading, reels, seen, reelId, areas, liked, fulfilled]);
+  }, [loading, reels, seen, reelId, areas, liked, disliked, fulfilled]);
   useEffect(() => {
     try {
       const saved = JSON.parse(
@@ -94,8 +94,15 @@ export function Feed({ reelId }: { reelId?: string }) {
     return () => observer.disconnect();
   }, [ordered]);
   const unlock = useCallback(() => {
+    const video = root.current?.querySelector<HTMLVideoElement>('video[data-active="true"]');
+    if (video) {
+      video.muted = muted;
+      void video.play().catch((error: DOMException) => {
+        if (error.name === "NotAllowedError") setUnlocked(false);
+      });
+    }
     // Reuse this exact media element across every scene/reel: iOS unlock is per element.
-    if (audio?.src)
+    if (!video && audio?.src)
       void audio.play().catch((error: DOMException) => {
         if (error.name === "NotAllowedError") setUnlocked(false);
       });
@@ -104,7 +111,7 @@ export function Feed({ reelId }: { reelId?: string }) {
       window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
     }
     setUnlocked(true);
-  }, [audio]);
+  }, [audio, muted]);
   const finish = useCallback((id: string, index: number) => {
     setLearning((previous) => {
       const today = dateKey(),

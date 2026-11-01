@@ -1,0 +1,343 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "Find the transaction holding your lock",
+  "topic": "databases/postgres/lock-contention-pg-locks",
+  "genre": "trace",
+  "style": "blueprint",
+  "series": "databases-hands-on-ops",
+  "series_index": 3,
+  "tags": [
+    "databases",
+    "postgres",
+    "locks",
+    "operations"
+  ],
+  "level": "intermediate",
+  "cast": [
+    {
+      "id": "rookie",
+      "name": "Mira",
+      "role": "Curious junior engineer who states the plausible wrong assumption",
+      "color": "#E4572E"
+    },
+    {
+      "id": "senior",
+      "name": "Dev",
+      "role": "Calm staff engineer who asks for evidence and explains the mechanism",
+      "color": "#2F6F8F"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "PID",
+      "full": "Process Identifier",
+      "note": "Identifier of a PostgreSQL backend process."
+    },
+    {
+      "term": "pg_blocking_pids",
+      "full": "Function listing sessions blocking a backend",
+      "note": "Returns blockers for the supplied process identifier."
+    },
+    {
+      "term": "pg_locks",
+      "full": "PostgreSQL view of outstanding locks",
+      "note": "A row-level wait often appears as a wait for the holder transaction identifier."
+    }
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "Mira opens a second database session. The account update freezes; Dev points at the first terminal.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "db.table",
+          "id": "accounts",
+          "name": "accounts (illustrative rows)",
+          "columns": [
+            "id",
+            "balance"
+          ],
+          "rows": [
+            [
+              1,
+              50
+            ],
+            [
+              2,
+              80
+            ],
+            [
+              3,
+              25
+            ]
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Session A leaves its update open. Session B updates the same row and waits.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "seq.diagram",
+          "id": "sessions",
+          "actors": [
+            "Session A",
+            "Row",
+            "Session B",
+            "Observer"
+          ],
+          "messages": [
+            {
+              "from": "Session A",
+              "to": "Row",
+              "label": "update"
+            }
+          ],
+          "at": "start"
+        },
+        {
+          "do": "seq.diagram",
+          "id": "sessions",
+          "messages": [
+            {
+              "from": "Session B",
+              "to": "Row",
+              "label": "update waits"
+            }
+          ],
+          "at": "start"
+        },
+        {
+          "do": "sketch.note",
+          "text": "Session B waits"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "PID means Process Identifier. Find the waiting session in pg_stat_activity, then ask pg_blocking_pids which sessions block it.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "define",
+          "term": "PID",
+          "at": "start"
+        },
+        {
+          "do": "code.editor",
+          "id": "waiter",
+          "title": "Find waiting backend",
+          "lines": [
+            "SELECT pid, wait_event_type",
+            "FROM pg_stat_activity;"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "So the blocker function gives me a list, instead of making me accuse whichever query looks slowest?",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "code.editor",
+          "id": "blockers",
+          "title": "Ask PostgreSQL",
+          "lines": [
+            "SELECT pid, pg_blocking_pids(pid)",
+            "FROM pg_stat_activity",
+            "WHERE wait_event_type = 'Lock';"
+          ],
+          "at": "start"
+        },
+        {
+          "do": "define",
+          "term": "pg_blocking_pids",
+          "at": "start"
+        },
+        {
+          "do": "sketch.note",
+          "text": "pg_blocking_pids: blocker list"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Exactly. Inspect each blocker’s state and transaction start. Idle in transaction can still hold locks.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "code.editor",
+          "id": "inspect",
+          "title": "Inspect blocker",
+          "lines": [
+            "SELECT pid, state, xact_start",
+            "FROM pg_stat_activity",
+            "WHERE pid IN (",
+            " SELECT unnest(pg_blocking_pids(pid))",
+            " FROM pg_stat_activity",
+            " WHERE wait_event_type = 'Lock');"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Would pg_locks always show a row lock directly on the accounts row?",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "sketch.note",
+          "text": "Mira checks the lock view",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Often not. Row locks are stored on disk; a waiter commonly waits on the holder transaction ID in pg_locks.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "define",
+          "term": "pg_locks",
+          "at": "start"
+        },
+        {
+          "do": "code.show",
+          "id": "lock-fields",
+          "lang": "sql",
+          "title": "Useful lock fields",
+          "code": [
+            "SELECT pid, locktype, transactionid, granted",
+            "FROM pg_locks;"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "So I should not match only on relation and guess which session owns the wait.",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "Mira removes relation-only guess",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Right. Use the blocker function, inspect granted state and the owning transaction, then verify who is waiting.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "sketch.note",
+          "text": "waiter → blocker → owning transaction",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "My forgotten transaction! I will roll it back in Session A, confirm B resumes, and fix the application’s transaction scope.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "seq.diagram",
+          "id": "sessions",
+          "messages": [
+            {
+              "from": "Session A",
+              "to": "Row",
+              "label": "ROLLBACK"
+            },
+            {
+              "from": "Row",
+              "to": "Session B",
+              "label": "released; B resumes",
+              "reply": true
+            }
+          ],
+          "at": "start",
+          "actors": [
+            "Session A",
+            "Row",
+            "Session B"
+          ]
+        },
+        {
+          "do": "sketch.note",
+          "text": "verify Session B resumes",
+          "at": "start"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    "https://www.postgresql.org/docs/current/functions-info.html",
+    "https://www.postgresql.org/docs/current/view-pg-locks.html",
+    "https://www.postgresql.org/docs/current/monitoring-stats.html"
+  ],
+  "key_points": [
+    "Use pg_blocking_pids to identify sessions blocking a waiting backend.",
+    "Inspect blocker state and transaction age; an idle transaction can still hold locks.",
+    "A row-level wait often appears as a transaction ID wait in pg_locks; confirm that the owning transaction ends."
+  ],
+  "expect": [
+    {
+      "beat": 0,
+      "at": 0.5,
+      "kind": "table.rows",
+      "target": "accounts",
+      "count": 3
+    },
+    {
+      "beat": 1,
+      "at": "end",
+      "kind": "text.visible",
+      "text": "Session B waits"
+    },
+    {
+      "beat": 3,
+      "at": "end",
+      "kind": "text.visible",
+      "text": "pg_blocking_pids: blocker list"
+    }
+  ]
+}

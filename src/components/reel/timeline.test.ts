@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { validateReel, type ReelElement } from "../../lib/reel-schema";
-import { center, orderFeed, scoreFeed, timeline, wordTimings } from "./timeline";
+import { bubbleContent, center, orderFeed, scoreFeed, timeline, wordTimings } from "./timeline";
 import { isAllowed } from "../../lib/supabase/allowlist";
 import { readdirSync } from "node:fs";
 const file = readdirSync("content/examples").find((name) =>
@@ -143,6 +143,35 @@ describe("interest ranking", () => {
     const ids = orderFeed(rows, new Set(["done"]), ctx({ areas: ["aosp"] })).map((r) => r.id);
     expect(ids).toEqual(["a6", "a5", "a4", "a3", "out", "a2", "a1", "done"]);
   });
+  it("demotes unseen matching genres/styles once, without hiding any topic", () => {
+    const rows = [
+      row("disliked", { genre: "story", style: "sketch" }),
+      row("another-dislike", { genre: "story", style: "sketch" }),
+      row("both", { genre: "story", style: "sketch", topic: "ml/basics" }),
+      row("genre", { genre: "story", style: "terminal" }),
+      row("style-only", { genre: "trace", style: "sketch" }),
+      row("legacy", { genre: null, style: null }),
+      row("seen", { genre: "story", style: "sketch" }),
+    ];
+    const seen = new Set(["disliked", "another-dislike", "seen"]);
+    const context = ctx({ disliked: new Set(["disliked", "another-dislike"]) });
+    const scores = scoreFeed(rows, seen, context);
+    expect(scores.get("both")).toBe(-60);
+    expect(scores.get("genre")).toBe(-25);
+    expect(scores.get("style-only")).toBe(0);
+    expect(scores.get("legacy")).toBe(0);
+    expect(scores.get("seen")).toBe(0);
+    const ordered = orderFeed(rows, seen, context).map((r) => r.id);
+    expect(ordered.slice(0, 4)).toEqual(["style-only", "legacy", "genre", "both"]);
+    expect(new Set(ordered)).toEqual(new Set(rows.map((r) => r.id)));
+    expect(scoreFeed(rows, seen, ctx()).get("both")).toBe(0);
+  });
+  it("does not treat missing styles as a style match, or missing genres as a genre match", () => {
+    const rows = [row("disliked", { genre: "story", style: null }), row("genre", { genre: "story", style: null }), row("legacy", { genre: null, style: null })];
+    const scores = scoreFeed(rows, new Set(["disliked"]), ctx({ disliked: new Set(["disliked", "legacy"]) }));
+    expect(scores.get("genre")).toBe(-25);
+    expect(scores.get("legacy")).toBe(0);
+  });
   it("keeps the original order without interest context", () => {
     const rows = [row("1"), row("2", { created_at: "2026-02-01T00:00:00Z" })];
     expect(orderFeed(rows, new Set()).map((r) => r.id)).toEqual(["2", "1"]);
@@ -198,5 +227,32 @@ describe("multi-voice timeline", () => {
     const frame = timeline(script, null)[1];
     expect(frame.lines.length).toBeGreaterThan(0);
     expect(frame.lines.map((l) => l.text).join(" ")).toBe(frame.words.map((w) => w.w).join(" "));
+  });
+});
+
+
+describe("speech-bound chat bubbles", () => {
+  const frame = {
+    ...timeline(script, null)[1],
+    elements: [
+      { id: "q", type: "bubble" as const, speaker: "junior", text: "Question", y: 10, at: 0, enter: "fade" as const },
+      { id: "a", type: "bubble" as const, speaker: "senior", text: "Spoiler", y: 40, at: 0, enter: "fade" as const },
+    ],
+    lines: [
+      { speaker: "junior", text: "Why is it slow?", start: 0, duration: 2000, words: [] },
+      { speaker: "senior", text: "The cache is empty.", start: 2250, duration: 4000, words: [] },
+      { speaker: "junior", text: "Now I see.", start: 6500, duration: 1000, words: [] },
+    ],
+  };
+  it("hides the answer during the question regardless of authored offsets", () => {
+    expect(bubbleContent(frame, frame.elements[1], 1000)).toBeNull();
+    expect(bubbleContent(frame, frame.elements[0], 1000)).toBe("Why is it slow?");
+  });
+  it("uses the current spoken text and hides bubbles in gaps and other turns", () => {
+    expect(bubbleContent(frame, frame.elements[0], 2100)).toBeNull();
+    expect(bubbleContent(frame, frame.elements[0], 2500)).toBeNull();
+    expect(bubbleContent(frame, frame.elements[1], 2500)).toBe("The cache is empty.");
+    expect(bubbleContent(frame, frame.elements[0], 6600)).toBe("Now I see.");
+    expect(bubbleContent(frame, frame.elements[0], 7500)).toBeNull();
   });
 });

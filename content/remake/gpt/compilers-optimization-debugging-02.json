@@ -1,0 +1,233 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "The overflow guard that disappears",
+  "topic": "compilers/opt/undefined-behavior-miscompile",
+  "tags": [
+    "compilers",
+    "undefined-behavior",
+    "ubsan"
+  ],
+  "level": "intermediate",
+  "series": "compilers-optimization-debugging",
+  "series_index": 2,
+  "genre": "predict-it",
+  "style": "sketch",
+  "cast": [
+    {
+      "id": "rookie",
+      "name": "Nia",
+      "role": "Junior engineer convinced the check catches every overflow",
+      "color": "#E4572E"
+    },
+    {
+      "id": "senior",
+      "name": "Len",
+      "role": "Calm reviewer who follows the arithmetic before trusting the branch",
+      "color": "#2F6F8F"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "undefined behavior",
+      "full": "Undefined behavior",
+      "note": "The language gives the program no required result for this operation."
+    },
+    {
+      "term": "INT_MAX",
+      "full": "Maximum value of the int type",
+      "note": "A limit defined by the implementation's integer width."
+    },
+    {
+      "term": "UBSan",
+      "full": "UndefinedBehaviorSanitizer",
+      "note": "Clang's runtime checks for selected undefined operations."
+    }
+  ],
+  "key_points": [
+    "A signed-overflow test that performs the overflow first is already invalid.",
+    "For defined signed addition, n + 1 cannot be less than n.",
+    "Check bounds before arithmetic, and use sanitizers to expose executed bad paths."
+  ],
+  "sources": [
+    "https://llvm.org/docs/LangRef.html",
+    "https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html"
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "Nia submits an overflow guard in code review. The function appears without its result.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full",
+          "at": "start"
+        },
+        {
+          "do": "code.show",
+          "id": "guard",
+          "lang": "c",
+          "title": "guard.c · illustrative",
+          "code": [
+            "int guarded(int n) {",
+            "  if (n + 1 < n) return -1;",
+            "  return n + 1;",
+            "}"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "If increment wraps, n plus one gets smaller. My condition catches that first. Which input breaks my reasoning?",
+      "visuals": []
+    },
+    {
+      "speaker": "senior",
+      "text": "Use the largest representable int. INT_MAX names that boundary. The guard calculates n plus one before comparing it with n.",
+      "visuals": [
+        {
+          "do": "define",
+          "term": "INT_MAX",
+          "at": "start"
+        },
+        {
+          "do": "code.show",
+          "id": "input",
+          "lang": "text",
+          "title": "boundary input",
+          "code": [
+            "n = INT_MAX",
+            "first operation: n + 1"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "I thought it wrapped around. Would the comparison become true?",
+      "visuals": []
+    },
+    {
+      "speaker": "senior",
+      "text": "For signed C integers, an unrepresentable result is undefined behavior, not guaranteed wraparound. The program has left the language’s promised behavior before comparison.",
+      "visuals": [
+        {
+          "do": "define",
+          "term": "undefined behavior",
+          "at": "start"
+        },
+        {
+          "do": "tree",
+          "id": "order",
+          "nodes": [
+            {
+              "id": "add",
+              "label": "n + 1 overflows"
+            },
+            {
+              "id": "cmp",
+              "label": "comparison is not reliable",
+              "parent": "add"
+            }
+          ],
+          "path": [
+            "add",
+            "cmp"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "A compiler reasons about defined executions. There, adding one is greater than n, so the branch cannot be true.",
+      "visuals": [
+        {
+          "do": "term.type",
+          "id": "ir",
+          "cmd": "clang -O2 -S -emit-llvm guard.c -o guard.ll",
+          "out": [
+            "Example inspection command; not run here."
+          ],
+          "at": "start"
+        },
+        {
+          "do": "code.show",
+          "id": "reveal",
+          "lang": "text",
+          "title": "main reveal · illustrative optimized form",
+          "code": [
+            "if (n + 1 < n)  →  false for defined signed addition",
+            "Exact output varies by compiler and target."
+          ],
+          "at": "start"
+        },
+        {
+          "do": "sketch.note",
+          "text": "overflow before comparison",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "That is the disappearing guard. Compile a small harness with UndefinedBehaviorSanitizer and pass the maximum int. It can catch signed overflow when that path executes.",
+      "visuals": [
+        {
+          "do": "define",
+          "term": "UBSan",
+          "at": "start"
+        },
+        {
+          "do": "term.type",
+          "id": "san",
+          "cmd": "clang -O1 -g -fsanitize=undefined guard.c driver.c -o guard-test",
+          "out": [
+            "Example command; driver calls guarded(INT_MAX)."
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Check the range before adding, or use checked arithmetic. A sanitizer reports executed paths; it cannot prove unseen inputs safe.",
+      "visuals": [
+        {
+          "do": "code.show",
+          "id": "safe",
+          "lang": "c",
+          "title": "check before arithmetic · sketch",
+          "code": [
+            "if (n == INT_MAX) return -1;",
+            "return n + 1;"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Never ask an overflowing expression to certify itself. Keep the range check first; sanitizer coverage is evidence, not a universal proof.",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "range check → addition",
+          "at": "start"
+        }
+      ]
+    }
+  ],
+  "expect": [
+    {
+      "beat": 5,
+      "at": "end",
+      "kind": "text.visible",
+      "text": "overflow before comparison",
+      "note": "The note captures the cause of the disappearing guard."
+    }
+  ]
+}

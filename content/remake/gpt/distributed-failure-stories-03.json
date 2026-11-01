@@ -1,0 +1,301 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "Green health check, broken requests",
+  "topic": "distributed/failures/gray-failures",
+  "genre": "interview",
+  "style": "sketch",
+  "series": "distributed-failure-stories",
+  "series_index": 3,
+  "tags": [
+    "distributed",
+    "observability",
+    "gray-failure",
+    "health-checks"
+  ],
+  "level": "intermediate",
+  "cast": [
+    {
+      "id": "rookie",
+      "name": "Tess",
+      "role": "Curious junior engineer who states the plausible wrong assumption",
+      "color": "#E4572E"
+    },
+    {
+      "id": "senior",
+      "name": "Omar",
+      "role": "Calm staff engineer who asks for evidence and explains the mechanism",
+      "color": "#2F6F8F"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "gray failure",
+      "full": "A partial or subtle failure perceived differently by different parts of a system",
+      "note": "Research describes this as differential observability."
+    }
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "Interview drill. Tess sees a green health check while a customer’s database-backed read stalls.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "seq.diagram",
+          "id": "service",
+          "actors": [
+            "Monitor",
+            "Service",
+            "Database",
+            "Caller"
+          ],
+          "messages": [
+            {
+              "from": "Monitor",
+              "to": "Service",
+              "label": "health probe"
+            },
+            {
+              "from": "Caller",
+              "to": "Service",
+              "label": "read request"
+            }
+          ],
+          "at": "start"
+        },
+        {
+          "do": "sketch.note",
+          "text": "illustrative path; not an incident report",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "The monitor sees healthy, so every caller must be fine.",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "Tess marks service healthy",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "What does it exercise? Here, it answers locally without querying the database.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "seq.diagram",
+          "id": "service",
+          "messages": [
+            {
+              "from": "Service",
+              "to": "Monitor",
+              "label": "healthy response",
+              "reply": true
+            }
+          ],
+          "at": "start"
+        },
+        {
+          "do": "sketch.note",
+          "text": "health probe stops at service",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "The caller’s read can still wait on the database while that probe succeeds?",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "seq.diagram",
+          "id": "service",
+          "messages": [
+            {
+              "from": "Service",
+              "to": "Database",
+              "label": "read waits"
+            },
+            {
+              "from": "Service",
+              "to": "Caller",
+              "label": "request delayed"
+            }
+          ],
+          "at": "start"
+        },
+        {
+          "do": "sketch.note",
+          "text": "read waits"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Yes. That partial mismatch is gray failure: one observer sees success while the user-facing path is impaired.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "define",
+          "term": "gray failure",
+          "at": "start"
+        },
+        {
+          "do": "sketch.note",
+          "text": "monitor sees success; caller sees impairment",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "One average latency number should tell me which callers and routes are affected.",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "Tess draws one aggregate",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Slice errors and tail latency by route, zone, shard, and caller. Compare the probe with the failing path.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "seq.diagram",
+          "id": "slices",
+          "actors": [
+            "Monitor",
+            "Caller"
+          ],
+          "messages": [
+            {
+              "from": "Monitor",
+              "to": "Caller",
+              "label": "compare vantage points"
+            }
+          ],
+          "at": "start"
+        },
+        {
+          "do": "sketch.note",
+          "text": "compare by route / zone / caller",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Would restarting every ready service fix a slow database dependency?",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "Tess points at readiness check",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Readiness proves only its configured test passed. Synchronized restarts can add load; find the failing dependency first.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "sketch.note",
+          "text": "readiness ≠ every dependency healthy",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "What evidence can I add without creating more pressure on that dependency?",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "Tess scopes a safe probe",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Use bounded representative reads from relevant caller locations, with route-level errors and latency. Limit probes so they do not add pressure.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "code.editor",
+          "id": "probe",
+          "title": "Bounded detection",
+          "lines": [
+            "representative read + timeout",
+            "record route, zone, outcome",
+            "sample caller vantage points"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "I will add a bounded read probe from the customer’s location. That green dashboard needs a second witness.",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "Tess updates the interview diagram",
+          "at": "start"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    "https://www.microsoft.com/en-us/research/publication/gray-failure-achilles-heel-cloud-scale-systems/"
+  ],
+  "key_points": [
+    "Gray failure means different system components can perceive a failure differently.",
+    "A shallow health endpoint can succeed while a user-facing dependency path is impaired.",
+    "Compare bounded representative probes and caller-side route signals by vantage point and dependency."
+  ],
+  "expect": [
+    {
+      "beat": 3,
+      "at": "end",
+      "kind": "text.visible",
+      "text": "read waits"
+    },
+    {
+      "beat": 10,
+      "at": "end",
+      "kind": "text.visible",
+      "text": "representative read + timeout"
+    }
+  ]
+}

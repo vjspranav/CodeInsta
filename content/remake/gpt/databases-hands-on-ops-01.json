@@ -1,0 +1,284 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "Find the first wrong row estimate",
+  "topic": "databases/postgres/explain-analyze-reading",
+  "genre": "interview",
+  "style": "sketch",
+  "series": "databases-hands-on-ops",
+  "series_index": 1,
+  "tags": [
+    "databases",
+    "postgres",
+    "explain",
+    "query-plans"
+  ],
+  "level": "intermediate",
+  "cast": [
+    {
+      "id": "rookie",
+      "name": "Mira",
+      "role": "Curious junior engineer who states the plausible wrong assumption",
+      "color": "#E4572E"
+    },
+    {
+      "id": "senior",
+      "name": "Dev",
+      "role": "Calm staff engineer who asks for evidence and explains the mechanism",
+      "color": "#2F6F8F"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "EXPLAIN ANALYZE",
+      "full": "Execute a plan and report actual rows and timing",
+      "note": "It runs the statement; use care with commands that change data."
+    }
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "Interview day. Mira circles an orders query. Dev hides the proposed index.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "db.table",
+          "id": "orders",
+          "name": "orders (illustrative rows)",
+          "columns": [
+            "order_id",
+            "customer_id",
+            "status"
+          ],
+          "rows": [
+            [
+              101,
+              7,
+              "paid"
+            ],
+            [
+              102,
+              7,
+              "open"
+            ],
+            [
+              103,
+              12,
+              "paid"
+            ]
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Customer_id is the filter. I would add an index and go home early.",
+      "visuals": [
+        {
+          "do": "code.editor",
+          "id": "editor",
+          "title": "Interview query",
+          "lines": [
+            "SELECT order_id, status",
+            "FROM orders",
+            "WHERE customer_id = 7;"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Maybe. Before choosing, ask the planner what it expected and compare that estimate with what execution observed.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "sketch.note",
+          "text": "estimate → actual",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "The command is EXPLAIN ANALYZE. It only improves the estimate without running my query, right?",
+      "visuals": [
+        {
+          "do": "code.show",
+          "id": "explain",
+          "lang": "sql",
+          "title": "Safe SELECT example",
+          "code": [
+            "EXPLAIN (ANALYZE, BUFFERS)",
+            "SELECT order_id, status",
+            "FROM orders WHERE customer_id = 7;"
+          ],
+          "at": "start"
+        },
+        {
+          "do": "define",
+          "term": "EXPLAIN ANALYZE",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "It executes the statement and reports actual work. Start with a safe SELECT; writes can have side effects.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "sketch.note",
+          "text": "ANALYZE executes the statement",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Then I compare estimated and actual rows at each plan node, beginning at the leaves?",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "plan: leaves → parents",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Yes. Find the first large mismatch; lower estimates shape higher join choices.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "tree",
+          "id": "plan",
+          "nodes": [
+            {
+              "id": "join",
+              "label": "parent join"
+            },
+            {
+              "id": "scan",
+              "label": "orders scan",
+              "parent": "join"
+            }
+          ],
+          "path": [
+            "scan",
+            "join"
+          ],
+          "at": "start"
+        },
+        {
+          "do": "sketch.note",
+          "text": "compare estimated ↔ actual rows",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "And repeated nodes show actual row counts as totals across every loop?",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "Mira: total across loops?",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Rows and times are per-loop averages. Multiply by loops; parent times include their children.",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "per-loop average × loops",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "If the estimate is wrong, should I force the index and end the investigation?",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "Mira: force index?",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Refresh stale statistics with ANALYZE, then rerun. If estimates stay wrong, investigate the data distribution.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "code.editor",
+          "id": "remeasure",
+          "title": "Remeasure",
+          "lines": [
+            "ANALYZE orders;",
+            "EXPLAIN (ANALYZE, BUFFERS)",
+            "SELECT order_id, status",
+            "FROM orders WHERE customer_id = 7;"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Fine. I will mark the first mismatch and test its cause before spending our interview budget on indexes.",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "candidate writes: estimate → cause → retest",
+          "at": "start"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    "https://www.postgresql.org/docs/current/using-explain.html",
+    "https://www.postgresql.org/docs/current/sql-explain.html"
+  ],
+  "key_points": [
+    "EXPLAIN ANALYZE executes the statement; use extra care with data-changing commands.",
+    "Compare estimated and actual rows from the plan leaves upward; repeated-node actual rows are per-loop averages.",
+    "Refresh relevant statistics and remeasure before forcing a plan choice."
+  ],
+  "expect": [
+    {
+      "beat": 0,
+      "at": 0.5,
+      "kind": "table.rows",
+      "target": "orders",
+      "count": 3
+    },
+    {
+      "beat": 6,
+      "at": "end",
+      "kind": "text.visible",
+      "text": "compare estimated ↔ actual rows"
+    }
+  ]
+}

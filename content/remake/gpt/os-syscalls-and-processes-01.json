@@ -1,0 +1,280 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "Find the startup wait with strace",
+  "topic": "os/process/strace-syscall-tracing",
+  "genre": "build-along",
+  "style": "terminal",
+  "series": "os-syscalls-and-processes",
+  "series_index": 1,
+  "tags": [
+    "linux",
+    "strace",
+    "syscalls",
+    "debugging"
+  ],
+  "level": "intermediate",
+  "cast": [
+    {
+      "id": "rookie",
+      "name": "Jo",
+      "role": "Junior Linux engineer",
+      "color": "#E4572E"
+    },
+    {
+      "id": "senior",
+      "name": "Ren",
+      "role": "Calm Linux engineer",
+      "color": "#2F6F8F"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "syscall",
+      "full": "system call",
+      "note": "A request from a program to the operating system kernel."
+    },
+    {
+      "term": "PID",
+      "full": "process identifier",
+      "note": "The number used to identify a process."
+    },
+    {
+      "term": "FD",
+      "full": "file descriptor",
+      "note": "A process handle for an open file, pipe or socket."
+    },
+    {
+      "term": "CPU",
+      "full": "Central Processing Unit",
+      "note": "The processor core executing instructions."
+    }
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "On Linux, Jo's service hangs before its first log. Ren opens a terminal and asks which system call, or syscall, it waits in.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "term.type",
+          "id": "prompt",
+          "cmd": "./server",
+          "out": "Fictional service: no first log line"
+        },
+        {
+          "do": "define",
+          "term": "syscall"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Build a focused trace: strace follows children with minus f, prints elapsed syscall time with minus T, and records network, read, poll and futex calls.",
+      "say": "Build a focused trace: strace follows children with dash F, prints elapsed system call time with dash T, and records network, read, poll and few-tex calls.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "term.type",
+          "id": "command",
+          "cmd": "strace -f -T -yy \\\n  -e trace=network,read,poll,futex \\\n  -o startup.trace ./server",
+          "out": "Run on a development process you control"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "The trace shows poll waiting on file descriptor seven. Does that prove the server is stuck in a processor loop?",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "term.type",
+          "id": "trace",
+          "cmd": "poll([{fd=7, events=POLLIN}], 1, -1)",
+          "out": "Illustrative unfinished wait; no timing claimed"
+        },
+        {
+          "do": "define",
+          "term": "FD"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "No. A pending poll means waiting for readiness, not burning CPU. The elapsed time appears when it returns; minus yy helps decode the descriptor.",
+      "say": "No. A pending poll means waiting for readiness, not burning C P U. Elapsed time appears when it returns; dash Y Y helps decode the descriptor.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "timeline.track",
+          "id": "wait",
+          "lanes": [
+            "App",
+            "Kernel"
+          ],
+          "span": [
+            0,
+            100
+          ],
+          "blocks": [
+            {
+              "lane": "App",
+              "start": 0,
+              "end": 24,
+              "label": "poll"
+            },
+            {
+              "lane": "Kernel",
+              "start": 24,
+              "end": 78,
+              "label": "wait"
+            },
+            {
+              "lane": "App",
+              "start": 78,
+              "end": 100,
+              "label": "resume"
+            }
+          ]
+        },
+        {
+          "do": "define",
+          "term": "CPU"
+        },
+        {
+          "do": "sketch.note",
+          "id": "reveal-note",
+          "text": "Poll means waiting, not CPU work"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "How do I connect that descriptor to the dependency instead of guessing from one line?",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "id": "question",
+          "text": "Map process → descriptor → resource"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Inspect the live process's descriptor link and nearby calls. A socket suggests a network path; a futex wait points toward synchronization, but neither alone proves the root cause.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "term.type",
+          "id": "inspect",
+          "cmd": "readlink /proc/<PID>/fd/7\nss -tnp",
+          "out": "Replace PID with the traced process identifier"
+        },
+        {
+          "do": "define",
+          "term": "PID"
+        },
+        {
+          "do": "sketch.note",
+          "id": "reveal-note",
+          "text": "Map PID and FD to a resource"
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Jo finds the fictional service waiting on its configured socket. After fixing that dependency, they repeat the capture and compare the call path.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "code.editor",
+          "id": "loop",
+          "lang": "sh",
+          "lines": [
+            "strace -f -T -yy -o before.trace ./server",
+            "# fix the confirmed dependency",
+            "strace -f -T -yy -o after.trace ./server",
+            "diff -u before.trace after.trace"
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Use the trace to locate a wait, then follow its resource and surrounding calls. Tracing adds overhead, so repeat startup and treat timing as diagnostic evidence.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "tree",
+          "id": "method",
+          "nodes": [
+            {
+              "id": "start",
+              "label": "Start"
+            },
+            {
+              "id": "trace",
+              "label": "Trace",
+              "parent": "start"
+            },
+            {
+              "id": "resource",
+              "label": "Map FD",
+              "parent": "trace"
+            },
+            {
+              "id": "repair",
+              "label": "Repair",
+              "parent": "resource"
+            }
+          ],
+          "path": [
+            "start",
+            "trace",
+            "resource",
+            "repair"
+          ]
+        }
+      ]
+    }
+  ],
+  "key_points": [
+    "Follow child processes and focus the syscall filter on the suspected wait.",
+    "A blocked syscall shows waiting, not its root cause by itself.",
+    "Map the descriptor to a resource and repeat the same capture after repair."
+  ],
+  "expect": [
+    {
+      "beat": 3,
+      "kind": "text.visible",
+      "text": "Poll means waiting, not CPU work",
+      "note": "The main syscall interpretation appears with its explanation."
+    }
+  ],
+  "sources": [
+    "https://man7.org/linux/man-pages/man1/strace.1.html",
+    "https://man7.org/linux/man-pages/man2/poll.2.html",
+    "https://man7.org/linux/man-pages/man5/proc_pid_fd.5.html"
+  ]
+}

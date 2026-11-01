@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation";
 import { browserDb } from "@/lib/supabase/browser";
 import { MAX_ONBOARDING_REQUESTS, REQUEST_MAX, REQUEST_MIN, requestError } from "@/lib/interests";
 import { InterestChips } from "@/components/interests";
-import { useData } from "@/components/data";
+import { LoadState, useData } from "@/components/data";
 
 export default function Onboarding() {
-  const { userId, loading, saveInterests } = useData(),
+  const { userId, loading, error: loadError, saveInterests } = useData(),
     router = useRouter();
   const [areas, setAreas] = useState<string[]>([]),
     [extra, setExtra] = useState(""),
@@ -38,6 +38,7 @@ export default function Onboarding() {
     }
     router.replace("/");
   };
+  if (loading || loadError) return <LoadState />;
   return (
     <main className="content-page onboarding">
       <header>

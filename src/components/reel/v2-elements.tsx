@@ -4,7 +4,7 @@ import type { NodeIcon as IconName } from "@/lib/reel-schema";
 const stroke = {
   fill: "none",
   stroke: "currentColor",
-  strokeWidth: 1.6,
+  strokeWidth: 1.75,
   strokeLinecap: "round",
   strokeLinejoin: "round",
 } as const;

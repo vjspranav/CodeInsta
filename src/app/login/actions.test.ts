@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => {
   const maybeSingle = vi.fn();
   const createUser = vi.fn();
@@ -8,8 +8,10 @@ const mocks = vi.hoisted(() => {
 vi.mock("@/lib/supabase/server", () => ({ serverDb: async () => mocks.db }));
 vi.mock("@/lib/supabase/membership", () => ({ getMembershipAdmin: mocks.admin, bootstrapOwner: mocks.bootstrap }));
 vi.mock("@/lib/supabase/invites", async () => await import("../../lib/supabase/invites"));
+vi.mock("@/lib/supabase/allowlist", async () => await import("../../lib/supabase/allowlist"));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`redirect:${path}`); } }));
 import { authenticate } from "./actions";
+afterEach(() => vi.unstubAllEnvs());
 function form(email: string, mode = "signup", invite = "CODE") {
   const data = new FormData();
   Object.entries({ email, mode, invite, password: "password123" }).forEach(([key, value]) => data.set(key, value));
@@ -17,6 +19,7 @@ function form(email: string, mode = "signup", invite = "CODE") {
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubEnv("ALLOWED_EMAILS", "owner@example.com");
   mocks.maybeSingle.mockResolvedValue({ data: { uses: 0, max_uses: 1, expires_at: null }, error: null });
   const response = { data: { user: { id: "user", email: "member@example.com" }, session: {} }, error: null };
   mocks.createUser.mockResolvedValue({ data: {}, error: null });
@@ -58,11 +61,13 @@ describe("signup membership boundary", () => {
     expect(mocks.db.auth.signInWithPassword).not.toHaveBeenCalled();
     expect(mocks.bootstrap).not.toHaveBeenCalled();
   });
-  it("redeems an invite for an owner-email password signup and still calls bootstrapOwner", async () => {
-    await expect(authenticate({ error: "" }, form("owner@example.com"))).rejects.toThrow("redirect:/");
-    expect(mocks.createUser).toHaveBeenCalledWith(expect.objectContaining({ email: "owner@example.com" }));
-    expect(mocks.bootstrap).toHaveBeenCalled();
-    expect(mocks.db.rpc).toHaveBeenCalledWith("redeem_invite", { invite: "CODE" });
+  it("rejects an owner-email password signup even with a valid invite", async () => {
+    const result = await authenticate({ error: "" }, form(" OWNER@example.com "));
+    expect(result.error).toContain("Google");
+    expect(mocks.createUser).not.toHaveBeenCalled();
+    expect(mocks.db.auth.signInWithPassword).not.toHaveBeenCalled();
+    expect(mocks.bootstrap).not.toHaveBeenCalled();
+    expect(mocks.db.rpc).not.toHaveBeenCalled();
   });
   it("returns the createUser error and does not sign in or redeem", async () => {
     mocks.createUser.mockResolvedValue({ data: null, error: { message: "already registered" } });

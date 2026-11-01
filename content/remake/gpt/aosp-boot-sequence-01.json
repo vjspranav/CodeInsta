@@ -1,0 +1,260 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "Debug the verified boot chain",
+  "topic": "aosp/boot/avb-boot-chain",
+  "genre": "myth-vs-fact",
+  "style": "blueprint",
+  "series": "aosp-boot-sequence",
+  "series_index": 1,
+  "tags": [
+    "aosp",
+    "avb",
+    "boot",
+    "vbmeta"
+  ],
+  "level": "intermediate",
+  "cast": [
+    {
+      "id": "rookie",
+      "name": "Isha",
+      "role": "Junior Android platform engineer",
+      "color": "#E4572E"
+    },
+    {
+      "id": "senior",
+      "name": "Kai",
+      "role": "Calm Android platform engineer",
+      "color": "#2F6F8F"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "AOSP",
+      "full": "Android Open Source Project",
+      "note": "The open-source Android platform."
+    },
+    {
+      "term": "AVB",
+      "full": "Android Verified Boot",
+      "note": "Verifies signed metadata, image integrity and rollback policy."
+    }
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "In a fictional Android Open Source Project lab, Isha's test phone refuses a rebuilt image. Kai turns the terminal toward the boot metadata.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "term.type",
+          "id": "local-check",
+          "cmd": "avbtool verify_image --image vbmeta.img --key test.pem",
+          "out": "Illustrative local check: signature valid under supplied key"
+        },
+        {
+          "do": "define",
+          "term": "AOSP"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "My signature verifies with test dot pem. That means this device trusts the image, right?",
+      "say": "My signature verifies with test dot pem. That means this device trusts the image, right?",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "id": "claim",
+          "text": "MYTH: valid signature = device trust"
+        },
+        {
+          "do": "sketch.note",
+          "id": "lab-label",
+          "text": "Fictional lab key names; no device output claimed"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "That's the myth. Android Verified Boot, AVB, checks whether the bootloader accepts the public key that signed vbmeta. Valid math under another key does not establish device trust.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "seq.diagram",
+          "id": "trust",
+          "actors": [
+            "Bootloader",
+            "vbmeta",
+            "Images"
+          ],
+          "messages": [
+            {
+              "from": "Bootloader",
+              "to": "vbmeta",
+              "label": "accept configured public key?"
+            },
+            {
+              "from": "vbmeta",
+              "to": "Images",
+              "label": "descriptors"
+            }
+          ]
+        },
+        {
+          "do": "define",
+          "term": "AVB"
+        },
+        {
+          "do": "sketch.note",
+          "id": "reveal-note",
+          "text": "Trust depends on accepted key"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Okay, but if the accepted key matches, every older image should boot?",
+      "visuals": []
+    },
+    {
+      "speaker": "senior",
+      "text": "A second gate can still stop it. AVB compares each rollback index in vbmeta with the device's stored value; a lower index is rejected even when signature checks pass.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "clear",
+          "keep": [
+            "trust"
+          ]
+        },
+        {
+          "do": "timeline.track",
+          "id": "rollback",
+          "lanes": [
+            "Image metadata",
+            "Device state",
+            "Decision"
+          ],
+          "span": [
+            0,
+            100
+          ],
+          "blocks": [
+            {
+              "lane": "Image metadata",
+              "start": 0,
+              "end": 48,
+              "label": "rollback index"
+            },
+            {
+              "lane": "Device state",
+              "start": 0,
+              "end": 48,
+              "label": "stored index"
+            },
+            {
+              "lane": "Decision",
+              "start": 48,
+              "end": 100,
+              "label": "reject"
+            }
+          ]
+        },
+        {
+          "do": "sketch.note",
+          "id": "reveal-note",
+          "text": "Lower rollback index is rejected"
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "At the fictional bench, Isha compares the signing key and rollback policy before touching the test phone again.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "term.type",
+          "id": "inspect",
+          "cmd": "avbtool info_image --image vbmeta.img",
+          "out": "Illustrative inspection: check descriptors, key and rollback metadata"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "I'll verify the descriptor chain, use the key this test device is configured to accept, and compare rollback state before flashing. The signature alone was never the whole answer.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "tree",
+          "id": "checklist",
+          "nodes": [
+            {
+              "id": "meta",
+              "label": "VBMeta"
+            },
+            {
+              "id": "key",
+              "label": "Key",
+              "parent": "meta"
+            },
+            {
+              "id": "chain",
+              "label": "Chain",
+              "parent": "meta"
+            },
+            {
+              "id": "rollback",
+              "label": "Rollback",
+              "parent": "meta"
+            }
+          ],
+          "path": [
+            "meta",
+            "key",
+            "chain",
+            "rollback"
+          ]
+        }
+      ]
+    }
+  ],
+  "key_points": [
+    "A valid signature proves signing under a key; device trust depends on the bootloader accepting that key.",
+    "Signed vbmeta descriptors bind or delegate verification for partition images.",
+    "Rollback protection can reject an old image even when its signature is valid."
+  ],
+  "expect": [
+    {
+      "beat": 2,
+      "kind": "text.visible",
+      "text": "Trust depends on accepted key",
+      "note": "Main reveal separates signature validity from device trust."
+    },
+    {
+      "beat": 4,
+      "kind": "text.visible",
+      "text": "Lower rollback index is rejected",
+      "note": "Rollback rejection appears on its explanatory beat."
+    }
+  ],
+  "sources": [
+    "https://android.googlesource.com/platform/external/avb/+/refs/heads/main/README.md"
+  ]
+}

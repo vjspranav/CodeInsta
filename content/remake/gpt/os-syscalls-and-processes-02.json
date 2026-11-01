@@ -1,0 +1,302 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "See fork, exec and spawn from outside",
+  "topic": "os/process/fork-exec-clone-flags",
+  "genre": "predict-it",
+  "style": "sketch",
+  "series": "os-syscalls-and-processes",
+  "series_index": 2,
+  "tags": [
+    "linux",
+    "processes",
+    "fork",
+    "exec",
+    "posix_spawn"
+  ],
+  "level": "intermediate",
+  "cast": [
+    {
+      "id": "rookie",
+      "name": "Jo",
+      "role": "Junior Linux engineer",
+      "color": "#E4572E"
+    },
+    {
+      "id": "senior",
+      "name": "Ren",
+      "role": "Calm Linux engineer",
+      "color": "#2F6F8F"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "PID",
+      "full": "process identifier",
+      "note": "The number used to identify a process."
+    },
+    {
+      "term": "POSIX",
+      "full": "Portable Operating System Interface",
+      "note": "A family of operating system interface standards."
+    }
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "On Linux, Jo traces a shell launching a child command. The excerpt is illustrative; shells and libraries choose different system calls.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "term.type",
+          "id": "trace",
+          "cmd": "strace -f -e trace=process -- sh -c 'sleep 1 & wait'",
+          "out": "Illustrative launch; syscall sequence varies"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "I see a child creation call and then execve. Predict this: after execve replaces the program image, does the child's process identifier change?",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "tree",
+          "id": "question",
+          "nodes": [
+            {
+              "id": "shell",
+              "label": "shell · PID 410"
+            },
+            {
+              "id": "child",
+              "label": "child · PID 411",
+              "parent": "shell"
+            }
+          ],
+          "path": [
+            "shell",
+            "child"
+          ]
+        },
+        {
+          "do": "define",
+          "term": "PID"
+        },
+        {
+          "do": "sketch.note",
+          "id": "reveal-note",
+          "text": "Child PID 411"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "It stays the same. Exec replaces the current process image with a new program; it does not create a second process. The child keeps its identifier.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "tree",
+          "id": "exec",
+          "nodes": [
+            {
+              "id": "shell",
+              "label": "shell"
+            },
+            {
+              "id": "image",
+              "label": "PID 411 · new image",
+              "parent": "shell"
+            }
+          ],
+          "path": [
+            "shell",
+            "image"
+          ]
+        },
+        {
+          "do": "sketch.note",
+          "id": "reveal-note",
+          "text": "Same PID after exec"
+        }
+      ],
+      "hold_ms": 300
+    },
+    {
+      "speaker": "rookie",
+      "text": "Then what does fork add before exec, and why might vfork look different in the trace?",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "id": "next",
+          "text": "Creation and replacement are separate steps"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Fork creates a child with a separate address space, commonly using copy-on-write. Vfork temporarily shares memory and suspends the parent thread until the child execs or exits.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "seq.diagram",
+          "id": "fork",
+          "actors": [
+            "Parent",
+            "Child"
+          ],
+          "messages": [
+            {
+              "from": "Parent",
+              "to": "Child",
+              "label": "fork: create child"
+            },
+            {
+              "from": "Child",
+              "to": "Parent",
+              "label": "copy-on-write address space",
+              "reply": true
+            },
+            {
+              "from": "Parent",
+              "to": "Child",
+              "label": "vfork: parent waits"
+            },
+            {
+              "from": "Child",
+              "to": "Parent",
+              "label": "exec or exit releases wait",
+              "reply": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "And clone flags tell me which resources are shared, while posix_spawn gives callers a smaller launch routine?",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "sketch.note",
+          "id": "question2",
+          "text": "Which resources, and which setup steps?"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Right. Linux clone flags select sharing such as memory or file descriptors. The Portable Operating System Interface, POSIX, spawn routine packages process creation, file actions, attributes and exec; libc details vary.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "code.editor",
+          "id": "choices",
+          "lang": "text",
+          "lines": [
+            "clone: choose sharing flags",
+            "CLONE_VM  → shared memory",
+            "CLONE_FILES → shared descriptor table",
+            "POSIX spawn: file actions + exec",
+            "glibc 2.24+: clone with VM + VFORK"
+          ]
+        },
+        {
+          "do": "define",
+          "term": "POSIX"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "I will label creation and replacement separately in my trace. One library call can use different syscalls; replacing the program does not create another process.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "timeline.track",
+          "id": "sequence",
+          "lanes": [
+            "Parent",
+            "Child"
+          ],
+          "span": [
+            0,
+            100
+          ],
+          "blocks": [
+            {
+              "lane": "Parent",
+              "start": 0,
+              "end": 38,
+              "label": "create"
+            },
+            {
+              "lane": "Child",
+              "start": 18,
+              "end": 48,
+              "label": "child"
+            },
+            {
+              "lane": "Child",
+              "start": 48,
+              "end": 78,
+              "label": "exec"
+            },
+            {
+              "lane": "Parent",
+              "start": 78,
+              "end": 100,
+              "label": "wait"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "key_points": [
+    "Exec replaces a process image and preserves its process identifier.",
+    "Fork creates a child; vfork suspends its parent until exec or exit.",
+    "Clone flags and posix_spawn expose different resource-sharing and setup choices."
+  ],
+  "expect": [
+    {
+      "beat": 1,
+      "kind": "text.visible",
+      "text": "Child PID 411",
+      "note": "The prediction input is explicit."
+    },
+    {
+      "beat": 2,
+      "kind": "text.visible",
+      "text": "Same PID after exec",
+      "note": "The answer appears only after the question ends."
+    }
+  ],
+  "sources": [
+    "https://man7.org/linux/man-pages/man2/fork.2.html",
+    "https://man7.org/linux/man-pages/man2/execve.2.html",
+    "https://man7.org/linux/man-pages/man2/clone.2.html",
+    "https://man7.org/linux/man-pages/man3/posix_spawn.3.html"
+  ]
+}

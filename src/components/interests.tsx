@@ -3,11 +3,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { browserDb } from "@/lib/supabase/browser";
 import {
-  AREA_INFO,
-  AREAS,
   REQUEST_MAX,
   REQUEST_MIN,
-  areaLabel,
   requestError,
   type TopicRequest,
 } from "@/lib/interests";
@@ -20,11 +17,11 @@ export function InterestChips({
   value: string[];
   onChange: (next: string[]) => void;
 }) {
+  const { categories } = useData();
   return (
     <div className="chip-grid" role="group" aria-label="Topics you want to learn">
-      {AREAS.map((area) => {
-        const on = value.includes(area),
-          info = AREA_INFO[area];
+      {categories.map((info) => {
+        const area = info.slug, on = value.includes(area);
         return (
           <button
             type="button"
@@ -33,9 +30,8 @@ export function InterestChips({
             aria-pressed={on}
             onClick={() => onChange(on ? value.filter((a) => a !== area) : [...value, area])}
           >
-            <span className="chip-emoji" aria-hidden>{info.emoji}</span>
             <strong>{info.label}</strong>
-            <small>{info.blurb}</small>
+            <small>{info.description}</small>
           </button>
         );
       })}
@@ -98,7 +94,8 @@ export function TopicRequests() {
       .select("id, user_id, body, area, status, created_at, fulfilled_reel_id")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
-    if (!error) setItems((data ?? []) as TopicRequest[]);
+    if (error) setError(error.message);
+    else setItems((data ?? []) as TopicRequest[]);
   }, [userId]);
   useEffect(() => void load(), [load]);
   const text = body.trim();
@@ -141,49 +138,6 @@ export function TopicRequests() {
             {item.status === "done" && item.fulfilled_reel_id && (
               <Link href={`/reel/${item.fulfilled_reel_id}`}>Watch the reel →</Link>
             )}
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-export function ReviewRequests() {
-  const [items, setItems] = useState<TopicRequest[]>([]),
-    [error, setError] = useState("");
-  const load = useCallback(async () => {
-    const { data, error } = await browserDb()
-      .from("topic_requests")
-      .select("id, user_id, body, area, status, created_at, fulfilled_reel_id")
-      .eq("status", "pending")
-      .order("created_at", { ascending: true });
-    if (error) setError("Could not load requests.");
-    else setItems((data ?? []) as TopicRequest[]);
-  }, []);
-  useEffect(() => void load(), [load]);
-  const decide = async (id: string, status: "approved" | "rejected") => {
-    setError("");
-    const { error } = await browserDb()
-      .from("topic_requests")
-      .update({ status, decided_at: new Date().toISOString() })
-      .eq("id", id);
-    if (error) return setError("Could not update that request. Try again.");
-    setItems((current) => current.filter((item) => item.id !== id));
-  };
-  return (
-    <section className="interest-section">
-      <h2>Review requests</h2>
-      <p className="error" role="alert">{error}</p>
-      {items.length === 0 && !error && <p className="muted">Nothing waiting for review.</p>}
-      <ul className="request-list">
-        {items.map((item) => (
-          <li key={item.id}>
-            <span>{item.body}</span>
-            <small className="muted">Member {item.user_id.slice(0, 6)}{item.area ? ` · ${areaLabel(item.area)}` : ""}</small>
-            <div className="request-actions">
-              <button className="primary" onClick={() => decide(item.id, "approved")}>Approve</button>
-              <button onClick={() => decide(item.id, "rejected")}>Reject</button>
-            </div>
           </li>
         ))}
       </ul>

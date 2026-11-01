@@ -1,0 +1,285 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "Stop logging inside signal handlers",
+  "topic": "os/process/signals-gotchas",
+  "tags": [
+    "os",
+    "signals",
+    "linux"
+  ],
+  "level": "intermediate",
+  "series": "os-syscalls-and-processes",
+  "series_index": 3,
+  "genre": "story",
+  "style": "newsprint",
+  "cast": [
+    {
+      "id": "rookie",
+      "name": "Jo",
+      "role": "Junior Linux service author who wants a helpful shutdown log",
+      "color": "#E4572E"
+    },
+    {
+      "id": "senior",
+      "name": "Ren",
+      "role": "Systems engineer who keeps asynchronous handlers tiny",
+      "color": "#2F6F8F"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "SIGTERM",
+      "full": "Termination signal",
+      "note": "A request that a process terminate cleanly."
+    },
+    {
+      "term": "async-signal-safe",
+      "full": "Safe to call asynchronously from a signal handler",
+      "note": "The function is safe if a signal interrupts ordinary code while it is running."
+    },
+    {
+      "term": "signalfd",
+      "full": "Linux file descriptor for receiving signals",
+      "note": "Blocked signals can be read in the normal event loop."
+    }
+  ],
+  "key_points": [
+    "A signal can interrupt code while stdio or allocator state is halfway through an operation.",
+    "A handler should only use async-signal-safe operations and minimal shared state.",
+    "On Linux, blocked signals can be consumed through signalfd in the ordinary event loop."
+  ],
+  "sources": [
+    "https://man7.org/linux/man-pages/man7/signal-safety.7.html",
+    "https://man7.org/linux/man-pages/man2/signalfd.2.html",
+    "https://man7.org/linux/man-pages/man2/sigaction.2.html"
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "A fictional Linux worker receives a shutdown request mid-job. Jo adds a friendly log inside the signal callback.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full",
+          "at": "start"
+        },
+        {
+          "do": "timeline.track",
+          "id": "worker",
+          "lanes": [
+            "main thread",
+            "signal handler"
+          ],
+          "span": [
+            0,
+            100
+          ],
+          "blocks": [
+            {
+              "lane": "main thread",
+              "start": 0,
+              "end": 100,
+              "label": "stdio updates shared buffer"
+            },
+            {
+              "lane": "signal handler",
+              "start": 42,
+              "end": 68,
+              "label": "signal"
+            }
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "When SIGTERM arrives, I call printf to explain why the worker stopped. The handler is tiny; what could go wrong?",
+      "visuals": [
+        {
+          "do": "define",
+          "term": "SIGTERM",
+          "at": "start"
+        },
+        {
+          "do": "code.show",
+          "id": "bad",
+          "lang": "c",
+          "title": "fictional example · unsafe",
+          "code": [
+            "void on_signal(int s) {",
+            "  printf(\"stopping\");",
+            "}"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "The signal can interrupt printf while its shared buffer is half updated. Calling it again may corrupt output. Many library routines have this problem.",
+      "visuals": [
+        {
+          "do": "seq.diagram",
+          "id": "interrupt",
+          "actors": [
+            "main code",
+            "stdio buffer",
+            "handler"
+          ],
+          "messages": [
+            {
+              "from": "main code",
+              "to": "stdio buffer",
+              "label": "update halfway"
+            },
+            {
+              "from": "handler",
+              "to": "stdio buffer",
+              "label": "printf re-enters"
+            }
+          ],
+          "at": "start"
+        },
+        {
+          "do": "sketch.note",
+          "text": "printf can re-enter a half-updated buffer",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Which operation is safe there? Can I allocate a message for later?",
+      "visuals": []
+    },
+    {
+      "speaker": "senior",
+      "text": "No allocation or formatted logging. Use async-signal-safe functions and minimal state. In a single-threaded program, a handler can set a volatile signal-atomic flag; ordinary code cleans up.",
+      "visuals": [
+        {
+          "do": "define",
+          "term": "async-signal-safe",
+          "at": "start"
+        },
+        {
+          "do": "code.show",
+          "id": "flag",
+          "lang": "c",
+          "title": "minimal handler · illustrative",
+          "code": [
+            "static volatile sig_atomic_t stop;",
+            "void on_signal(int s) { stop = 1; }",
+            "/* main loop checks stop */"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Our Linux service waits on file descriptors. Can signals join that event loop instead of interrupting arbitrary work?",
+      "visuals": []
+    },
+    {
+      "speaker": "senior",
+      "text": "Yes. Block chosen signals before starting worker threads, create signalfd, then read records in the normal loop. Ordinary code can log and clean up; this interface is Linux-specific.",
+      "visuals": [
+        {
+          "do": "define",
+          "term": "signalfd",
+          "at": "start"
+        },
+        {
+          "do": "seq.diagram",
+          "id": "fd",
+          "actors": [
+            "signal source",
+            "signalfd",
+            "event loop"
+          ],
+          "messages": [
+            {
+              "from": "signal source",
+              "to": "signalfd",
+              "label": "blocked signal"
+            },
+            {
+              "from": "signalfd",
+              "to": "event loop",
+              "label": "read record; handle normally"
+            }
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "So sigaction installs a tiny fallback, while signalfd fits Linux event loops. Neither handler should call printf, malloc, or unsafe library code.",
+      "visuals": [
+        {
+          "do": "code.show",
+          "id": "summary",
+          "lang": "text",
+          "title": "two safe patterns",
+          "code": [
+            "minimal sigaction handler → flag",
+            "Linux signalfd → normal event loop"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Keep asynchronous work tiny; let ordinary code report and clean up. Shutdown stays clear if SIGTERM arrives awkwardly.",
+      "visuals": [
+        {
+          "do": "timeline.track",
+          "id": "safe",
+          "lanes": [
+            "signal",
+            "event loop",
+            "cleanup"
+          ],
+          "span": [
+            0,
+            100
+          ],
+          "blocks": [
+            {
+              "lane": "signal",
+              "start": 0,
+              "end": 22,
+              "label": "set flag"
+            },
+            {
+              "lane": "event loop",
+              "start": 22,
+              "end": 57,
+              "label": "event loop"
+            },
+            {
+              "lane": "cleanup",
+              "start": 56,
+              "end": 100,
+              "label": "close resources"
+            }
+          ],
+          "at": "start"
+        }
+      ]
+    }
+  ],
+  "expect": [
+    {
+      "beat": 2,
+      "at": "end",
+      "kind": "text.visible",
+      "text": "printf can re-enter a half-updated buffer",
+      "note": "The main reveal explains why formatted I/O is unsafe in the handler."
+    }
+  ]
+}

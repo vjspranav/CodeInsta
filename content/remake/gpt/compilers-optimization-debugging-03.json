@@ -1,0 +1,271 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "Choose the sanitizer for the failure",
+  "topic": "compilers/opt/sanitizers-asan-ubsan-tsan",
+  "tags": [
+    "compilers",
+    "asan",
+    "ubsan",
+    "tsan"
+  ],
+  "level": "intermediate",
+  "series": "compilers-optimization-debugging",
+  "series_index": 3,
+  "genre": "versus",
+  "style": "editorial-dark",
+  "cast": [
+    {
+      "id": "rookie",
+      "name": "Nia",
+      "role": "Junior developer who wants one sanitizer flag for every bug",
+      "color": "#E4572E"
+    },
+    {
+      "id": "senior",
+      "name": "Len",
+      "role": "Staff engineer who maps each bug to the right instrument",
+      "color": "#2F6F8F"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "ASan",
+      "full": "AddressSanitizer",
+      "note": "Finds many out-of-bounds and use-after-free memory errors."
+    },
+    {
+      "term": "UBSan",
+      "full": "UndefinedBehaviorSanitizer",
+      "note": "Checks selected undefined operations during execution."
+    },
+    {
+      "term": "TSan",
+      "full": "ThreadSanitizer",
+      "note": "Detects data races in instrumented executions."
+    }
+  ],
+  "key_points": [
+    "AddressSanitizer targets memory errors; UndefinedBehaviorSanitizer targets selected undefined operations.",
+    "ThreadSanitizer targets data races and normally needs a separate build.",
+    "Sanitizers add runtime and memory overhead; test representative paths and measure."
+  ],
+  "sources": [
+    "https://clang.llvm.org/docs/AddressSanitizer.html",
+    "https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html",
+    "https://clang.llvm.org/docs/ThreadSanitizer.html"
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "Triage brings three reports: a stale pointer, suspicious arithmetic, and two threads racing over one counter.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "split",
+          "at": "start"
+        },
+        {
+          "do": "sketch.box",
+          "id": "mem",
+          "text": "stale pointer",
+          "sub": "memory access",
+          "icon": "storage",
+          "tone": "accent",
+          "at": "start"
+        },
+        {
+          "do": "sketch.box",
+          "id": "arith",
+          "text": "bad arithmetic",
+          "sub": "undefined operation",
+          "icon": "service",
+          "at": "start"
+        },
+        {
+          "do": "sketch.box",
+          "id": "race",
+          "text": "shared counter",
+          "sub": "thread timing",
+          "icon": "worker",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Can one sanitizer catch all three? I need a quick debug build, not a pile of switches.",
+      "visuals": []
+    },
+    {
+      "speaker": "senior",
+      "text": "AddressSanitizer instruments memory accesses to catch many out-of-bounds and use-after-free errors. It costs memory and runtime; reports cover executed paths.",
+      "visuals": [
+        {
+          "do": "define",
+          "term": "ASan",
+          "at": "start"
+        },
+        {
+          "do": "term.type",
+          "id": "asan",
+          "cmd": "clang -O1 -g -fsanitize=address app.c -o app-asan",
+          "out": [
+            "example build command"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "That covers the stale pointer. Does it find signed addition beyond its range?",
+      "visuals": []
+    },
+    {
+      "speaker": "senior",
+      "text": "UndefinedBehaviorSanitizer checks selected undefined operations, including signed integer overflow. It reports only when a checked operation executes.",
+      "visuals": [
+        {
+          "do": "define",
+          "term": "UBSan",
+          "at": "start"
+        },
+        {
+          "do": "term.type",
+          "id": "ubsan",
+          "cmd": "clang -O1 -g -fsanitize=undefined app.c -o app-ubsan",
+          "out": [
+            "example build command"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "And the shared counter? What report should I expect?",
+      "visuals": []
+    },
+    {
+      "speaker": "senior",
+      "text": "For the counter, use ThreadSanitizer. It detects data races. Clang documents it cannot be combined with AddressSanitizer in one build.",
+      "visuals": [
+        {
+          "do": "define",
+          "term": "TSan",
+          "at": "start"
+        },
+        {
+          "do": "seq.diagram",
+          "id": "racepath",
+          "actors": [
+            "thread A",
+            "counter",
+            "thread B"
+          ],
+          "messages": [
+            {
+              "from": "thread A",
+              "to": "counter",
+              "label": "write"
+            },
+            {
+              "from": "thread B",
+              "to": "counter",
+              "label": "write without ordering"
+            }
+          ],
+          "at": "start"
+        },
+        {
+          "do": "code.show",
+          "id": "tsan-rule",
+          "lang": "text",
+          "title": "race detector",
+          "code": [
+            "ThreadSanitizer → data races",
+            "separate build from AddressSanitizer"
+          ],
+          "at": "start"
+        },
+        {
+          "do": "sketch.note",
+          "text": "ThreadSanitizer detects data races",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Choose by symptom: memory access, undefined operation, or unsynchronized shared state. These tools answer different questions.",
+      "visuals": [
+        {
+          "do": "code.show",
+          "id": "matrix",
+          "lang": "text",
+          "title": "choose by failure",
+          "code": [
+            "memory error  → AddressSanitizer",
+            "arithmetic UB → UndefinedBehaviorSanitizer",
+            "data race     → ThreadSanitizer"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Run AddressSanitizer with UndefinedBehaviorSanitizer on representative tests; use a separate ThreadSanitizer build for races. They cost resources; clean runs cover only exercised paths.",
+      "visuals": [
+        {
+          "do": "timeline.track",
+          "id": "builds",
+          "lanes": [
+            "memory + UB",
+            "race check"
+          ],
+          "span": [
+            0,
+            100
+          ],
+          "blocks": [
+            {
+              "lane": "memory + UB",
+              "start": 0,
+              "end": 64,
+              "label": "ASan + UBSan build"
+            },
+            {
+              "lane": "race check",
+              "start": 0,
+              "end": 100,
+              "label": "separate TSan build"
+            }
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "I will match the tool to the failure and test dangerous paths. No single clean run certifies the program.",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "symptom → tool → tested path",
+          "at": "start"
+        }
+      ]
+    }
+  ],
+  "expect": [
+    {
+      "beat": 6,
+      "at": "end",
+      "kind": "text.visible",
+      "text": "ThreadSanitizer detects data races",
+      "note": "The note captures the main reveal."
+    }
+  ]
+}

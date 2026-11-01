@@ -1,19 +1,3 @@
-import { TOPIC_AREAS, type TopicArea } from "./reel-schema";
-
-export const AREA_INFO: Record<TopicArea, { label: string; blurb: string; emoji: string }> = {
-  aosp: { label: "Android internals", blurb: "Binder, Treble, the build system", emoji: "🤖" },
-  os: { label: "Operating systems", blurb: "Scheduling, memory, syscalls", emoji: "🧠" },
-  compilers: { label: "Compilers", blurb: "Parsing, IR, optimization passes", emoji: "⚙️" },
-  distributed: { label: "Distributed systems", blurb: "Consensus, replication, failure modes", emoji: "🌐" },
-  networking: { label: "Networking", blurb: "TCP, DNS, TLS, packets on the wire", emoji: "📡" },
-  databases: { label: "Databases", blurb: "Indexes, transactions, storage engines", emoji: "🗄️" },
-  linkers: { label: "Linkers & loaders", blurb: "ELF, symbols, relocation, dynamic loading", emoji: "🔗" },
-  virtualization: { label: "Virtualization", blurb: "Hypervisors, containers, VMs", emoji: "📦" },
-  architecture: { label: "Computer architecture", blurb: "Caches, pipelines, memory ordering", emoji: "🔬" },
-};
-
-export const areaLabel = (area: string) => AREA_INFO[area as TopicArea]?.label ?? area;
-export const AREAS = TOPIC_AREAS;
 export const MAX_ONBOARDING_REQUESTS = 3;
 export const REQUEST_MIN = 3;
 export const REQUEST_MAX = 200;
@@ -28,6 +12,8 @@ export type TopicRequest = {
   status: "pending" | "approved" | "rejected" | "done";
   created_at: string;
   fulfilled_reel_id: string | null;
+  category_slug?: string | null;
+  decided_at?: string | null;
 };
 
 export function requestError(error: { code?: string; message?: string }): string {

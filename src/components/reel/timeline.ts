@@ -172,6 +172,18 @@ export function lineAt(frame: Frame, elapsed: number): number {
   });
   return index;
 }
+/** A speaker's bubble is a slot for their current spoken line, never a timed spoiler. */
+export function bubbleContent(
+  frame: Frame,
+  bubble: Extract<ReelElement, { type: "bubble" }>,
+  elapsed: number,
+): string | null {
+  if (!frame.lines.some((line) => line.speaker)) return elapsed >= bubble.at ? bubble.text : null;
+  const slot = frame.elements.find((element) => element.type === "bubble" && element.speaker === bubble.speaker);
+  if (slot?.id !== bubble.id) return null;
+  const line = frame.lines.find((line) => elapsed >= line.start && elapsed < line.start + line.duration);
+  return line?.speaker === bubble.speaker ? line.text : null;
+}
 /** Index of the highlighted word within a line. */
 export function wordAt(line: FrameLine, elapsed: number): number {
   const local = elapsed - line.start;
@@ -200,6 +212,7 @@ export type FeedContext = {
   areas: string[];
   liked: Set<string>;
   fulfilled: Set<string>;
+  disliked?: Set<string>;
   now?: number;
 };
 type FeedRow = {
@@ -210,6 +223,8 @@ type FeedRow = {
   series?: string | null;
   series_index?: number | null;
   parent_reel_id?: string | null;
+  genre?: string | null;
+  style?: string | null;
 };
 const DAY = 86_400_000;
 
@@ -230,6 +245,7 @@ export function scoreFeed<T extends FeedRow>(
       .sort((a, b) => a.series_index! - b.series_index!)[0];
     if (next) nextPart.set(series, next.id);
   }
+  const dislikedRows = rows.filter((r) => context.disliked?.has(r.id) && r.genre);
   const scores = new Map<string, number>();
   for (const r of rows) {
     let score = 0;
@@ -239,6 +255,11 @@ export function scoreFeed<T extends FeedRow>(
     if (context.areas.includes((r.topic ?? "").split("/")[0])) score += 40;
     const age = (now - new Date(r.created_at).getTime()) / DAY;
     score += 20 * Math.min(1, Math.max(0, 1 - age / 14));
+    if (!seen.has(r.id) && r.genre) {
+      const sameGenre = dislikedRows.filter((d) => d.genre === r.genre);
+      if (sameGenre.some((d) => r.style && d.style === r.style)) score -= 60;
+      else if (sameGenre.length) score -= 25;
+    }
     scores.set(r.id, score);
   }
   return scores;

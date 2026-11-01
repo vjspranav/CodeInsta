@@ -1,0 +1,262 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "Why your init service never starts",
+  "topic": "aosp/boot/init-rc-actions",
+  "genre": "trace",
+  "style": "terminal",
+  "series": "aosp-boot-sequence",
+  "series_index": 2,
+  "tags": [
+    "aosp",
+    "init",
+    "services",
+    "boot"
+  ],
+  "level": "intermediate",
+  "cast": [
+    {
+      "id": "rookie",
+      "name": "Isha",
+      "role": "Junior Android platform engineer",
+      "color": "#E4572E"
+    },
+    {
+      "id": "senior",
+      "name": "Kai",
+      "role": "Calm Android platform engineer",
+      "color": "#2F6F8F"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "AOSP",
+      "full": "Android Open Source Project",
+      "note": "The open-source Android platform."
+    },
+    {
+      "term": "init.rc",
+      "full": "Android init configuration file",
+      "note": "Declares services and actions for init."
+    }
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "In an Android Open Source Project lab build, Isha declares a tiny demo service in an init dot R C file and expects it to run during boot.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "term.type",
+          "id": "rc",
+          "cmd": "service demo /system/bin/demo",
+          "out": "class core\ndisabled\n# fictional lab excerpt"
+        },
+        {
+          "do": "define",
+          "term": "AOSP"
+        }
+      ],
+      "say": "In an Android Open Source Project lab build, Isha declares a tiny demo service in an init dot R C file and expects it to run during boot."
+    },
+    {
+      "speaker": "rookie",
+      "text": "The service is declared, the binary exists, and still there is no process. Did init ignore my file?",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "term.type",
+          "id": "symptom",
+          "cmd": "adb shell getprop init.svc.demo",
+          "out": "Example check only; value depends on the build"
+        },
+        {
+          "do": "define",
+          "term": "init.rc"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "First separate definition from launch. This fictional service includes disabled, so class startup will not start it automatically; an action must request start demo.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "code.editor",
+          "id": "definition",
+          "lang": "init.rc",
+          "lines": [
+            "service demo /system/bin/demo",
+            "    class core",
+            "    disabled",
+            "",
+            "on post-fs-data",
+            "    start demo"
+          ]
+        },
+        {
+          "do": "sketch.note",
+          "id": "reveal-note",
+          "text": "Disabled needs start demo"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "So the service block names the executable, but the action is the event that actually starts this disabled service?",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "timeline.track",
+          "id": "boot",
+          "lanes": [
+            "Event",
+            "Service"
+          ],
+          "span": [
+            0,
+            100
+          ],
+          "blocks": [
+            {
+              "lane": "Event",
+              "start": 0,
+              "end": 56,
+              "label": "event"
+            },
+            {
+              "lane": "Event",
+              "start": 56,
+              "end": 100,
+              "label": "start"
+            },
+            {
+              "lane": "Service",
+              "start": 68,
+              "end": 100,
+              "label": "running"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Init queues matching actions and runs their commands in order. Starting a process does not guarantee readiness; check service state and coordinate readiness separately.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "term.type",
+          "id": "inspect",
+          "cmd": "rg -n 'service demo|start demo' device/",
+          "out": "Illustrative source-tree search; paths vary by product"
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Isha adds the missing action in the fictional configuration, rebuilds the lab image, and checks the service state after boot.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "code.editor",
+          "id": "fix",
+          "lang": "init.rc",
+          "lines": [
+            "on post-fs-data",
+            "    start demo",
+            "",
+            "# rebuild and boot the lab image",
+            "adb shell getprop init.svc.demo"
+          ]
+        },
+        {
+          "do": "sketch.note",
+          "id": "reveal-note",
+          "text": "Check service state after boot"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "I will check the trigger and service state after boot. If the daemon still fails, init logs come next, before another blind rebuild.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "tree",
+          "id": "debug",
+          "nodes": [
+            {
+              "id": "file",
+              "label": "Config"
+            },
+            {
+              "id": "decl",
+              "label": "Decl",
+              "parent": "file"
+            },
+            {
+              "id": "event",
+              "label": "Event",
+              "parent": "file"
+            },
+            {
+              "id": "proc",
+              "label": "Proc",
+              "parent": "event"
+            },
+            {
+              "id": "logs",
+              "label": "Logs",
+              "parent": "proc"
+            }
+          ],
+          "path": [
+            "file",
+            "event",
+            "proc",
+            "logs"
+          ]
+        }
+      ]
+    }
+  ],
+  "key_points": [
+    "A service declaration describes a process; it does not always launch it.",
+    "The disabled option requires an explicit start action.",
+    "Check init events, service state and logs after boot."
+  ],
+  "expect": [
+    {
+      "beat": 2,
+      "kind": "text.visible",
+      "text": "Disabled needs start demo",
+      "note": "The missing launch action is made explicit."
+    }
+  ],
+  "sources": [
+    "https://android.googlesource.com/platform/system/core/+/android17-release/init/README.md",
+    "https://android.googlesource.com/platform/system/core/+/refs/heads/main/init/README.md"
+  ]
+}

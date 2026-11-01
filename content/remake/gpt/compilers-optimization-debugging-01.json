@@ -1,0 +1,270 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "Ask Clang why the loop stayed scalar",
+  "topic": "compilers/opt/vectorization-remarks",
+  "tags": [
+    "compilers",
+    "clang",
+    "vectorization"
+  ],
+  "level": "intermediate",
+  "series": "compilers-optimization-debugging",
+  "series_index": 1,
+  "genre": "build-along",
+  "style": "newsprint",
+  "cast": [
+    {
+      "id": "rookie",
+      "name": "Nia",
+      "role": "Junior compiler engineer, eager to blame the optimization level",
+      "color": "#E4572E"
+    },
+    {
+      "id": "senior",
+      "name": "Len",
+      "role": "Staff engineer who asks for the compiler's evidence",
+      "color": "#2F6F8F"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "SIMD",
+      "full": "Single Instruction, Multiple Data",
+      "note": "One operation handles several independent values."
+    }
+  ],
+  "key_points": [
+    "Ask the vectorizer for missed and analysis remarks at the exact loop.",
+    "A loop-carried dependency may make adjacent iterations unsafe to combine.",
+    "A transformation is not a speedup; inspect target code and benchmark representative inputs."
+  ],
+  "sources": [
+    "https://clang.llvm.org/docs/UsersManual.html",
+    "https://llvm.org/docs/Vectorizers.html"
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "At review, Nia blames Clang for leaving a prefix sum scalar.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "split",
+          "at": "start"
+        },
+        {
+          "do": "code.show",
+          "id": "prefix",
+          "lang": "c",
+          "title": "loop.c · illustrative example",
+          "code": [
+            "for (int i = 1; i < n; ++i)",
+            "  a[i] += a[i - 1];"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "I built at O three. Why no vector instructions? Each loop seems small.",
+      "visuals": []
+    },
+    {
+      "speaker": "senior",
+      "text": "Each iteration reads the previous result. Can independent lanes preserve that dependency?",
+      "visuals": [
+        {
+          "do": "tree",
+          "id": "deps",
+          "nodes": [
+            {
+              "id": "i",
+              "label": "iteration i"
+            },
+            {
+              "id": "prev",
+              "label": "writes a[i]"
+            },
+            {
+              "id": "next",
+              "label": "i + 1 reads a[i]",
+              "parent": "prev"
+            }
+          ],
+          "path": [
+            "prev",
+            "next"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Let us ask the vectorizer instead of guessing?",
+      "visuals": []
+    },
+    {
+      "speaker": "senior",
+      "text": "Clang prints success, missed, and analysis remarks. They separate safety blockers from cost-model choices.",
+      "visuals": [
+        {
+          "do": "term.type",
+          "id": "flags",
+          "cmd": "clang -O3 -c loop.c\\n  -Rpass=loop-vectorize\\n  -Rpass-missed=loop-vectorize\\n  -Rpass-analysis=loop-vectorize",
+          "out": [
+            "Example command; not run here."
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "In this illustrative prefix sum, imagine a remark points to the loop-carried dependency. Check the source line before editing.",
+      "visuals": [
+        {
+          "do": "term.type",
+          "id": "remark",
+          "cmd": "Illustrative remark at loop.c:1",
+          "out": [
+            "possible loop-carried dependence",
+            "example only · exact wording varies"
+          ],
+          "at": "start"
+        },
+        {
+          "do": "sketch.note",
+          "text": "loop-carried dependency blocks independent lanes",
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "A separate copy loop differs: pointers may overlap. The compiler may need runtime checks before a single-instruction, multiple-data operation.",
+      "visuals": [
+        {
+          "do": "define",
+          "term": "SIMD",
+          "at": "start"
+        },
+        {
+          "do": "seq.diagram",
+          "id": "alias",
+          "actors": [
+            "source",
+            "destination",
+            "vectorizer"
+          ],
+          "messages": [
+            {
+              "from": "vectorizer",
+              "to": "source",
+              "label": "may these ranges overlap?"
+            },
+            {
+              "from": "vectorizer",
+              "to": "destination",
+              "label": "prove independence first"
+            }
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Use restrict only when callers guarantee no overlap. A false promise can change program behavior.",
+      "visuals": [
+        {
+          "do": "code.show",
+          "id": "contract",
+          "lang": "c",
+          "title": "contract is a promise",
+          "code": [
+            "/* use restrict only if ranges cannot overlap */"
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "If it vectorizes, is it faster?",
+      "visuals": []
+    },
+    {
+      "speaker": "senior",
+      "text": "Inspect target instructions, including remainder and runtime-check paths. Then benchmark realistic lengths and alignment; short loops or memory bandwidth can erase the gain.",
+      "visuals": [
+        {
+          "do": "timeline.track",
+          "id": "measure",
+          "lanes": [
+            "compile",
+            "inspect",
+            "benchmark"
+          ],
+          "span": [
+            0,
+            100
+          ],
+          "blocks": [
+            {
+              "lane": "compile",
+              "start": 0,
+              "end": 28,
+              "label": "remark"
+            },
+            {
+              "lane": "inspect",
+              "start": 28,
+              "end": 57,
+              "label": "target code"
+            },
+            {
+              "lane": "benchmark",
+              "start": 57,
+              "end": 100,
+              "label": "representative inputs"
+            }
+          ],
+          "playhead": {
+            "from": 0,
+            "to": 100,
+            "ms": 1800
+          },
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "The answer is not “turn optimization up.” Read the remark, fix the blocker if possible, inspect machine code, and measure.",
+      "visuals": [
+        {
+          "do": "code.show",
+          "id": "workflow",
+          "lang": "text",
+          "title": "debugging order",
+          "code": [
+            "remark → source dependency → target code → benchmark"
+          ],
+          "at": "start"
+        }
+      ]
+    }
+  ],
+  "expect": [
+    {
+      "beat": 5,
+      "at": "end",
+      "kind": "text.visible",
+      "text": "loop-carried dependency blocks independent lanes",
+      "note": "The explanatory note states why this illustrative loop remains scalar."
+    }
+  ]
+}

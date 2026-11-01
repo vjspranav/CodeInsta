@@ -1,15 +1,15 @@
 "use client";
 import { motion, useReducedMotion } from "framer-motion";
 import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { center, lineAt, wordAt, type Frame } from "./timeline";
+import { bubbleContent, center, lineAt, wordAt, type Frame } from "./timeline";
 import { formatMetric, NodeGlyph } from "./v2-elements";
 import { fitScene, labelRect, routeArrow, type Rect } from "./stage-layout";
 export const palette = {
-  blue: "#78b7ff",
-  green: "#76e4b4",
-  orange: "#ffb56c",
-  red: "#ff7d93",
-  purple: "#c5a1ff",
+  blue: "#8bb9df",
+  green: "#b5c5b8",
+  orange: "#c9bca8",
+  red: "#d9a6a6",
+  purple: "#bab5c5",
   gray: "#b6bfcd",
 };
 const DEFAULT_WIDTH: Record<string, number> = { node: 22, bubble: 76, alert: 88, metric: 40 };
@@ -311,8 +311,9 @@ export function Stage({ frame, elapsed }: { frame: Frame; elapsed: number }) {
           </svg>
           {frame.elements.map((e) => {
             if (e.type === "arrow" || e.type === "flow") return null;
+            const bubbleText = e.type === "bubble" ? bubbleContent(frame, e, elapsed) : null;
             const color = palette[e.color ?? "blue"],
-              visible = elapsed >= e.at;
+              visible = e.type === "bubble" ? bubbleText !== null : elapsed >= e.at;
             if (e.type === "highlight") {
               const r = resolve(e.target);
               return (
@@ -372,7 +373,7 @@ export function Stage({ frame, elapsed }: { frame: Frame; elapsed: number }) {
                   borderColor: tone,
                   backgroundColor:
                     e.type === "box"
-                      ? `color-mix(in srgb, ${color} 12%, #101520)`
+                      ? `color-mix(in srgb, ${color} 12%, #121212)`
                       : undefined,
                 }}
               >
@@ -395,7 +396,7 @@ export function Stage({ frame, elapsed }: { frame: Frame; elapsed: number }) {
                 ) : e.type === "bubble" ? (
                   <>
                     {speaker && <span className="bubble-name">{speaker.name}</span>}
-                    <span className="bubble-text">{e.text}</span>
+                    <span className="bubble-text">{bubbleText ?? e.text}</span>
                   </>
                 ) : e.type === "alert" ? (
                   <div className="alert-shake">
