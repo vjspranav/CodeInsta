@@ -80,7 +80,7 @@ Without them, the run prepares everything, writes "waiting for OWNER approval: <
 - [ ] F2. Library batches 2–12 per `content/library-plan.md`, plus the new categories frontier, ai-engineering and history. The pilot (one per genre) goes to the owner first.
 
 ## Schedules (owner switches these on once)
-- **Claude continuation:** in the Claude desktop app, open Scheduled → New task, set it to run every 3 hours (cron `0 */3 * * *`) in folder /Users/vjspranav/Projects/CodeInsta, and paste `scripts/schedule/claude-continue.prompt.md` as the prompt. It runs while the app is open, and catches up when the app reopens.
+- **Claude continuation:** ACTIVE since 2026-11-01. Desktop scheduled task `codeinsta-continue`, every 3 hours (`0 */3 * * *`), Auto mode, with `scripts/schedule/claude-continue.prompt.md` as its prompt. It runs while the Claude app is open and catches up when it reopens.
 - **Codex queue** (no Claude usage): `cp scripts/schedule/dev.vjspranav.codeinsta.codex-queue.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/dev.vjspranav.codeinsta.codex-queue.plist`. Log: /tmp/codeinsta-codex-queue.log.
 
 ## Codex queue
