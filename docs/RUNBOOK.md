@@ -68,8 +68,8 @@ Without them, the run prepares everything, writes "waiting for OWNER approval: <
 - [ ] D2. **OWNER** picks one.
 - [ ] D3. Apply it to the web (tokens, logo, icons, manifest) and the reel end card. **PROD** deploy after owner OK.
 ### E. Mobile apps (spec: docs/superpowers/specs/2026-11-01-mobile-apps-design.md)
-- [ ] E0. Implementation plan (superpowers:writing-plans) from the approved spec (spec approved 2026-11-01). Save it to docs/superpowers/plans/2026-11-01-mobile-apps.md, splitting tasks into Codex-queue briefs for UI work and Claude subagent work for backend/shared code.
-- [ ] E1. Workspace plus `packages/shared` (no web behavior change; all tests pass).
+- [x] E0. (2026-11-01: docs/superpowers/plans/2026-11-01-mobile-apps.md, 42 tasks: 33 claude, 9 codex; owner steps O1–O6) Implementation plan (superpowers:writing-plans) from the approved spec (spec approved 2026-11-01). Save it to docs/superpowers/plans/2026-11-01-mobile-apps.md, splitting tasks into Codex-queue briefs for UI work and Claude subagent work for backend/shared code.
+- [ ] E1. Follow the plan's task order exactly. Copy each [codex] task's brief into docs/coordination/codex-queue/NN-name.md only once its prerequisites are committed. Workspace plus `packages/shared` (no web behavior change; all tests pass).
 - [ ] E2. App shell plus auth. **OWNER** creates the Android/iOS Google OAuth clients (steps in the plan).
 - [ ] E3. Feed with preload, meeting the performance targets.
 - [ ] E4. All other screens plus notifications.
