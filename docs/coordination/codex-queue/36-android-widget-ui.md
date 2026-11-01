@@ -1,0 +1,13 @@
+# Task 5.4: Android widget visual design
+Runbook: E5
+
+You are Codex, running headless in /Users/vjspranav/Projects/CodeInsta, dispatched by the Claude Code orchestrator. Work autonomously. Do NOT git commit. Do NOT deploy or touch production. Never print .env.local. No emojis anywhere.
+
+Read docs/mobile/AGENT-RULES.md first and follow it: it was written for Claude subagents but every rule applies to you (ignore its "scratchpad" wording). "Feel and sync" is the owner's top priority: UI-thread animation with Reanimated and Gesture Handler, springs and timings only from apps/mobile/src/theme/tokens.ts, no spinners (skeletons and optimistic updates), FlashList with memoized rows, expo-image, haptics, identical copy and data to the web app. Use the motion kit in apps/mobile/src/ui/motion/ (PressableScale, EnterStagger, ShakeOnError, MorphButton, screenOptions) and the shared UI in apps/mobile/src/ui/ when they exist. Never install packages. Never edit app/_layout.tsx, app/(tabs)/_layout.tsx, app/(tabs)/index.tsx or src/ui/feed/** (other agents own them); replace only the placeholder screens your brief names.
+If the brief's prerequisites are not committed yet (check `git log --oneline -30` and the files), do the parts you can and say exactly what is left.
+
+GOAL: Design the Glance layouts for the CodeInsta widget.
+READ FIRST: COORDINATION.md, decisions.md (no emojis; brand tokens are placeholders until D2), apps/mobile/src/theme/tokens.ts (colors to mirror in native resources), packages/shared/src/widget-snapshot.ts (fields), apps/mobile/native/android/widget/*.kt.
+MODIFY ONLY: apps/mobile/native/android/widget/CodeInstaWidget.kt (Glance composables only; keep SnapshotReader and the click action) and apps/mobile/native/android/widget/res/values/{widget_colors,widget_strings}.xml (create). Three sizes via LocalSize/SizeMode.Responsive: small (cover screen, 2x1: newest title one line, creator + category), medium (title two lines, creator, category, headline row, streak "N day streak"), large optional. Colors from tokens (paper background, ink text, accent for the streak number), light and dark. No gradients, glows, or emoji; plain text and a drawn accent bar only. Empty states: no snapshot -> "Open CodeInsta to get started"; snapshot with no reels -> "Nothing new yet".
+DO NOT TOUCH: plugin, bridge, app.config.ts, any TypeScript outside the widget folder.
+ACCEPTANCE: `cd apps/mobile && npx expo prebuild --platform android --clean && cd android && ./gradlew :app:assembleDebug` succeeds; apps/mobile `npx jest src/no-emoji.test.ts` passes; the three states (full, headline missing, empty) are listed with screenshots notes in docs/coordination/codex-status.md.
