@@ -31,7 +31,7 @@
  "glossary": [
   {
    "term": "dominance frontier",
-   "full": "Blocks reached from a block that it doesn't strictly dominate",
+   "full": "First blocks a block no longer dominates",
    "note": "Where phi nodes belong."
   },
   {
