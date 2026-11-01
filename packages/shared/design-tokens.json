@@ -1,0 +1,155 @@
+{
+  "meta": {
+    "source": "src/app/globals.css",
+    "note": "Dark values mirror the web today. The web ships dark only; color.light is a proposed counterpart with no web source yet. Radius, space and type values are px numbers matching literals in globals.css. Line heights are unitless multipliers; letter spacing is px.",
+    "lightIsProposed": true
+  },
+  "color": {
+    "cssVar": {
+      "bg": "--bg",
+      "panel": "--panel",
+      "text": "--text",
+      "muted": "--muted",
+      "line": "--line",
+      "accent": "--accent"
+    },
+    "dark": {
+      "bg": "#000",
+      "panel": "#121212",
+      "text": "#f5f5f5",
+      "muted": "#a8a8a8",
+      "line": "#262626",
+      "accent": "#3797f0",
+      "reelBg": "#080808",
+      "surface": "#171717",
+      "surfaceRaised": "#262626",
+      "lineStrong": "#363636",
+      "like": "#ff4458",
+      "errorText": "#ffb4b4",
+      "onAccent": "#ffffff",
+      "scrim": "#000000bb",
+      "overlayChip": "#00000066"
+    },
+    "light": {
+      "bg": "#ffffff",
+      "panel": "#f5f5f5",
+      "text": "#0a0a0a",
+      "muted": "#6b6b6b",
+      "line": "#e0e0e0",
+      "accent": "#0a66c2",
+      "reelBg": "#080808",
+      "surface": "#f0f0f0",
+      "surfaceRaised": "#e8e8e8",
+      "lineStrong": "#cfcfcf",
+      "like": "#e0243a",
+      "errorText": "#b3261e",
+      "onAccent": "#ffffff",
+      "scrim": "#000000bb",
+      "overlayChip": "#00000066"
+    }
+  },
+  "font": {
+    "cssProp": {
+      "sans": "font-family"
+    },
+    "sans": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif",
+    "mono": "\"SFMono-Regular\", Consolas, monospace",
+    "native": {
+      "sans": { "ios": "System", "android": "sans-serif" },
+      "mono": { "ios": "Menlo", "android": "monospace" }
+    }
+  },
+  "type": {
+    "display": { "size": 48, "lineHeight": 1.2, "weight": 600, "letterSpacing": -1 },
+    "title": { "size": 28, "lineHeight": 1.2, "weight": 650, "letterSpacing": -0.6 },
+    "brand": { "size": 20, "lineHeight": 1.2, "weight": 650, "letterSpacing": -0.5 },
+    "heading": { "size": 20, "lineHeight": 1.2, "weight": 600, "letterSpacing": 0 },
+    "reelTitle": { "size": 15, "lineHeight": 1.3, "weight": 650, "letterSpacing": -0.3 },
+    "body": { "size": 15, "lineHeight": 1.55, "weight": 400, "letterSpacing": 0 },
+    "input": { "size": 16, "lineHeight": 1.2, "weight": 400, "letterSpacing": 0 },
+    "bodySmall": { "size": 14, "lineHeight": 1.55, "weight": 400, "letterSpacing": 0 },
+    "meta": { "size": 13, "lineHeight": 1.55, "weight": 400, "letterSpacing": 0 },
+    "caption": { "size": 12, "lineHeight": 1.55, "weight": 400, "letterSpacing": 0 },
+    "mono": { "size": 12, "lineHeight": 1.55, "weight": 400, "letterSpacing": 0 },
+    "nav": { "size": 11, "lineHeight": 1.2, "weight": 600, "letterSpacing": 0 },
+    "micro": { "size": 9, "lineHeight": 1.2, "weight": 400, "letterSpacing": 0 }
+  },
+  "space": {
+    "1": 4,
+    "2": 8,
+    "3": 12,
+    "4": 16,
+    "5": 20,
+    "6": 24,
+    "7": 32,
+    "8": 48
+  },
+  "radius": {
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "pill": 999
+  },
+  "layout": {
+    "navHeight": 64,
+    "headerHeight": 56,
+    "minTouch": 44,
+    "controlHeight": 48,
+    "pagePadding": 24,
+    "contentMaxWidth": 760
+  },
+  "shadow": {
+    "none": { "css": "none", "layers": [] },
+    "overlayText": {
+      "cssVar": "--shadow",
+      "css": "0 1px 3px #000c, 0 0 1px #000c",
+      "layers": [
+        { "x": 0, "y": 1, "blur": 3, "color": "#000000cc" },
+        { "x": 0, "y": 0, "blur": 1, "color": "#000000cc" }
+      ]
+    },
+    "captionText": {
+      "css": "0 2px 5px #000000",
+      "layers": [{ "x": 0, "y": 2, "blur": 5, "color": "#000000" }]
+    }
+  },
+  "z": {
+    "arrow": 1,
+    "element": 2,
+    "progress": 4,
+    "soundControls": 5,
+    "toast": 10,
+    "bottomNav": 30,
+    "sheet": 100,
+    "overlay": 100,
+    "overlayClose": 120
+  },
+  "motion": {
+    "duration": {
+      "instant": 90,
+      "fast": 160,
+      "base": 240,
+      "slow": 360
+    },
+    "easing": {
+      "standard": [0.2, 0, 0, 1],
+      "emphasized": [0.4, 0, 0.2, 1],
+      "decelerate": [0, 0, 0.2, 1]
+    },
+    "spring": {
+      "snappy": { "damping": 26, "stiffness": 400, "mass": 1, "overshootClamping": false },
+      "feed": { "damping": 38, "stiffness": 360, "mass": 1, "overshootClamping": true },
+      "sheet": { "damping": 30, "stiffness": 280, "mass": 1, "overshootClamping": false },
+      "like": { "damping": 10, "stiffness": 260, "mass": 0.8, "overshootClamping": false }
+    },
+    "press": { "scale": 0.97 },
+    "haptic": {
+      "like": "impactLight",
+      "dislike": "impactMedium",
+      "longPress": "impactHeavy",
+      "refresh": "selection"
+    }
+  }
+}
