@@ -54,8 +54,10 @@ Without them, the run prepares everything, writes "waiting for OWNER approval: <
 - [x] A3. (2026-11-01: 5 published, 0011 applied, catalog shows only the 5 v3 reels) **PROD** Publish the 5, then apply migration 0011 (archive the old 30), then verify the production feed shows only v3 videos.
 ### B. Remakes (batch 1 of the library)
 - [ ] B1. **PROD** Publish the 30 remakes (`content/remake/{claude,gpt}`) one by one, each through the full gate, waiting for Gemini quota as needed (2 requests per reel). The creator token for each reel matches its folder.
+  - progress (2026-11-01): resumable runner `.schedule-logs/b1/run.sh` (gitignored; publishes in folder order with `--no-wait`, records `done.txt`, skips `skip.txt`, stops at the first failure in `stopped.txt`, log in `log.txt`). Restart it after fixing the stopped file; never run two at once (`pgrep -f "agent -- publish"`). Gate fixes so far: aosp-build-system-01 label shortened (rightRail), compilers-ssa-and-ir-01 line reworded (transcriber homophone "pass guesses").
+  - parked: `aosp-build-system-03` (last part of its series) fails layout/zones.clear/data.size because `snapuserd.recovery` (a real package name) is wider than the board-full right column. Needs a renderer fix: board-full notes must wrap or move left of the rightRail zone. Then remove it from `skip.txt`.
 ### C. Schedules
-- [ ] C1. Update `agents/claude/PLAYBOOK.md` and `agents/codex/PLAYBOOK.md` to the v3 flow:
+- [x] C1. (2026-11-01: Claude playbook rewritten for v3 publish; Codex updated its own via queue brief 01) Update `agents/claude/PLAYBOOK.md` and `agents/codex/PLAYBOOK.md` to the v3 flow:
   - `publish`, not `post`;
   - genre/style rotation and the new categories (frontier, ai-engineering, history at ≤5%, tech-news, papers);
   - news and frontier researched live;
@@ -69,7 +71,8 @@ Without them, the run prepares everything, writes "waiting for OWNER approval: <
 - [ ] D3. Apply it to the web (tokens, logo, icons, manifest) and the reel end card. **PROD** deploy after owner OK.
 ### E. Mobile apps (spec: docs/superpowers/specs/2026-11-01-mobile-apps-design.md)
 - [x] E0. (2026-11-01: docs/superpowers/plans/2026-11-01-mobile-apps.md, 42 tasks: 33 claude, 9 codex; owner steps O1–O6) Implementation plan (superpowers:writing-plans) from the approved spec (spec approved 2026-11-01). Save it to docs/superpowers/plans/2026-11-01-mobile-apps.md, splitting tasks into Codex-queue briefs for UI work and Claude subagent work for backend/shared code.
-- [ ] E1. Follow the plan's task order exactly. Copy each [codex] task's brief into docs/coordination/codex-queue/NN-name.md only once its prerequisites are committed. Workspace plus `packages/shared` (no web behavior change; all tests pass).
+- [ ] E1. Follow the plan's task order exactly.
+  - progress (2026-11-01): Tasks 1.1-1.4 committed (packages/shared with feed, types, validation, overlay math, streak; vitest 419 pass; lint/tsc/build green). Migration 0012 written but not applied: waiting for OWNER approval: db push 0012 (the auto-mode classifier blocked the push despite the allow rule). Task 1.5 (codex brief 30-web-streak) waits on 0012 being applied. Next: Task 2.1 scaffold (stand-in). Copy each [codex] task's brief into docs/coordination/codex-queue/NN-name.md only once its prerequisites are committed. Workspace plus `packages/shared` (no web behavior change; all tests pass).
 - [ ] E2. App shell plus auth. **OWNER** creates the Android/iOS Google OAuth clients (steps in the plan).
 - [ ] E3. Feed with preload, meeting the performance targets.
 - [ ] E4. All other screens plus notifications.

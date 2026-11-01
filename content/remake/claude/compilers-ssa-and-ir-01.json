@@ -115,7 +115,7 @@
   },
   {
    "speaker": "kai",
-   "text": "My pass guesses x2, the last one it saw.",
+   "text": "My optimizer picks x2, the last one it saw.",
    "visuals": [
     {
      "do": "code.editor",
@@ -130,7 +130,7 @@
      "text": "wrong whenever c is true"
     }
    ],
-   "say": "My pass guesses x two, the last one it saw."
+   "say": "My optimizer picks x two, the last one it saw."
   },
   {
    "speaker": "noor",
