@@ -9,6 +9,7 @@ vi.mock("@/lib/supabase/server", () => ({ serverDb: async () => mocks.db }));
 vi.mock("@/lib/supabase/membership", () => ({ getMembershipAdmin: mocks.admin, bootstrapOwner: mocks.bootstrap }));
 vi.mock("@/lib/supabase/invites", async () => await import("../../lib/supabase/invites"));
 vi.mock("@/lib/supabase/allowlist", async () => await import("../../lib/supabase/allowlist"));
+vi.mock("@/lib/supabase/signup", async () => await import("../../lib/supabase/signup"));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`redirect:${path}`); } }));
 import { authenticate } from "./actions";
 afterEach(() => vi.unstubAllEnvs());

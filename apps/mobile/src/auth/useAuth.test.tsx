@@ -8,7 +8,7 @@ const mockTables: Record<string, { data: unknown; error: unknown }> = {};
 const mockRpc = jest.fn();
 const mockSignOut = jest.fn(async () => ({ error: null }));
 const mockSignInPassword = jest.fn();
-const mockSignUp = jest.fn();
+const mockFetch = jest.fn();
 const mockGoogle = jest.fn();
 const mockBootstrap = jest.fn();
 
@@ -22,7 +22,6 @@ jest.mock("@/lib/supabase", () => ({
       },
       signOut: (...a: unknown[]) => (mockSignOut as (...x: unknown[]) => unknown)(...a),
       signInWithPassword: (...a: unknown[]) => mockSignInPassword(...a),
-      signUp: (...a: unknown[]) => mockSignUp(...a),
     },
     from: (table: string) => ({
       select: () => ({
@@ -34,6 +33,8 @@ jest.mock("@/lib/supabase", () => ({
 }));
 const mockClearWidget = jest.fn();
 jest.mock("@/widgets/sync", () => ({ clearWidgetSnapshot: () => mockClearWidget() }));
+const mockUnregisterPush = jest.fn(async (..._a: unknown[]) => undefined);
+jest.mock("@/push/register", () => ({ unregisterPush: (...a: unknown[]) => mockUnregisterPush(...a) }));
 jest.mock("./google", () => ({ signInWithGoogle: (...a: unknown[]) => mockGoogle(...a) }));
 jest.mock("./bootstrap", () => ({ bootstrapOwner: (...a: unknown[]) => mockBootstrap(...a) }));
 
@@ -50,6 +51,7 @@ beforeEach(() => {
   mockSession = null;
   for (const k of Object.keys(mockTables)) delete mockTables[k];
   mockBootstrap.mockResolvedValue("member");
+  global.fetch = mockFetch as unknown as typeof fetch;
 });
 
 const mount = () => renderHook(() => useAuth(), { wrapper });
@@ -176,20 +178,99 @@ describe("useAuth actions", () => {
     expect(mockBootstrap).toHaveBeenCalledWith("access");
   });
 
-  it("signUpWithPassword validates length and asks to confirm email without a session", async () => {
-    const { result } = await mount();
-    await waitFor(() => expect(result.current.status).toBe("signedOut"));
-    await act(async () => {
-      await expect(result.current.signUpWithPassword("a@b.c", "short")).resolves.toBe(
-        "Use a password with at least 8 characters.",
-      );
+  describe("signUpWithInvite", () => {
+    const ok = () => ({ ok: true, json: async () => ({ ok: true }) });
+    const fail = (error: string) => ({ ok: false, json: async () => ({ error }) });
+
+    it("validates locally before any network call", async () => {
+      const { result } = await mount();
+      await waitFor(() => expect(result.current.status).toBe("signedOut"));
+      await act(async () => {
+        await expect(result.current.signUpWithInvite("a@b.c", "password1", "  ")).resolves.toBe(
+          "Enter an invite code to create an account.",
+        );
+        await expect(result.current.signUpWithInvite("a@b.c", "short", "CODE")).resolves.toBe(
+          "Use a password with at least 8 characters.",
+        );
+      });
+      expect(mockFetch).not.toHaveBeenCalled();
     });
-    expect(mockSignUp).not.toHaveBeenCalled();
-    mockSignUp.mockResolvedValueOnce({ data: { session: null }, error: null });
-    await act(async () => {
-      await expect(result.current.signUpWithPassword("a@b.c", "password1")).resolves.toBe(
-        "Check your email to confirm your account, then sign in.",
-      );
+
+    it("surfaces the server error and never signs in", async () => {
+      const { result } = await mount();
+      await waitFor(() => expect(result.current.status).toBe("signedOut"));
+      mockFetch.mockResolvedValueOnce(fail("Use Google to sign in with an owner email."));
+      await act(async () => {
+        await expect(result.current.signUpWithInvite("owner@b.c", "password1", "CODE")).resolves.toBe(
+          "Use Google to sign in with an owner email.",
+        );
+      });
+      expect(mockSignInPassword).not.toHaveBeenCalled();
+      expect(mockRpc).not.toHaveBeenCalled();
+    });
+
+    it("reports offline when the request fails", async () => {
+      const { result } = await mount();
+      await waitFor(() => expect(result.current.status).toBe("signedOut"));
+      mockFetch.mockRejectedValueOnce(new Error("network"));
+      await act(async () => {
+        await expect(result.current.signUpWithInvite("a@b.c", "password1", "CODE")).resolves.toBe(
+          "Could not reach CodeInsta. Check your connection and try again.",
+        );
+      });
+    });
+
+    it("creates server-side, signs in, bootstraps, redeems, then refreshes", async () => {
+      const { result } = await mount();
+      await waitFor(() => expect(result.current.status).toBe("signedOut"));
+      const order: string[] = [];
+      mockFetch.mockImplementationOnce(async () => {
+        order.push("create");
+        return ok();
+      });
+      mockSignInPassword.mockImplementationOnce(async () => {
+        order.push("signin");
+        return { data: { session: SESSION }, error: null };
+      });
+      mockBootstrap.mockImplementationOnce(async () => {
+        order.push("bootstrap");
+        return "member";
+      });
+      mockRpc.mockImplementationOnce(async () => {
+        order.push("redeem");
+        mockSession = SESSION;
+        mockTables.members = { data: { role: "member" }, error: null };
+        mockTables.user_interests = { data: { onboarded: false }, error: null };
+        return { data: true, error: null };
+      });
+      await act(async () => {
+        await expect(result.current.signUpWithInvite(" A@B.c ", "password1", " CODE ")).resolves.toBe("");
+      });
+      expect(order).toEqual(["create", "signin", "bootstrap", "redeem"]);
+      const [url, init] = mockFetch.mock.calls[0];
+      expect(url).toMatch(/\/api\/mobile\/signup$/);
+      expect(JSON.parse(init.body)).toEqual({ email: "a@b.c", password: "password1", invite: "CODE" });
+      expect(mockSignInPassword).toHaveBeenCalledWith({ email: "a@b.c", password: "password1" });
+      expect(mockRpc).toHaveBeenCalledWith("redeem_invite", { invite: "CODE" });
+      expect(result.current.status).toBe("needsOnboarding");
+    });
+
+    it("lands on the invite screen with a message when redemption loses a race", async () => {
+      const { result } = await mount();
+      await waitFor(() => expect(result.current.status).toBe("signedOut"));
+      mockFetch.mockResolvedValueOnce(ok());
+      mockSignInPassword.mockResolvedValueOnce({ data: { session: SESSION }, error: null });
+      mockRpc.mockImplementationOnce(async () => {
+        mockSession = SESSION;
+        mockTables.members = { data: null, error: null };
+        return { data: false, error: null };
+      });
+      await act(async () => {
+        await expect(result.current.signUpWithInvite("a@b.c", "password1", "CODE")).resolves.toBe(
+          "This invite is invalid, expired, or fully used.",
+        );
+      });
+      expect(result.current.status).toBe("needsInvite");
     });
   });
 
@@ -232,5 +313,35 @@ describe("useAuth actions", () => {
     expect(mockSignOut).toHaveBeenCalled();
     expect(result.current.status).toBe("signedOut");
     expect(mockClearWidget).toHaveBeenCalled();
+  });
+
+  it("signOut deletes the push token before the session is cleared, and survives failure", async () => {
+    mockSession = SESSION;
+    mockTables.members = { data: { role: "member" }, error: null };
+    mockTables.user_interests = { data: { onboarded: true }, error: null };
+    const order: string[] = [];
+    mockUnregisterPush.mockImplementationOnce(async () => {
+      order.push("push");
+    });
+    mockSignOut.mockImplementationOnce(async () => {
+      order.push("auth");
+      return { error: null };
+    });
+    const { result } = await mount();
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    await act(async () => {
+      await result.current.signOut();
+    });
+    expect(mockUnregisterPush).toHaveBeenCalledWith("u1");
+    expect(order).toEqual(["push", "auth"]);
+
+    mockUnregisterPush.mockRejectedValueOnce(new Error("boom"));
+    mockSession = SESSION;
+    const second = await mount();
+    await waitFor(() => expect(second.result.current.status).toBe("ready"));
+    await act(async () => {
+      await second.result.current.signOut();
+    });
+    expect(second.result.current.status).toBe("signedOut");
   });
 });

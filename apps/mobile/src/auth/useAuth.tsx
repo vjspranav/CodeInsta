@@ -8,7 +8,9 @@ import React, {
   useState,
 } from "react";
 import type { User } from "@supabase/supabase-js";
+import { env } from "@/lib/env";
 import { db } from "@/lib/supabase";
+import { unregisterPush } from "@/push/register";
 import { clearWidgetSnapshot } from "@/widgets/sync";
 import { bootstrapOwner } from "./bootstrap";
 import { signInWithGoogle as googleSignIn, type GoogleResult } from "./google";
@@ -26,7 +28,8 @@ export type Auth = {
   signInWithGoogle(): Promise<GoogleResult>;
   /** Email auth and invite redemption return "" on success, else a user-facing message. */
   signInWithPassword(email: string, password: string): Promise<string>;
-  signUpWithPassword(email: string, password: string): Promise<string>;
+  /** Invited email signup: server creates the pre-confirmed account (same rules as web), then sign in and redeem. */
+  signUpWithInvite(email: string, password: string, invite: string): Promise<string>;
   redeemInvite(code: string): Promise<string>;
   signOut(): Promise<void>;
 };
@@ -63,7 +66,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const commit = useCallback((next: State) => {
     // Session ended or membership lost: the widgets must not keep showing member content.
-    // Best effort (clearWidgetSnapshot never throws); push token removal hooks in here later.
+    // Best effort (clearWidgetSnapshot never throws). The push token is deleted in signOut, while
+    // the session still exists (RLS needs it).
     if (next.status === "signedOut" || next.status === "needsInvite") {
       try {
         clearWidgetSnapshot();
@@ -141,13 +145,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [sync],
   );
 
-  const signUpWithPassword = useCallback(
-    async (email: string, password: string) => {
+  const signUpWithInvite = useCallback(
+    async (rawEmail: string, password: string, rawInvite: string) => {
+      const email = rawEmail.trim().toLowerCase();
+      const invite = rawInvite.trim();
+      if (!invite) return "Enter an invite code to create an account.";
       if (password.length < 8) return "Use a password with at least 8 characters.";
-      const { data, error } = await db.auth.signUp({ email: email.trim().toLowerCase(), password });
+      // The server owns every signup rule (invite, owner email, pre-confirmed creation).
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15_000);
+      try {
+        const response = await fetch(`${env.apiBase}/api/mobile/signup`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password, invite }),
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          let message = "";
+          try {
+            const body = (await response.json()) as { error?: unknown };
+            if (typeof body.error === "string") message = body.error;
+          } catch {
+            // Fall through to the generic message.
+          }
+          return message || "Could not create your account. Please retry.";
+        }
+      } catch {
+        return OFFLINE;
+      } finally {
+        clearTimeout(timer);
+      }
+      const { data, error } = await db.auth.signInWithPassword({ email, password });
       if (error) return error.message;
       if (!data.session) return "Check your email to confirm your account, then sign in.";
+      try {
+        await bootstrapOwner(data.session.access_token);
+      } catch {
+        // Non-fatal.
+      }
+      const redeemed = await db.rpc("redeem_invite", { invite });
+      // Like web: a lost redemption race leaves a signed-in non-member, who lands on the invite screen.
       await sync();
+      if (redeemed.error || !redeemed.data) return "This invite is invalid, expired, or fully used.";
       return "";
     },
     [sync],
@@ -167,6 +207,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
+    // Delete this device's push token while the session is still valid. Best effort and bounded
+    // so an offline sign-out is never held up.
+    const userId = current.current.user?.id;
+    if (userId) {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await Promise.race([
+          unregisterPush(userId),
+          new Promise<void>((resolve) => {
+            timer = setTimeout(resolve, 3000);
+          }),
+        ]);
+      } catch {
+        // unregisterPush never throws; belt and braces.
+      } finally {
+        clearTimeout(timer);
+      }
+    }
     try {
       await db.auth.signOut();
     } catch {
@@ -182,11 +240,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       refresh: sync,
       signInWithGoogle,
       signInWithPassword,
-      signUpWithPassword,
+      signUpWithInvite,
       redeemInvite,
       signOut,
     }),
-    [state, sync, signInWithGoogle, signInWithPassword, signUpWithPassword, redeemInvite, signOut],
+    [state, sync, signInWithGoogle, signInWithPassword, signUpWithInvite, redeemInvite, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
