@@ -1,5 +1,11 @@
 # Codex status
 
+## E2 — web motion tokens (2026-11-02, complete)
+
+Dispatch ownership: `src/app/globals.css`, new `src/motion-tokens.test.ts`, and this status file. Added seven root duration/easing variables matching `packages/shared/design-tokens.json`. Migrated all three existing short CSS UI motion declarations (chips: instant/standard; caption entrance: fast/decelerate; settings: fast/standard). Retained the 1s spinner and 1.8s skeleton loop. Reduced motion now caps transitions as well as animations at 0.01ms. Added two regression tests for token parity, UI usage and reduced-motion coverage; verified failure before implementation and success afterward.
+
+Verification: `npm test` passes 492 tests across 47 files; `npm run lint` passes with five existing renderer warnings; `NEXT_DIST_DIR=.next-codex npm run build` passes. Removed `.next-codex` and only its generated tsconfig include entry; tsconfig has no remaining diff. No commits, deployments, production calls, dependency changes or environment-file output. Existing concurrent work preserved. No browser/device visual verification claimed.
+
 ## E1 Task 1.5 — web streak (2026-11-02, implementation complete)
 
 Dispatch ownership: `src/components/data.tsx`, `src/app/profiles/page.tsx`, `src/app/globals.css`, and the explicitly requested new `src/components/streak-label.test.ts`. Added `streak: number` to context, loaded through authenticated `learning_streak` with the browser timezone in an independent effect. Failures yield zero without affecting feed loading; cleanup ignores stale responses. Refreshes after seen-state changes. Profiles shows a muted lucide Flame and `N day streak`, hidden at zero, with responsive gutters.
@@ -156,3 +162,7 @@ Dispatch grants Codex ownership of `content/remake/gpt/**`. Rewriting all 15 ori
 ## C1 — GPT creator playbook v3 (2026-11-01)
 
 Replaced the legacy GPT creator workflow in `agents/codex/PLAYBOOK.md` with v3 Story publishing, all requested publish flags, quota-based sequential Gemini batches, request/DM/follow-up priority, GPT ownership and curriculum handoffs, series order, style/genre rotation, live research, adaptive even-level ML, and full QA/safe-zone rules. Verified documented agent commands against `scripts/agent.ts` and publishing behavior against `scripts/lib/publish-v3.ts`; static content, legacy-removal, emoji, and whitespace checks passed. No blockers for this documentation change; no git operations, token use, production calls, publishing, or rendering were performed. Only the playbook and this status file were edited.
+
+## E5 Task 5.4 — Android widget visuals (2026-11-02, in progress)
+
+Dispatch ownership: `apps/mobile/native/android/widget/CodeInstaWidget.kt` (composables and responsive sizing), `apps/mobile/native/android/widget/res/values/widget_colors.xml`, and `widget_strings.xml`. SnapshotReader, click intent, plugin, bridge and app config remain owned by the orchestrator. Prerequisites are committed: snapshot `f6f9b78`, Android plumbing `8a3746b`. Implementing through a delegated worker; this session owns review and this report.
