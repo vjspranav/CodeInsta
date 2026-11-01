@@ -48,7 +48,7 @@ Without them, the run prepares everything, writes "waiting for OWNER approval: <
 
 ## Queue
 ### A. Launch (today)
-- [ ] A1. Render the 5 launch reels (`content/launch/*.json`) with `publish --dry-run`; all pass the gate. Show them on a local page.
+- [x] A1. (2026-11-01: all 5 rendered, Gemini, gate passed; shown at scratchpad launch.html) Render the 5 launch reels (`content/launch/*.json`) with `publish --dry-run`; all pass the gate. Show them on a local page.
 - [ ] A2. **OWNER** reviews the 5 locally.
 - [ ] A3. **PROD** Publish the 5, then apply migration 0011 (archive the old 30), then verify the production feed shows only v3 videos.
 ### B. Remakes (batch 1 of the library)
