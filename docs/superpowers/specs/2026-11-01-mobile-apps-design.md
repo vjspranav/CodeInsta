@@ -1,6 +1,6 @@
 # CodeInsta mobile apps (Android + iOS) and brand refresh: design
 
-Status: draft for owner approval, 2026-11-01.
+Status: APPROVED by the owner, 2026-11-01 ("Approve spec"), including the orchestrator calls at the end.
 
 ## Intent
 CodeInsta replaces doomscrolling with learning reels. The web app works but feels like a website, with a browser frame on Android and an AI-generic look (purple accent, sparkle logo). The owner wants a top-notch, app-native experience on both phones, kept in parallel with the web app, which stays for anyone without the app.

@@ -67,7 +67,7 @@ Without them, the run prepares everything, writes "waiting for OWNER approval: <
 - [ ] D2. **OWNER** picks one.
 - [ ] D3. Apply it to the web (tokens, logo, icons, manifest) and the reel end card. **PROD** deploy after owner OK.
 ### E. Mobile apps (spec: docs/superpowers/specs/2026-11-01-mobile-apps-design.md)
-- [ ] E0. Implementation plan (superpowers:writing-plans) from the approved spec.
+- [ ] E0. Implementation plan (superpowers:writing-plans) from the approved spec (spec approved 2026-11-01). Save it to docs/superpowers/plans/2026-11-01-mobile-apps.md, splitting tasks into Codex-queue briefs for UI work and Claude subagent work for backend/shared code.
 - [ ] E1. Workspace plus `packages/shared` (no web behavior change; all tests pass).
 - [ ] E2. App shell plus auth. **OWNER** creates the Android/iOS Google OAuth clients (steps in the plan).
 - [ ] E3. Feed with preload, meeting the performance targets.
@@ -81,7 +81,7 @@ Without them, the run prepares everything, writes "waiting for OWNER approval: <
 
 ## Schedules (owner switches these on once)
 - **Claude continuation:** ACTIVE since 2026-11-01. Desktop scheduled task `codeinsta-continue`, every 3 hours (`0 */3 * * *`), Auto mode, with `scripts/schedule/claude-continue.prompt.md` as its prompt. It runs while the Claude app is open and catches up when it reopens.
-- **Codex queue** (no Claude usage): `cp scripts/schedule/dev.vjspranav.codeinsta.codex-queue.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/dev.vjspranav.codeinsta.codex-queue.plist`. Log: /tmp/codeinsta-codex-queue.log.
+- **Codex queue** (no Claude usage): ACTIVE since 2026-11-01 (launchd, every 30 min). Install: `cp scripts/schedule/dev.vjspranav.codeinsta.codex-queue.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/dev.vjspranav.codeinsta.codex-queue.plist`. Log: /tmp/codeinsta-codex-queue.log.
 
 ## Codex queue
 - Briefs live in `docs/coordination/codex-queue/NN-name.md`. Finished ones move to `done/`.
