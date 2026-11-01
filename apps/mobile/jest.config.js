@@ -1,5 +1,9 @@
 module.exports = {
   preset: "jest-expo",
+  // packages/shared lives outside this package: resolve its imports (babel helpers) from here, like metro.config.js.
+  // Reanimated 4 / Worklets: run their JS implementations in jest (no native module).
+  resolver: "react-native-reanimated/jest/resolver",
+  modulePaths: ["<rootDir>/node_modules"],
   testPathIgnorePatterns: ["/node_modules/", "/android/", "/ios/", "/.maestro/"],
   moduleNameMapper: {
     "^@shared/(.*)$": "<rootDir>/../../packages/shared/src/$1",
