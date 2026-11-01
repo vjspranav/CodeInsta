@@ -174,6 +174,7 @@ export const PhoneMock: React.FC<{
 
 	return (
 		<div
+			data-phone
 			style={{
 				position: 'absolute',
 				left: body.x,
@@ -305,7 +306,13 @@ export const PhoneMock: React.FC<{
 						}}
 					>
 						<div style={{width: 22, height: 22, borderRadius: 11, background: st.toast.kind === 'error' ? k.accent : k.ok, color: bestOn(st.toast.kind === 'error' ? k.accent : k.ok, k.toastFg, k.toastBg), fontWeight: 800, textAlign: 'center', lineHeight: '22px', flex: '0 0 22px'}}>
-							{st.toast.kind === 'error' ? '!' : '✓'}
+							{st.toast.kind === 'error' ? (
+								'!'
+							) : (
+								<svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round" style={{display: 'block'}}>
+									<path d="M6 12.5 L10.5 17 L18 7.5" />
+								</svg>
+							)}
 						</div>
 						<div>{st.toast.text}</div>
 					</div>

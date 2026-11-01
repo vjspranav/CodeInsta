@@ -211,7 +211,7 @@ export interface VisTok {
 }
 
 const STOP = new Set(['the', 'and', 'for', 'with', 'from', 'into', 'this', 'that', 'are', 'was', 'per', 'one', 'app']);
-const SKIP_KEYS = new Set(['do', 'id', 'at', 'icon', 'tone', 'template', 'target', 'lang', 'kind', 'side', 'emoji', 'app', 'highlight', 'hold_ms', 'step_ms', 'speed', 'cpf', 'rows_hl', 'from', 'to', 'result', 'points', 'span', 'playhead', 'start', 'end', 'ms', 'path', 'layout', 'op', 'lane', 'drop', 'retry', 'reply', 'dashed']);
+const SKIP_KEYS = new Set(['do', 'id', 'at', 'icon', 'tone', 'template', 'target', 'lang', 'kind', 'side', 'app', 'highlight', 'hold_ms', 'step_ms', 'speed', 'cpf', 'rows_hl', 'from', 'to', 'result', 'points', 'span', 'playhead', 'start', 'end', 'ms', 'path', 'layout', 'op', 'lane', 'drop', 'retry', 'reply', 'dashed']);
 
 /** identifier-shaped: has a digit, an underscore, camelCase or an inner dot ("p99", "follower_id", "initRc", "init.rc"). */
 const isIdent = (w: string) => /[a-z]\d|\d[a-z]/i.test(w) || /[a-z0-9]_[a-z0-9]/i.test(w) || /[a-z][A-Z]/.test(w) || /[a-z]\.[a-z]/i.test(w);

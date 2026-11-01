@@ -258,7 +258,7 @@ export const CacheBox: React.FC<P> = ({item, frame, dim}) => {
 									background: t.card,
 								}}
 							>
-								{cur.result === 'hit' ? 'HIT ✓' : 'MISS ✗'}
+								{cur.result === 'hit' ? 'HIT' : 'MISS'}
 							</div>
 						)}
 					</>
@@ -433,7 +433,7 @@ export const CommitStory: React.FC<P> = ({item, frame, dim}) => {
 				const head = title ? 82 : 52;
 				const blockH = (h - head - 14) / 3;
 				const d = prog(frame, item.start, 16);
-				const repoFs = Math.min(22, (w - pad * 2 - 40) / Math.max(10, repo.length * 0.62));
+				const repoFs = Math.min(22, (w - pad * 2 - 16) / Math.max(10, repo.length * 0.605));
 				return (
 					<>
 						<Svg w={w} h={h}>
@@ -477,7 +477,13 @@ export const CommitStory: React.FC<P> = ({item, frame, dim}) => {
 										>
 											{s.label}
 										</span>
-										<span style={{color: t.muted, fontSize: 22}}>{i < 2 ? '↓' : '✓'}</span>
+										{i < 2 ? (
+											<span style={{color: t.muted, fontSize: 22}}>{'\u2193'}</span>
+										) : (
+											<svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={t.muted} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+												<path d="M4 12.5 L9.5 18 L20 6" />
+											</svg>
+										)}
 									</div>
 									<WriteOn p={lin(frame, t0 + 4, 16)} w={w - pad * 2} h={blockH - 30} y={30}>
 										<div data-label style={{...st.font.hand, fontSize: f.size, lineHeight: `${f.lineH}px`, color: t.ink}}>

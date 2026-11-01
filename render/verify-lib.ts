@@ -13,7 +13,7 @@ import type {AudioManifest, Story} from './src/schema';
 import {buildTimeline, revealTokens, scenesOfItem} from './src/timeline';
 import type {BuildOpts, Timeline} from './src/timeline';
 import {lineTokens, matchToken, SYNC_MIN_MS} from './src/sync';
-import {END_BOTTOM, END_TOP, endPages} from './src/endcard';
+import {END_BOTTOM, END_TOP, END_W, END_X, endPages} from './src/endcard';
 import {beatAt, defineAt, layoutProblems, sceneAt, termStateAt, visibleAt} from './src/state';
 import {heartVisual, normTarget, phoneStateAt, TAP_ARRIVE, TAP_TOTAL} from './src/phonestate';
 import {captionStateAt, chunkText} from './src/captionstate';
@@ -21,9 +21,12 @@ import {dbStateAt, prepareDb} from './src/dbmodel';
 import {isKitKind, kitSnap} from './src/kits';
 import type {Prepared} from './src/dbmodel';
 import {defineBox} from './src/components/Overlays';
-import {CAPTION_AREA, CONTENT, Rect} from './src/theme';
+import {CAPTION_AREA, CONTENT, LOWER_THIRD, Rect, SPEAKER_ROW} from './src/theme';
 import {castColor, contrast, contrastRgb, setActiveStyle, styleProblems, toRgb} from './src/styles';
 import type {Style} from './src/styles';
+import {zoneHit, zoneProblems} from './src/zones';
+import {emojiProblems} from './src/noemoji';
+import type {ZoneBox} from './src/zones';
 import {installNodeMeasure} from './measure-node';
 
 installNodeMeasure();
@@ -44,6 +47,7 @@ interface ProbeRep {
 	kits: {kind: string; key: string; rect: Rect; els: number; cur: number}[];
 	text: string;
 	problems: string[];
+	zoneBoxes: ZoneBox[];
 }
 
 interface Img {
@@ -329,6 +333,15 @@ export const deriveChecks = (story: Story, audio: AudioManifest, buildOpts: Buil
 	},
 	});
 
+	// --- no emojis or pictographs anywhere in the script
+	add({
+		group: 'no.emoji',
+		beat: 0,
+		frame: 0,
+		desc: 'no emoji or pictograph in any text of the script (title, beats, say, visuals, glossary, key points)',
+		pure: () => emojiProblems(story).slice(0, 5).join('; ') || null,
+	});
+
 	// --- every beat: >=1 visible visual + current caption
 	for (const b of tl.beats) {
 		const f = b.end - 3;
@@ -469,6 +482,15 @@ export const deriveChecks = (story: Story, audio: AudioManifest, buildOpts: Buil
 			pure: () => layoutProblems(sc).join('; ') || null,
 			still: ({probe}) => probe.problems.join('; ') || null,
 			});
+			// overlay zones (packages/shared/overlay-zones.json): no text box or key visual intersects one
+			add({
+			group: 'zones.clear',
+			beat: beatOf(f),
+			frame: f,
+			desc: `scene ${sc.index}: no text or key visual inside an overlay zone (topControls, rightRail, bottomMeta)`,
+			pure: () => layoutProblems(sc).filter((p) => /overlay zone/.test(p)).join('; ') || null,
+			still: ({probe}) => zoneProblems(probe.zoneBoxes ?? []).join('; ') || null,
+			});
 			add({
 			group: 'text.nosplit',
 			beat: beatOf(f),
@@ -517,6 +539,35 @@ export const deriveChecks = (story: Story, audio: AudioManifest, buildOpts: Buil
 			},
 			});
 			}
+
+	// --- overlay zones: the fixed areas (speaker row, lower third, captions, end card) and every lower third on screen
+	add({
+		group: 'zones.clear',
+		beat: 0,
+		frame: 0,
+		desc: 'fixed areas (speaker row, content, lower third, captions, end card) are outside the overlay zones',
+		pure: () => {
+			const areas: [string, Rect][] = [
+				['speaker row', SPEAKER_ROW],
+				['content', CONTENT],
+				['lower third', LOWER_THIRD],
+				['caption area', CAPTION_AREA],
+				['end card', {x: END_X, y: END_TOP, w: END_W, h: END_BOTTOM - END_TOP}],
+			];
+			return areas.flatMap(([n, r]) => (zoneHit(r) ? [`${n} is inside the ${zoneHit(r)} overlay zone`] : [])).join('; ') || null;
+		},
+	});
+	for (const d of tl.defines) {
+		const f = d.frame + 40;
+		add({
+			group: 'zones.clear',
+			beat: beatOf(f),
+			frame: f,
+			desc: `lower third "${d.term}": outside the overlay zones`,
+			pure: () => null,
+			still: ({probe}) => zoneProblems(probe.zoneBoxes ?? []).join('; ') || null,
+		});
+	}
 
 	// --- phone
 	const evs = tl.phoneEvents;
@@ -824,7 +875,7 @@ export const deriveChecks = (story: Story, audio: AudioManifest, buildOpts: Buil
 				if (!dd) return 'lower-third not in DOM';
 				const want = defineBox(d).lines.join(' ');
 				if (dd.lines.join(' ').replace(/\s+/g, ' ') !== want.replace(/\s+/g, ' ')) return `rendered "${dd.lines.join(' ')}"`;
-				if (dd.rect.y + dd.rect.h > 1000 || dd.rect.y < 860) return 'lower-third outside its band';
+				if (dd.rect.y + dd.rect.h > LOWER_THIRD.y + LOWER_THIRD.h + 2 || dd.rect.y < LOWER_THIRD.y - 2) return 'lower-third outside its band';
 				if (probe.splits.length) return `split words: ${probe.splits.join(', ')}`;
 				return probe.problems.filter((p) => p.startsWith('lower-third')).join('; ') || null;
 			},
@@ -1018,6 +1069,14 @@ export const deriveChecks = (story: Story, audio: AudioManifest, buildOpts: Buil
 				}
 				return probs.join('; ') || null;
 			},
+		});
+		add({
+			group: 'zones.clear',
+			beat: tl.beats.length - 1,
+			frame: f,
+			desc: `end card page ${pi + 1}/${pages.length}: no text inside an overlay zone`,
+			pure: () => null,
+			still: ({probe}) => zoneProblems(probe.zoneBoxes ?? []).join('; ') || null,
 		});
 		pageStart += pg.frames;
 	});

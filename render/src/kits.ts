@@ -129,13 +129,24 @@ export interface SeqGeom {
 	labels: KRect[];
 	bottom: number;
 }
+/** Column widths of the actors: equal when every label fits its column, else each column is its label plus an equal share of the spare room. */
+export const seqColumns = (labels: string[], w: number): number[] => {
+	const n = Math.max(1, labels.length);
+	const equal = (w - PAD * 2) / n;
+	const base = labels.map((l) => textW(l) + 16);
+	if (base.every((b) => b <= equal)) return labels.map(() => equal);
+	const extra = Math.max(0, (w - PAD * 2 - base.reduce((a, b) => a + b, 0)) / n);
+	return base.map((b) => b + extra);
+};
 export const seqLayout = (item: Item, w: number, h: number): SeqGeom => {
 	const {actors, msgs} = seqModel(item);
-	const n = Math.max(1, actors.length);
-	const colW = (w - PAD * 2) / n;
+	const cols = seqColumns(actors.map((a) => a.label), w);
+	let x0 = PAD;
 	const boxes = actors.map((a, i) => {
+		const colW = cols[i];
 		const bw = Math.min(colW - 6, textW(a.label) + 22);
-		const cx = PAD + colW * (i + 0.5);
+		const cx = x0 + colW / 2;
+		x0 += colW;
 		return {...a, cx, box: {x: cx - bw / 2, y: 8, w: bw, h: SEQ_HEAD - 12}};
 	});
 	const top = SEQ_HEAD + 18;
@@ -154,8 +165,12 @@ export const seqSnap = (item: Item, frame: number, w: number, h: number): KitSna
 	const st = seqStateAt(item, frame);
 	const g = seqLayout(item, w, h);
 	const problems: string[] = [];
-	const colW = (w - PAD * 2) / Math.max(1, g.actors.length);
-	for (const a of g.actors) if (textW(a.label) + 16 > colW) problems.push(`actor "${a.label}" is wider than its column (${Math.round(textW(a.label) + 16)} > ${Math.round(colW)} px)`);
+	const cols = seqColumns(g.actors.map((a) => a.label), w);
+	const need = g.actors.reduce((s, a) => s + textW(a.label) + 16, 0);
+	if (need > w - PAD * 2 + 0.5) problems.push(`an actor name is wider than its column: all names need ${Math.round(need)} px, the diagram has ${Math.round(w - PAD * 2)} px`);
+	g.actors.forEach((a, i) => {
+		if (textW(a.label) + 16 > cols[i] + 0.5) problems.push(`actor "${a.label}" is wider than its column (${Math.round(textW(a.label) + 16)} > ${Math.round(cols[i])} px)`);
+	});
 	if (st.total && (h - SEQ_HEAD - 30) / st.total < 52) problems.push(`${st.total} messages do not fit in ${Math.round(h)} px (need >= 52 px per row)`);
 	g.labels.forEach((l, i) => {
 		if (!within(l, w, h)) problems.push(`message ${i + 1} label "${seqModel(item).msgs[i].label}" leaves the diagram`);

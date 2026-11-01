@@ -11,11 +11,16 @@ export interface Rect {
 	h: number;
 }
 
-// Frame areas (px). Captions own the bottom 22% (y >= ~998).
-export const SPEAKER_ROW: Rect = {x: 36, y: 20, w: 648, h: 70};
-export const CONTENT: Rect = {x: 36, y: 104, w: 648, h: 762};
-export const LOWER_THIRD: Rect = {x: 36, y: 874, w: 648, h: 114}; // bottom-anchored; wraps up to 2 lines + note
-export const CAPTION_AREA: Rect = {x: 36, y: 1000, w: 648, h: 250};
+// Frame areas (px) in the 720x1280 video. The app floats controls over the full-bleed video
+// (packages/shared/overlay-zones.json, src/zones.ts): topControls x>=440 y<110, rightRail x>=610 y 520..1120,
+// bottomMeta y>=1140. Everything below stays out of them: content and captions live left of the rail
+// (x <= 596) and the captions end above the bottom meta strip (y <= 1130).
+export const SPEAKER_ROW: Rect = {x: 28, y: 20, w: 396, h: 76}; // ends left of topControls (x 440)
+export const CONTENT: Rect = {x: 20, y: 116, w: 576, h: 696}; // y 116: clear of topControls (y < 110) even for a card tilted a little
+export const LOWER_THIRD: Rect = {x: 28, y: 818, w: 568, h: 106}; // bottom-anchored; wraps up to 2 lines + note
+export const CAPTION_AREA: Rect = {x: 28, y: 944, w: 568, h: 186}; // name row 50 + 8 + two lines at 52 px
+/** the rule above the captions sits this far above CAPTION_AREA */
+export const CAPTION_RULE_GAP = 14;
 
 export const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import type {DefineT} from '../timeline';
-import {END_TOP, END_W, endLabel, endNoteSize, endPages} from '../endcard';
+import {END_TOP, END_W, END_X, endLabel, endNoteSize, endPages} from '../endcard';
 import type {Story} from '../schema';
 import {clamp01, easeOut, LOWER_THIRD, lin, prog} from '../theme';
 import {Draw, rLine, Svg, WriteOn} from '../sketch';
@@ -114,11 +114,11 @@ export const EndCard: React.FC<{story: Story; start: number; frame: number}> = (
 		y += 90;
 		out.push(
 			<div key={`h-${label}`}>
-				<WriteOn p={lin(frame, t0, 14)} w={W + 60} h={82} x={50} y={yy}>
+				<WriteOn p={lin(frame, t0, 14)} w={W + 60} h={82} x={END_X - 40} y={yy}>
 					<div data-label style={{...st.font.hand, fontSize: 56, color: k.ink, lineHeight: 1.1}}>{label}</div>
 				</WriteOn>
 				<Svg w={720} h={1280}>
-					<Draw paths={rLine(50, yy + 82, 50 + 300, yy + 84, seed, {roughness: 1.3})} p={prog(frame, t0 + 6, 16)} color={k.accent} width={4} />
+					<Draw paths={rLine(END_X - 40, yy + 82, END_X - 40 + 300, yy + 84, seed, {roughness: 1.3})} p={prog(frame, t0 + 6, 16)} color={k.accent} width={4} />
 					</Svg>
 					</div>,
 		);
@@ -138,13 +138,13 @@ export const EndCard: React.FC<{story: Story; start: number; frame: number}> = (
 			<div key={i}>
 				<Svg w={720} h={1280}>
 					{b.kind === 'g' ? (
-						<circle cx={62} cy={yy + fs * 0.6} r={6} fill={k.accent} opacity={lin(frame, t0, 6)} />
+						<circle cx={END_X - 28} cy={yy + fs * 0.6} r={6} fill={k.accent} opacity={lin(frame, t0, 6)} />
 					) : (
-						<Draw paths={rLine(54, yy + fs * 0.62, 62, yy + fs * 0.85, 40 + i, {roughness: 0.5})} p={prog(frame, t0, 8)} color={k.accent} width={4} />
+						<Draw paths={rLine(END_X - 36, yy + fs * 0.62, END_X - 28, yy + fs * 0.85, 40 + i, {roughness: 0.5})} p={prog(frame, t0, 8)} color={k.accent} width={4} />
 						)}
-					{b.kind === 'p' && <Draw paths={rLine(62, yy + fs * 0.85, 76, yy + fs * 0.3, 80 + i, {roughness: 0.5})} p={prog(frame, t0 + 3, 8)} color={k.accent} width={4} />}
+					{b.kind === 'p' && <Draw paths={rLine(END_X - 28, yy + fs * 0.85, END_X - 14, yy + fs * 0.3, 80 + i, {roughness: 0.5})} p={prog(frame, t0 + 3, 8)} color={k.accent} width={4} />}
 				</Svg>
-				<WriteOn p={lin(frame, t0 + 2, 16)} w={W + 40} h={b.h} x={90} y={yy}>
+				<WriteOn p={lin(frame, t0 + 2, 16)} w={W + 40} h={b.h} x={END_X} y={yy}>
 					<div data-label style={{...st.font.hand, fontSize: fs, lineHeight: 1.15, color: k.ink}}>
 						{b.lines.map((l, li) => (
 							<div key={li}>

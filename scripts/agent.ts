@@ -8,7 +8,7 @@ const USAGE = `usage: npm run agent -- <command>
   inbox
   requests                      approved, unfulfilled requests + new categories (read-only, records no agent run)
   post <file.json> [--parent <reel_id>] [--answers <feedback_id>] [--fulfills <request_id>] [--no-audio]
-  publish <script.json> [--fulfills <request_id>] [--answers <feedback_id> --parent <reel_id>] [--engine auto|gemini|openai|chatterbox] [--no-wait] [--dry-run]
+  publish <script.json> [--fulfills <request_id>] [--answers <feedback_id> --parent <reel_id>] [--engine auto|gemini|openai|chatterbox] [--no-wait] [--replace] [--dry-run]
                                 v3 story reel: validate, voice, transcript check, render + QA gate, upload mp4, post (--dry-run stops after render)
                                 --engine auto (default) = Gemini flash ~80% / OpenAI ~20% by topic hash; on the Gemini daily cap it waits
                                 (--no-wait: exit non-zero with the reset time instead)
@@ -31,6 +31,7 @@ function parseArgs(argv: string[]) {
     const a = argv[i];
     if (a === "--no-audio") flags["no-audio"] = "true";
     else if (a === "--dry-run") flags["dry-run"] = "true";
+    else if (a === "--replace") flags.replace = "true";
     else if (a === "--no-wait") flags["no-wait"] = "true";
     else if (a.startsWith("--")) {
       const value = argv[++i];
@@ -149,6 +150,7 @@ async function main() {
         fulfills: flags.fulfills,
         answers: flags.answers,
         parent: flags.parent,
+        replace: Boolean(flags.replace),
         call,
         base: () => env().base,
         fail,

@@ -88,6 +88,32 @@ export const Probe: React.FC<{frame: number}> = ({frame}) => {
 									}
 									const capText = q<HTMLElement>('[data-caption-text]')[0];
 						const cap = q('[data-caption]')[0];
+			// 5) overlay zones (QA gate zones.clear): the real extent of every visible text run, plus the key visuals
+			const zoneBoxes: {kind: string; label: string; rect: {x: number; y: number; w: number; h: number}}[] = [];
+			for (const el of q<HTMLElement | SVGElement>('body *')) {
+				const own = Array.from(el.childNodes).filter((n) => n.nodeType === 3 && (n.textContent || '').trim());
+				if (!own.length || /^(SCRIPT|STYLE)$/.test(el.tagName)) continue;
+				if (eff(el as HTMLElement).opacity < 0.05) continue;
+				const cs = getComputedStyle(el);
+				if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+				const r = document.createRange();
+				let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+				for (const n of own) {
+					r.selectNodeContents(n);
+					for (const b of Array.from(r.getClientRects())) {
+						if (b.width < 0.5 || b.height < 0.5) continue;
+						x0 = Math.min(x0, b.left); y0 = Math.min(y0, b.top); x1 = Math.max(x1, b.right); y1 = Math.max(y1, b.bottom);
+					}
+				}
+				if (x1 > x0 && y1 > y0) zoneBoxes.push({kind: 'text', label: (el.textContent || '').trim(), rect: {x: x0, y: y0, w: x1 - x0, h: y1 - y0}});
+			}
+			for (const [sel, kind] of [['[data-shell]', 'visual'], ['[data-phone]', 'phone'], ['[data-table]', 'table'], ['[data-kit]', 'kit'], ['[data-heart]', 'heart'], ['[data-spinner]', 'spinner'], ['[data-toast]', 'toast'], ['[data-define]', 'define'], ['[data-avatar]', 'avatar']] as const) {
+				for (const el of q<HTMLElement>(sel)) {
+					if (eff(el).opacity < 0.05) continue;
+					const r = rect(el);
+					if (r.w > 0 && r.h > 0) zoneBoxes.push({kind, label: el.getAttribute('data-kid') || el.getAttribute('data-table') || kind, rect: r});
+				}
+			}
 			const lines = q<HTMLElement>('[data-caption] [data-line]');
 			const visWords = q<HTMLElement>('[data-caption] [data-word]').filter((w) => parseFloat(getComputedStyle(w).opacity) > 0.5);
 			const report = {
@@ -103,7 +129,7 @@ export const Probe: React.FC<{frame: number}> = ({frame}) => {
 					: null,
 				define: q('[data-define]')[0] ? {rect: rect(q('[data-define]')[0]), lines: q<HTMLElement>('[data-define-line]').map((l) => l.innerText)} : null,
 				toast: q<HTMLElement>('[data-toast]')[0]
-					? {rect: rect(q('[data-toast]')[0]), text: q<HTMLElement>('[data-toast]')[0].innerText.replace(/^[!\u2713]\s*/, '')}
+					? {rect: rect(q('[data-toast]')[0]), text: q<HTMLElement>('[data-toast]')[0].innerText.replace(/^!\s*/, '')}
 					: null,
 				heart: q('[data-heart]')[0] ? {rect: rect(q('[data-heart]')[0]), state: q('[data-heart]')[0].getAttribute('data-heart-state')} : null,
 				spinner: q('[data-spinner]')[0] ? rect(q('[data-spinner]')[0]) : null,
@@ -120,6 +146,7 @@ export const Probe: React.FC<{frame: number}> = ({frame}) => {
 				splits,
 				captionFont: capText ? eff(capText).size : null,
 				problems,
+				zoneBoxes,
 			};
 			console.log('PROBE ' + JSON.stringify(report));
 			continueRender(handle);

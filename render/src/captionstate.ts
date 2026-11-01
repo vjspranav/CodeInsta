@@ -1,6 +1,6 @@
 import type {BeatT} from './timeline';
 import {lin} from './theme';
-import {wrap} from './text';
+import {measure, wrap} from './text';
 import {getStyle} from './styles';
 import {estimateWordTimes} from './sync';
 
@@ -15,7 +15,7 @@ export interface Chunked {
 	chunks: Chunk[];
 }
 
-export const TEXT_W = 636;
+export const TEXT_W = 536;
 const cache = new Map<string, Chunked>();
 
 /** Split a line into chunks of at most 2 rendered lines; larger font first. */
@@ -40,8 +40,12 @@ export const chunkText = (text: string): Chunked => {
 	if (single) {
 		chunks = [{lines, chars: text.length, f0: 0, f1: 1}];
 	} else {
-		fs = 44;
-		lines = wrap(text, font, fs, TEXT_W);
+		// an unbreakable word (a path, an identifier) must fit the width too: shrink until it does
+		for (const size of [44, 40, 37, 34]) {
+			fs = size;
+			lines = wrap(text, font, fs, TEXT_W);
+			if (lines.every((l) => measure(l, font, size) <= TEXT_W)) break;
+		}
 		const groups: string[][] = [];
 		for (let i = 0; i < lines.length; i += 2) groups.push(lines.slice(i, i + 2));
 		// avoid an orphan last chunk with a single short line: merge balance

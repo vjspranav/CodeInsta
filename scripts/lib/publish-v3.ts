@@ -24,6 +24,8 @@ export type PublishOptions = {
   /** On the Gemini daily cap, exit non-zero with the reset time instead of waiting (scheduled runs). */
   noWait?: boolean;
   fulfills?: string;
+  /** Archive the creator's live reel with the same topic when posting (republish with a new layout). */
+  replace?: boolean;
   answers?: string;
   parent?: string;
   call: (method: "GET" | "POST", path: string, body?: unknown, print?: boolean) => Promise<unknown>;
@@ -154,9 +156,21 @@ export async function publishV3(o: PublishOptions): Promise<void> {
       ...(o.parent ? { parent_reel_id: o.parent } : {}),
       ...(o.answers ? { answers_feedback_id: o.answers } : {}),
       ...(o.fulfills ? { fulfills_request_id: o.fulfills } : {}),
+      ...(o.replace ? { replace: true } : {}),
     },
     false,
-  )) as { id: string };
+  )) as { id: string; archived_id?: string | null };
   // f.
-  console.log(JSON.stringify({ id: posted.id, url: new URL(`/reel/${posted.id}`, o.base()).toString(), video_url: signed.video.public_url }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        id: posted.id,
+        url: new URL(`/reel/${posted.id}`, o.base()).toString(),
+        video_url: signed.video.public_url,
+        ...(o.replace ? { archived_id: posted.archived_id ?? null } : {}),
+      },
+      null,
+      2,
+    ),
+  );
 }

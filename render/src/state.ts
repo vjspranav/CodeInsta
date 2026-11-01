@@ -4,6 +4,7 @@
  */
 import type {Item, Scene, Timeline, DefineT} from './timeline';
 import {CAPTION_AREA, CONTENT, Rect, W, H} from './theme';
+import {zoneHit} from './zones';
 
 export const sv = (v: unknown, d = ''): string =>
 	typeof v === 'string' ? v : typeof v === 'number' ? String(v) : d;
@@ -182,6 +183,8 @@ export const layoutProblems = (sc: Scene): string[] => {
 		if (!inside(e.rect, SAFE)) probs.push(`${e.kind} ${e.key} outside the safe area`);
 		if (e.rect.y + e.rect.h > CAPTION_AREA.y - 4) probs.push(`${e.kind} ${e.key} runs into the caption area`);
 		if (e.rect.y < CONTENT.y - 2) probs.push(`${e.kind} ${e.key} above the content area`);
+		const z = zoneHit(e.rect);
+		if (z) probs.push(`${e.kind} ${e.key} is inside the ${z} overlay zone`);
 	}
 	for (let i = 0; i < els.length; i++)
 		for (let j = i + 1; j < els.length; j++)

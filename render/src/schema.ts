@@ -245,6 +245,7 @@ export const validateStory = (input: unknown): ValidationResult => {
 					errors.push(`beats.${i}.visuals.${j}: db.result needs "columns" and "rows"`);
 				}
 			}
+			if ('emoji' in rec) errors.push(`beats.${i}.visuals.${j}: "emoji" is not allowed (no emojis anywhere, draw it with a shape or a label)`);
 			if (a.do === 'layout') {
 				const l = LayoutSchema.safeParse((a as Record<string, unknown>).template);
 				if (!l.success) {

@@ -1,4 +1,4 @@
-import {CONTENT, Rect, shrinkRect} from './theme';
+import {CONTENT, Rect, shrinkRect, W} from './theme';
 import type {LayoutName} from './schema';
 
 export type ItemKind = 'box' | 'note' | 'cache' | 'term' | 'code' | 'commit' | 'db' | 'seq' | 'tree' | 'track' | 'packets' | 'editor' | 'plot';
@@ -41,8 +41,9 @@ export const PHONE_NATIVE = {w: 360, h: 740};
 export const regionsFor = (layout: LayoutName, hasDb: boolean, hasBoard: boolean): Regions => {
 	switch (layout) {
 		case 'phone-left+board-right': {
-			const board = {x: 372, y: CONTENT.y, w: 312, h: CONTENT.h};
-			const phone = {x: 16, y: CONTENT.y, w: 336, h: CONTENT.h};
+			// the board stays left of the rightRail zone (x 610): phone and board share CONTENT.x..CONTENT.x+CONTENT.w
+			const board = {x: 306, y: CONTENT.y, w: 290, h: CONTENT.h};
+			const phone = {x: CONTENT.x, y: CONTENT.y, w: 270, h: CONTENT.h};
 			if (!hasDb) return {phone, boards: [board]};
 			if (!hasBoard) return {phone, boards: [], db: board};
 			return {
@@ -52,9 +53,12 @@ export const regionsFor = (layout: LayoutName, hasDb: boolean, hasBoard: boolean
 			};
 		}
 		case 'split': {
-			const h = (CONTENT.h - 44) / 2;
-			const top = {x: CONTENT.x, y: CONTENT.y, w: CONTENT.w, h};
-			const bottom = {x: CONTENT.x, y: CONTENT.y + h + 44, w: CONTENT.w, h};
+			// the top slot ends above the rightRail zone (y 520), so it may run the full width; the bottom one stays left of it
+			// a table plus a board: the table takes the tallest top slot there is (it ends at y 516, above the rail)
+			const topH = hasDb && hasBoard ? 392 : (CONTENT.h - 44) / 2;
+			const bottomY = hasDb && hasBoard ? CONTENT.y + topH + 30 : CONTENT.y + topH + 44;
+			const top = {x: CONTENT.x, y: CONTENT.y, w: W - 2 * CONTENT.x, h: topH};
+			const bottom = {x: CONTENT.x, y: bottomY, w: CONTENT.w, h: CONTENT.y + CONTENT.h - bottomY};
 			if (!hasDb) return {boards: [top, bottom]};
 			if (!hasBoard) return {boards: [], db: CONTENT};
 			return {db: top, boards: [bottom]};
@@ -65,8 +69,8 @@ export const regionsFor = (layout: LayoutName, hasDb: boolean, hasBoard: boolean
 			if (!hasDb) return {boards: [CONTENT]};
 			if (!hasBoard) return {boards: [], db: CONTENT};
 			return {
-				db: {x: CONTENT.x, y: CONTENT.y, w: CONTENT.w, h: CONTENT.h - 214},
-				boards: [{x: CONTENT.x, y: CONTENT.y + CONTENT.h - 178, w: CONTENT.w, h: 178}],
+				db: {x: CONTENT.x, y: CONTENT.y, w: CONTENT.w, h: CONTENT.h - 158},
+				boards: [{x: CONTENT.x, y: CONTENT.y + CONTENT.h - 130, w: CONTENT.w, h: 130}],
 			};
 		}
 	}
