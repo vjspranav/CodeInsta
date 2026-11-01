@@ -7,6 +7,10 @@ Q=$R/docs/coordination/codex-queue
 STATE=$Q/.state; mkdir -p "$STATE" "$Q/done"
 C=/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex
 
+# One runner at a time; a lock older than 3 h belongs to a crashed run and is cleared.
+LOCK=$STATE/lock
+if [ -e "$LOCK" ] && [ $(( $(date +%s) - $(stat -f %m "$LOCK") )) -lt 10800 ]; then echo "runner busy"; exit 0; fi
+echo $$ > "$LOCK"; trap 'rm -f "$LOCK"' EXIT
 pgrep -f "codex exec" >/dev/null && { echo "codex busy"; exit 0; }
 if [ -s "$STATE/reset_epoch" ] && [ "$(date +%s)" -lt "$(cat "$STATE/reset_epoch")" ]; then
   echo "codex limited until $(date -r "$(cat "$STATE/reset_epoch")" +%H:%M)"; exit 0
@@ -23,6 +27,13 @@ if [ -n "$limit" ]; then
   t=$(date -j -f "%I:%M %p" "$limit" +%s 2>/dev/null); [ -n "$t" ] && [ "$t" -le "$(date +%s)" ] && t=$((t + 86400))
   echo "${t:-$(( $(date +%s) + 3600 ))}" > "$STATE/reset_epoch"
   echo "codex hit its usage limit; $name stays queued (reset $limit)"; exit 0
+fi
+# A run that ended without a final message failed for another reason: retry up to 3 times, then park it.
+if [ ! -s "$STATE/$name.out" ]; then
+  n=$(( $(cat "$STATE/$name.tries" 2>/dev/null || echo 0) + 1 )); echo $n > "$STATE/$name.tries"
+  if [ $n -ge 3 ]; then mkdir -p "$Q/failed"; mv "$brief" "$Q/failed/"; echo "codex: $name failed 3 times, moved to failed/ (see $STATE/$name.log)"
+  else echo "codex: $name failed (try $n/3), will retry next run"; fi
+  exit 0
 fi
 mv "$brief" "$Q/done/"
 echo "codex: $name finished; review $STATE/$name.out and commit with [codex]"

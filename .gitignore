@@ -21,3 +21,4 @@ yarn-error.log*
 tts/.venv/
 tts/cache/
 docs/coordination/codex-queue/.state/
+docs/coordination/.claude-run.lock
