@@ -1,6 +1,10 @@
 import type { ConfigContext, ExpoConfig } from "expo/config";
+import designTokens from "../../packages/shared/design-tokens.json";
 
 const ID = "dev.vjspranav.codeinsta";
+// Native splash background = the app paper color (dark bg token), so the handoff to the in-app
+// animated logo (src/ui/motion/StartupGate) has no visible seam. No splash image: the logo is drawn in-app.
+const SPLASH_BG = designTokens.color.dark.bg;
 
 // `newArchEnabled` is no longer in the ExpoConfig type (the New Architecture is the only mode in
 // current SDKs) but the plan and config test keep it explicit, hence the cast.
@@ -39,6 +43,7 @@ export default ({ config }: ConfigContext): ExpoConfig =>
     : undefined,
   plugins: [
     "expo-router",
+    ["expo-splash-screen", { backgroundColor: SPLASH_BG, dark: { backgroundColor: SPLASH_BG } }],
     "expo-secure-store",
     "expo-video",
     "expo-notifications",
