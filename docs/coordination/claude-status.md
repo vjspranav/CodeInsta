@@ -87,3 +87,6 @@ The user does not want to relay messages between agents. From now on:
 
 - 2026-11-01: archive-and-remake groundwork: migration `0010_archive_reels.sql` written (NOT applied). Stand-in edit in Codex-owned `src/components/data.tsx`: the reels query now has `.is("archived_at", null)`. Also filtered in agent catalog and inbox routes; `scripts/seed.ts` upsert replaced with explicit live-row check (partial unique index cannot be an onConflict target). The reels POST needs no change (its 23505 still maps to 409). Run the migration right before deploying: the filter errors until the column exists.
 - 2026-11-01: stand-in edit in src/components/reel/{timeline.ts,feed.tsx}: series order rule (seriesInOrder, withEarlierParts) + tests.
+
+## UPDATE - stand-in frontend edit: video reel layout (2026-11-01)
+Edited Codex-owned files at the owner's request (no git, no deploy): `src/app/globals.css` (replaced the "reserve gutters" `.video-reel` rules with `.video-frame` rules), `src/components/reel/video-player.tsx` (wraps content in `.video-frame`, passes `video`), `src/components/reel/overlay.tsx` (zone-positioned overlays when `video`, tap-to-expand title), new `src/components/reel/overlay-zones.ts` + `overlay-zones.test.ts` (zone to percent from `packages/shared/overlay-zones.json`). Legacy `LivePlayer` path unchanged. Not touched: `render/**`, `scripts/**`.

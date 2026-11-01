@@ -528,7 +528,6 @@
         {
           "do": "phone.tap",
           "target": "heart",
-          "emoji": "❤️",
           "instant": true
         }
       ],

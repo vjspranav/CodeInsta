@@ -15,6 +15,8 @@ const bodySchema = z.object({
   fulfills_request_id: z.uuid().optional(),
   video_url: z.string().max(500).optional(),
   poster_url: z.string().max(500).optional(),
+  /** Archive this creator's live reel with the same topic right before inserting (republish). Same creator, same topic only. */
+  replace: z.boolean().optional(),
 });
 
 const short = (max: number) => z.string().min(1).max(max);
@@ -148,6 +150,25 @@ export async function POST(req: Request) {
       ...videoCols,
   };
   const doInsert = (r: Record<string, unknown>) => db.from("reels").insert(r).select("id").single();
+
+  // replace: archive this creator's live reel on the same topic (frees the partial unique index) in the same request;
+  // if the insert then fails the archive is undone, so a failed republish never leaves the topic without a live reel.
+  let archivedId: string | null = null;
+  if (body.data.replace) {
+    const arch = await db
+      .from("reels")
+      .update({ archived_at: new Date().toISOString() })
+      .eq("creator_id", creator)
+      .eq("topic", reel.topic)
+      .is("archived_at", null)
+      .select("id");
+    if (arch.error) return NextResponse.json({ error: `replace: ${arch.error.message}` }, { status: 500 });
+    archivedId = arch.data?.[0]?.id ?? null;
+  }
+  const undoArchive = async () => {
+    if (archivedId) await db.from("reels").update({ archived_at: null }).eq("id", archivedId).eq("creator_id", creator);
+  };
+
   let inserted = await doInsert({ ...row, ...extra });
   // Unknown-column error (42703 / PostgREST PGRST204): database predates 0008, retry without genre/style.
   if (
@@ -160,6 +181,7 @@ export async function POST(req: Request) {
     inserted = await doInsert(row);
   }
   if (inserted.error) {
+    await undoArchive();
     if (inserted.error.code === "23505") {
       return NextResponse.json({ error: `topic already posted: ${reel.topic}` }, { status: 409 });
     }
@@ -186,5 +208,8 @@ export async function POST(req: Request) {
     if (upd.error) return NextResponse.json({ error: upd.error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ id: inserted.data.id, creator_id: creator }, { status: 201 });
+  return NextResponse.json(
+    { id: inserted.data.id, creator_id: creator, ...(body.data.replace ? { archived_id: archivedId } : {}) },
+    { status: 201 },
+  );
 }

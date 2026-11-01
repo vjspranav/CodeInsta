@@ -1,0 +1,9 @@
+{
+  "_doc": "App overlay zones in reel-video coordinates (720x1280, 9:16). The app floats its controls here, over a full-width video; the renderer keeps all text and key visuals out of them, and the QA gate checks it. Shared by web, mobile and render.",
+  "video": { "width": 720, "height": 1280 },
+  "zones": {
+    "topControls": { "x": 440, "y": 0, "w": 280, "h": 110, "holds": "sound and pause buttons" },
+    "rightRail": { "x": 610, "y": 520, "w": 110, "h": 600, "holds": "like, ask, not-for-me" },
+    "bottomMeta": { "x": 0, "y": 1140, "w": 720, "h": 140, "holds": "creator handle and title" }
+  }
+}

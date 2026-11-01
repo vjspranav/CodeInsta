@@ -1,4 +1,5 @@
 "use client";
+import { Check } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { bubbleContent, center, lineAt, wordAt, type Frame } from "./timeline";
@@ -230,7 +231,7 @@ export function Stage({ frame, elapsed }: { frame: Frame; elapsed: number }) {
           </span>
           <h2>{frame.text}</h2>
           {frame.card === "takeaway" && (
-            <span className="completion">✓ Concept unlocked</span>
+            <span className="completion"><Check size={14} strokeWidth={2} aria-hidden /> Concept unlocked</span>
           )}
         </motion.div>
       ) : (

@@ -66,6 +66,7 @@ export function VideoPlayer(props: PlayerProps) {
   };
   return (
     <article className="reel video-reel" aria-label={reel.title}>
+      <div className="video-frame">
       <div className="progress" role="progressbar" aria-label="Reel progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}>
         <span><i style={{ width: `${progress}%` }} /></span>
       </div>
@@ -91,8 +92,9 @@ export function VideoPlayer(props: PlayerProps) {
         {error && <p className="video-error" role="alert">{error}</p>}
         {burst > 0 && <motion.span key={burst} className="heart-burst" initial={{ opacity: 1, scale: 0.4 }} animate={{ opacity: 0, scale: 1.5 }} transition={{ duration: 0.7 }}><Heart size={100} fill="currentColor" /></motion.span>}
       </div>
-      <ReelOverlay {...props} {...{ paused, done, sheet, setSheet, toggle }} unlock={enableSound}
+      <ReelOverlay {...props} {...{ paused, done, sheet, setSheet, toggle }} video unlock={enableSound}
         toggleMute={() => { if (!unlocked) enableSound(); else { if (muted) enableSound(); toggleMute(); } }} />
+      </div>
     </article>
   );
 }

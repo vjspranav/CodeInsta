@@ -349,8 +349,7 @@
         },
         {
           "do": "phone.tap",
-          "target": "heart",
-          "emoji": "❤️"
+          "target": "heart"
         }
       ]
     },
