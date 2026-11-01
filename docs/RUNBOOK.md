@@ -49,8 +49,8 @@ Without them, the run prepares everything, writes "waiting for OWNER approval: <
 ## Queue
 ### A. Launch (today)
 - [x] A1. (2026-11-01: all 5 rendered, Gemini, gate passed; shown at scratchpad launch.html) Render the 5 launch reels (`content/launch/*.json`) with `publish --dry-run`; all pass the gate. Show them on a local page.
-- [ ] A2. **OWNER** reviews the 5 locally.
-- [ ] A3. **PROD** Publish the 5, then apply migration 0011 (archive the old 30), then verify the production feed shows only v3 videos.
+- [x] A2. (2026-11-01: owner approved) **OWNER** reviews the 5 locally.
+- [x] A3. (2026-11-01: 5 published, 0011 applied, catalog shows only the 5 v3 reels) **PROD** Publish the 5, then apply migration 0011 (archive the old 30), then verify the production feed shows only v3 videos.
 ### B. Remakes (batch 1 of the library)
 - [ ] B1. **PROD** Publish the 30 remakes (`content/remake/{claude,gpt}`) one by one, each through the full gate, waiting for Gemini quota as needed (2 requests per reel). The creator token for each reel matches its folder.
 ### C. Schedules
@@ -78,6 +78,10 @@ Without them, the run prepares everything, writes "waiting for OWNER approval: <
 ### F. After launch
 - [ ] F1. Member-to-member messaging plus sharing a reel to a friend (web and apps).
 - [ ] F2. Library batches 2–12 per `content/library-plan.md`, plus the new categories frontier, ai-engineering and history. The pilot (one per genre) goes to the owner first.
+
+## Schedules (owner switches these on once)
+- **Claude continuation:** in the Claude desktop app, open Scheduled → New task, set it to run every 3 hours (cron `0 */3 * * *`) in folder /Users/vjspranav/Projects/CodeInsta, and paste `scripts/schedule/claude-continue.prompt.md` as the prompt. It runs while the app is open, and catches up when the app reopens.
+- **Codex queue** (no Claude usage): `cp scripts/schedule/dev.vjspranav.codeinsta.codex-queue.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/dev.vjspranav.codeinsta.codex-queue.plist`. Log: /tmp/codeinsta-codex-queue.log.
 
 ## Codex queue
 - Briefs live in `docs/coordination/codex-queue/NN-name.md`. Finished ones move to `done/`.
