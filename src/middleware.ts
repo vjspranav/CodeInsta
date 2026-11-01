@@ -12,6 +12,8 @@ export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   if (path.startsWith("/api/agent/") || path === "/api/agent")
     return NextResponse.next();
+  // Native app bootstrap authenticates itself with a bearer token (no cookies).
+  if (path === "/api/mobile/bootstrap") return NextResponse.next();
   let response = NextResponse.next({ request });
   const publicPage = ["/login", "/join", "/auth/callback", "/auth/google", "/auth/google/nonce", "/auth/bootstrap", "/not-invited", "/privacy", "/about"].includes(
     path,

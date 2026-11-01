@@ -96,3 +96,8 @@ Edited Codex-owned files at the owner's request (no git, no deploy): `src/app/gl
 - Baseline before E1 (root): vitest 35 files / 403 tests passing; `npm run lint` 0 errors, 5 warnings; `npx tsc --noEmit` clean.
 - E1 done locally (uncommitted until orchestrator commits): root vitest.config.ts + secrets guard (1.1), `packages/shared` feed/types/validation/overlay-zones/streak with web re-exports (1.2-1.3), migration `0012_streak.sql` + `supabase/tests/0012_streak.sql` + `computeStreak` (1.4).
 - waiting for OWNER approval: db push 0012
+
+## UPDATE - Mobile Task 2.4 (2026-11-02)
+- Claude owns `src/app/api/mobile/**`. Added `POST /api/mobile/bootstrap` (bearer Supabase token verified via `auth.getUser(token)`, then `bootstrapOwner`, then role re-read from `members`; 401 on missing/invalid token, generic 500 on failure, always `no-store`). Tests in `route.test.ts`.
+- Stand-in edit in Codex-owned `src/middleware.ts`: one line lets `/api/mobile/bootstrap` through (it self-authenticates; otherwise cookie-less native calls would be redirected to /login instead of getting 401).
+- waiting for OWNER approval: web deploy, then `curl -X POST .../api/mobile/bootstrap` should print 401.
