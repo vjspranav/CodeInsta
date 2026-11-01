@@ -119,7 +119,7 @@
     {
      "do": "sketch.note",
      "at": 0.4,
-     "text": "A and B both use page 0x400: A is in frame 0x91, B in frame 0x2c"
+     "text": "A, B use page 0x400: A in 0x91, B in 0x2c"
     }
    ]
   },
@@ -230,7 +230,7 @@
      "do": "sketch.box",
      "id": "arm",
      "text": "arm64",
-     "sub": "ASID tag, broadcast TLB invalidate",
+     "sub": "ASID, broadcast",
      "icon": "db",
      "tone": "accent"
     },

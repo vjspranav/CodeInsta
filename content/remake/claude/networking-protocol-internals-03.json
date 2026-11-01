@@ -253,7 +253,7 @@
      "do": "sketch.box",
      "id": "safe",
      "text": "Replayable",
-     "sub": "only safe-to-repeat requests",
+     "sub": "safe repeats only",
      "icon": "db",
      "tone": "accent"
     }

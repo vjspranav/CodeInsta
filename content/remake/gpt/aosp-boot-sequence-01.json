@@ -98,7 +98,7 @@
             {
               "from": "Bootloader",
               "to": "vbmeta",
-              "label": "accept configured public key?"
+              "label": "accept public key?"
             },
             {
               "from": "vbmeta",
@@ -153,18 +153,18 @@
             {
               "lane": "Image metadata",
               "start": 0,
-              "end": 48,
+              "end": 60,
               "label": "rollback index"
             },
             {
               "lane": "Device state",
               "start": 0,
-              "end": 48,
+              "end": 60,
               "label": "stored index"
             },
             {
               "lane": "Decision",
-              "start": 48,
+              "start": 60,
               "end": 100,
               "label": "reject"
             }
