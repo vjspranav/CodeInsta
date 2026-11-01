@@ -1,0 +1,581 @@
+{
+  "version": 3,
+  "format": "story",
+  "tags": [
+    "instagram",
+    "feed",
+    "fan-out",
+    "caching",
+    "cdn",
+    "system-design"
+  ],
+  "level": "intermediate",
+  "cast": [
+    {
+      "id": "rookie",
+      "name": "Rookie",
+      "role": "Overconfident junior who ships things",
+      "color": "#E4572E"
+    },
+    {
+      "id": "senior",
+      "name": "Senior",
+      "role": "Calm, dry-humored staff engineer",
+      "color": "#2F6F8F"
+    }
+  ],
+  "sources": [
+    "https://redis.io/docs/latest/commands/setex/",
+    "https://www.postgresql.org/docs/current/monitoring-stats.html"
+  ],
+  "title": "How does Instagram load your feed so fast? (Part 1)",
+  "topic": "lab-v3/instagram-feed/part-1",
+  "genre": "story",
+  "style": "sketch",
+  "series": "instagram-feed",
+  "series_index": 1,
+  "glossary": [
+    {
+      "term": "p99",
+      "full": "99th percentile latency",
+      "note": "99 percent of requests are faster than this."
+    }
+  ],
+  "key_points": [
+    "A join on every app open stops working at 100,000 opens a second.",
+    "p99 means 99 percent of requests are faster than this number."
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "Ship day. Rookie's feed v1 goes live.",
+      "say": "Ship day. Rookie's feed version one goes live.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "phone-left+board-right"
+        },
+        {
+          "do": "phone.show",
+          "id": "phone",
+          "app": "Instagram"
+        },
+        {
+          "do": "phone.feed",
+          "posts": 3
+        },
+        {
+          "do": "sketch.note",
+          "text": "Ship day · feed v1",
+          "at": 0.5
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "One Postgres database behind the app. Three tables. I'm basically a genius.",
+      "say": "One Post-gres database behind the app. Three tables. I'm basically a genius.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "db-focus"
+        },
+        {
+          "do": "sketch.box",
+          "id": "pg",
+          "text": "Postgres",
+          "sub": "one database",
+          "icon": "db",
+          "tone": "accent",
+          "at": 0.1
+        },
+        {
+          "do": "db.table",
+          "id": "users",
+          "name": "users",
+          "columns": [
+            "id",
+            "name"
+          ],
+          "cols": [
+            "id",
+            "name"
+          ],
+          "rows": [
+            [
+              42,
+              "maya"
+            ],
+            [
+              7,
+              "jonah"
+            ],
+            [
+              12,
+              "priya"
+            ]
+          ],
+          "at": 0.4
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Users. Then follows, meaning who follows whom.",
+      "visuals": [
+        {
+          "do": "db.table",
+          "id": "follows",
+          "name": "follows",
+          "columns": [
+            "follower_id",
+            "followee_id"
+          ],
+          "cols": [
+            "follower_id",
+            "followee_id"
+          ],
+          "rows": [
+            [
+              42,
+              7
+            ],
+            [
+              42,
+              12
+            ],
+            [
+              7,
+              42
+            ],
+            [
+              12,
+              7
+            ]
+          ],
+          "at": 0.45
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "And posts, with author, caption and time.",
+      "visuals": [
+        {
+          "do": "db.table",
+          "id": "posts",
+          "name": "posts",
+          "columns": [
+            "id",
+            "author_id",
+            "caption",
+            "created_at"
+          ],
+          "cols": [
+            "id",
+            "author_id",
+            "caption",
+            "created_at"
+          ],
+          "rows": [
+            [
+              9981,
+              7,
+              "sunrise hike",
+              "10:02"
+            ],
+            [
+              9977,
+              12,
+              "ramen night",
+              "10:00"
+            ],
+            [
+              9975,
+              42,
+              "my first post",
+              "09:58"
+            ],
+            [
+              9970,
+              7,
+              "coffee art",
+              "09:51"
+            ]
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Fine. Walk me through opening the feed.",
+      "visuals": [
+        {
+          "do": "focus",
+          "target": "users"
+        },
+        {
+          "do": "sketch.note",
+          "text": "open the feed for user 42",
+          "at": 0.3
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Open the app, user 42. Find who they follow, grab those posts.",
+      "say": "Open the app, user forty-two. Find who they follow, grab those posts.",
+      "visuals": [
+        {
+          "do": "db.join",
+          "steps": [
+            {
+              "table": "users",
+              "rows": [
+                0
+              ],
+              "label": "user 42: maya"
+            },
+            {
+              "table": "follows",
+              "rows": [
+                0,
+                1
+              ],
+              "label": "she follows 7 and 12"
+            },
+            {
+              "table": "posts",
+              "rows": [
+                0,
+                1,
+                3
+              ],
+              "label": "their posts"
+            }
+          ],
+          "at": 0.3
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Sort by newest, take twenty. That's your feed.",
+      "visuals": [
+        {
+          "do": "db.result",
+          "id": "feed-result",
+          "name": "feed for user 42",
+          "columns": [
+            "id",
+            "author_id",
+            "caption"
+          ],
+          "cols": [
+            "id",
+            "author_id",
+            "caption"
+          ],
+          "rows": [
+            [
+              9981,
+              7,
+              "sunrise hike"
+            ],
+            [
+              9977,
+              12,
+              "ramen night"
+            ],
+            [
+              9970,
+              7,
+              "coffee art"
+            ]
+          ],
+          "at": 0.2,
+          "solo": true
+        }
+      ],
+      "hold_ms": 600
+    },
+    {
+      "speaker": "senior",
+      "text": "Show me the actual query.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "code.show",
+          "id": "naive-sql",
+          "lang": "sql",
+          "title": "feed_v1.sql",
+          "code": [
+            "SELECT p.id, p.caption",
+            "FROM posts p",
+            "JOIN follows f",
+            "  ON f.followee_id",
+            "   = p.author_id",
+            "WHERE f.follower_id = 42",
+            "ORDER BY p.created_at DESC",
+            "LIMIT 20;"
+          ],
+          "highlight": [
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "One join, per app open. Beautiful.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "phone-left+board-right",
+          "keep": [
+            "naive-sql"
+          ]
+        },
+        {
+          "do": "phone.show",
+          "id": "phone2",
+          "app": "Instagram"
+        },
+        {
+          "do": "phone.tap",
+          "target": "heart",
+          "emoji": "❤️"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Famous last words.",
+      "punchline": true,
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "famous last words",
+          "at": 0.3
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Noon. Traffic spikes.",
+      "visuals": [
+        {
+          "do": "clear"
+        },
+        {
+          "do": "sketch.note",
+          "text": "12:00 · traffic x40"
+        },
+        {
+          "do": "phone.spinner",
+          "at": 0.5
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "It's just spinning... and now, \"Couldn't refresh feed.\" Rude.",
+      "punchline": true,
+      "visuals": [
+        {
+          "do": "phone.tap",
+          "target": "refresh",
+          "at": "start"
+        },
+        {
+          "do": "phone.toast",
+          "text": "Couldn't refresh feed",
+          "kind": "error",
+          "at": 0.55
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Every open runs that join. How many opens per second?",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "sketch.box",
+          "id": "opens",
+          "text": "App opens",
+          "icon": "user",
+          "tone": "accent",
+          "at": 0.5
+        },
+        {
+          "do": "sketch.note",
+          "text": "each open = 1 big join",
+          "at": 0.8
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Roughly... a hundred thousand. Per second.",
+      "visuals": [
+        {
+          "do": "sketch.box",
+          "id": "opens",
+          "sub": "~100,000 / sec",
+          "at": 0.4
+        },
+        {
+          "do": "sketch.note",
+          "text": "100,000 joins / sec",
+          "at": 0.4
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Check the database.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "split"
+        },
+        {
+          "do": "term.type",
+          "id": "psql",
+          "cmd": "psql -c \"SELECT count(*) FROM pg_stat_activity WHERE state = 'active';\"",
+          "out": [
+            " count",
+            " -------",
+            "  4812"
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Forty-eight hundred active queries. It's on fire.",
+      "punchline": true,
+      "visuals": [
+        {
+          "do": "db.table",
+          "id": "load",
+          "name": "pg_stat_activity",
+          "columns": [
+            "pid",
+            "state",
+            "query"
+          ],
+          "cols": [
+            "pid",
+            "state",
+            "query"
+          ],
+          "rows": [
+            [
+              4101,
+              "active",
+              "feed join"
+            ],
+            [
+              4102,
+              "active",
+              "feed join"
+            ],
+            [
+              4103,
+              "active",
+              "feed join"
+            ]
+          ],
+          "at": "start"
+        },
+        {
+          "do": "db.insert",
+          "table": "load",
+          "rows": [
+            [
+              4104,
+              "active",
+              "feed join"
+            ],
+            [
+              4105,
+              "active",
+              "feed join"
+            ],
+            [
+              4106,
+              "active",
+              "feed join"
+            ],
+            [
+              4107,
+              "active",
+              "feed join"
+            ],
+            [
+              4108,
+              "active",
+              "feed join"
+            ]
+          ],
+          "at": 0.4
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Same work, redone millions of times. Our p99 is eight seconds.",
+      "say": "Same work, redone millions of times. Our p ninety-nine is eight seconds.",
+      "visuals": [
+        {
+          "do": "define",
+          "term": "p99",
+          "at": 0.6
+        },
+        {
+          "do": "sketch.note",
+          "text": "p99 latency: 8 s",
+          "at": 0.6
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "A hundred thousand opens a second, and the database is melting. How do you fix it? Part 2.",
+      "visuals": [
+        {
+          "do": "clear"
+        },
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "sketch.box",
+          "id": "pg-melt",
+          "text": "Postgres",
+          "sub": "melting",
+          "icon": "db",
+          "tone": "accent",
+          "at": 0.1
+        },
+        {
+          "do": "sketch.note",
+          "text": "100,000 opens / sec",
+          "at": 0.5
+        }
+      ]
+    }
+  ]
+}

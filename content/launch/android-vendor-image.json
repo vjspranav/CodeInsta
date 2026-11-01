@@ -1,0 +1,375 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "How does Android build the vendor image?",
+  "topic": "aosp/treble/system-vendor-split",
+  "genre": "trace",
+  "style": "terminal",
+  "series": "aosp-treble-hals",
+  "series_index": 1,
+  "level": "intermediate",
+  "tags": [
+    "aosp",
+    "treble",
+    "vendor",
+    "build",
+    "soong",
+    "lineageos",
+    "vintf"
+  ],
+  "cast": [
+    {
+      "id": "maintainer",
+      "name": "Maya",
+      "role": "New ROM maintainer porting a phone",
+      "color": "#E4572E"
+    },
+    {
+      "id": "reviewer",
+      "name": "Dev",
+      "role": "Senior build reviewer",
+      "color": "#2F6F8F"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "Treble",
+      "full": "Project Treble",
+      "note": "Android's split between the framework and vendor code."
+    },
+    {
+      "term": "HAL",
+      "full": "Hardware Abstraction Layer",
+      "note": "Vendor code that talks to one piece of hardware."
+    },
+    {
+      "term": "VINTF",
+      "full": "Vendor Interface",
+      "note": "A manifest of the HALs the vendor image offers."
+    },
+    {
+      "term": "vendor image",
+      "full": "The vendor partition image (vendor.img)",
+      "note": "Chip-specific files, built apart from system."
+    },
+    {
+      "term": "device tree",
+      "full": "A phone's folder of build configuration",
+      "note": "Holds files like device.mk and BoardConfig.mk."
+    },
+    {
+      "term": "PRODUCT_COPY_FILES",
+      "full": "Build list of source:destination file copies",
+      "note": "Destination is relative to the product output."
+    },
+    {
+      "term": "TARGET_COPY_OUT_VENDOR",
+      "full": "Where vendor files are copied in the output",
+      "note": "vendor with a vendor image, system/vendor without."
+    }
+  ],
+  "key_points": [
+    "Mark a module vendor: true, or copy files with TARGET_COPY_OUT_VENDOR.",
+    "BOARD_VENDORIMAGE_FILE_SYSTEM_TYPE turns on a separate vendor image.",
+    "m vendorimage writes out/target/product/<device>/vendor.img."
+  ],
+  "sources": [
+    "https://github.com/LineageOS/android_device_xiaomi_gemini/commit/d24fb6c6f4c9526439ff3db78ed000ddb87db512",
+    "https://source.android.com/docs/core/architecture/partitions",
+    "https://source.android.com/docs/core/architecture/vintf"
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "Since Project Treble, Android ships in two halves. System is the framework. Vendor is the chip maker's code.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "sketch.box",
+          "id": "sys",
+          "text": "System",
+          "sub": "Android framework",
+          "icon": "cloud",
+          "at": 0.45
+        },
+        {
+          "do": "sketch.box",
+          "id": "ven",
+          "text": "Vendor",
+          "sub": "chip-specific code",
+          "icon": "cache",
+          "tone": "accent",
+          "at": 0.7
+        },
+        {
+          "do": "define",
+          "term": "Treble",
+          "at": 0.15
+        }
+      ]
+    },
+    {
+      "speaker": "maintainer",
+      "text": "I'm porting a phone. My HAL files must land in vendor.",
+      "visuals": [
+        {
+          "do": "define",
+          "term": "HAL",
+          "at": 0.7
+        },
+        {
+          "do": "sketch.note",
+          "text": "HALs belong in vendor",
+          "at": 0.8
+        }
+      ]
+    },
+    {
+      "speaker": "reviewer",
+      "text": "Then build only that image: m vendorimage.",
+      "say": "Then build only that image: m, vendorimage.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "split"
+        },
+        {
+          "do": "term.type",
+          "id": "build",
+          "cmd": "m vendorimage",
+          "out": [],
+          "at": 0.5
+        }
+      ]
+    },
+    {
+      "speaker": "maintainer",
+      "text": "But how does the build know what belongs?",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "what belongs in vendor?",
+          "at": 0.5
+        }
+      ]
+    },
+    {
+      "speaker": "reviewer",
+      "text": "Every module tags itself. In Android.bp, one line: vendor true.",
+      "say": "Every module tags itself. In Android dot B P, one line: vendor true.",
+      "visuals": [
+        {
+          "do": "code.show",
+          "id": "bp",
+          "lang": "bp",
+          "title": "Android.bp (example)",
+          "code": [
+            "cc_library_shared {",
+            "    name: \"libexample_hw\",",
+            "    vendor: true,",
+            "}"
+          ],
+          "highlight": [
+            2
+          ],
+          "at": 0.3
+        }
+      ]
+    },
+    {
+      "speaker": "reviewer",
+      "text": "Old makefiles say LOCAL_VENDOR_MODULE instead.",
+      "say": "Old makefiles say local vendor module instead.",
+      "visuals": [
+        {
+          "do": "code.show",
+          "id": "mk",
+          "lang": "make",
+          "title": "Android.mk (example)",
+          "code": [
+            "LOCAL_VENDOR_MODULE := true"
+          ],
+          "highlight": [
+            0
+          ],
+          "at": 0.35
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Prebuilt files travel by PRODUCT_COPY_FILES: source, colon, destination.",
+      "say": "Prebuilt files travel by product copy files: source, colon, destination.",
+      "visuals": [
+        {
+          "do": "clear"
+        },
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "code.show",
+          "id": "before",
+          "lang": "make",
+          "title": "device.mk (shortened)",
+          "code": [
+            "PRODUCT_COPY_FILES += \\",
+            "  audio_platform_info.xml:system/vendor/etc/audio_platform_info.xml"
+          ],
+          "highlight": [
+            1
+          ],
+          "at": 0.2
+        }
+      ]
+    },
+    {
+      "speaker": "reviewer",
+      "text": "A LineageOS maintainer fixed one of these in a real Xiaomi device tree.",
+      "visuals": [
+        {
+          "do": "commit.story",
+          "id": "commit",
+          "repo": "LineageOS/android_device_xiaomi_gemini",
+          "title": "Audio configs copied to system/vendor",
+          "at": 0.5
+        }
+      ]
+    },
+    {
+      "speaker": "maintainer",
+      "text": "The destination says vendor. Looks fine to me.",
+      "visuals": []
+    },
+    {
+      "speaker": "reviewer",
+      "text": "It says system slash vendor. That only works while vendor lives inside system.",
+      "visuals": [
+        {
+          "do": "commit.story",
+          "id": "commit",
+          "repo": "LineageOS/android_device_xiaomi_gemini",
+          "broke": "The path is hardcoded, so a real vendor partition would miss these files.",
+          "at": 0.6
+        }
+      ]
+    },
+    {
+      "speaker": "reviewer",
+      "text": "The fix: copy to TARGET_COPY_OUT_VENDOR instead.",
+      "say": "The fix: copy to target copy out vendor instead.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full",
+          "keep": [
+            "commit"
+          ]
+        },
+        {
+          "do": "code.show",
+          "id": "after",
+          "lang": "make",
+          "title": "after",
+          "code": [
+            "PRODUCT_COPY_FILES += \\",
+            "  audio_platform_info.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info.xml"
+          ],
+          "highlight": [
+            1
+          ],
+          "at": 0.3
+        },
+        {
+          "do": "commit.story",
+          "id": "commit",
+          "repo": "LineageOS/android_device_xiaomi_gemini",
+          "fix": "Copy to $(TARGET_COPY_OUT_VENDOR) instead of a fixed path.",
+          "why": "The variable follows the board, so the path stays correct.",
+          "at": 0.6
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "The board config can ask for a vendor image. Then that variable becomes just vendor.",
+      "visuals": [
+        {
+          "do": "clear",
+          "keep": [
+            "after"
+          ]
+        },
+        {
+          "do": "code.show",
+          "id": "board",
+          "lang": "make",
+          "title": "BoardConfig.mk",
+          "code": [
+            "BOARD_VENDORIMAGE_FILE_SYSTEM_TYPE := ext4"
+          ],
+          "highlight": [
+            0
+          ],
+          "at": 0.3
+        }
+      ]
+    },
+    {
+      "speaker": "maintainer",
+      "text": "So the build packs everything into one file?",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "one file?",
+          "at": 0.6
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Yes: vendor image, under out slash target slash product.",
+      "visuals": [
+        {
+          "do": "clear"
+        },
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "sketch.box",
+          "id": "img",
+          "text": "vendor image",
+          "sub": "out/target/product/<device>/vendor.img",
+          "icon": "db",
+          "tone": "accent",
+          "at": 0.3
+        }
+      ]
+    },
+    {
+      "speaker": "reviewer",
+      "text": "Inside, a VINTF manifest lists every HAL it offers. The framework checks it.",
+      "visuals": [
+        {
+          "do": "define",
+          "term": "VINTF",
+          "at": 0.2
+        },
+        {
+          "do": "sketch.box",
+          "id": "vintf",
+          "text": "VINTF manifest",
+          "sub": "vendor/etc/vintf",
+          "icon": "server",
+          "at": 0.45
+        }
+      ]
+    }
+  ]
+}

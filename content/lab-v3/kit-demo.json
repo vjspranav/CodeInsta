@@ -1,0 +1,298 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "What happens when you type a URL? (kit demo)",
+  "topic": "lab-v3/kit-demo",
+  "genre": "trace",
+  "style": "blueprint",
+  "tags": [
+    "networking",
+    "browser",
+    "dns",
+    "tcp"
+  ],
+  "level": "beginner",
+  "cast": [
+    {
+      "id": "rookie",
+      "name": "Rookie",
+      "role": "Curious junior",
+      "color": "#E4572E"
+    },
+    {
+      "id": "senior",
+      "name": "Senior",
+      "role": "Calm staff engineer",
+      "color": "#2F6F8F"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "DNS",
+      "full": "Domain Name System",
+      "note": "The phone book that turns names into addresses."
+    },
+    {
+      "term": "TCP",
+      "full": "Transmission Control Protocol",
+      "note": "Re-sends what gets lost."
+    }
+  ],
+  "key_points": [
+    "DNS turns a name into an IP address.",
+    "TCP re-sends lost packets, so pages still load."
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "You type a URL and press enter. First, the browser asks DNS where the site lives.",
+      "say": "You type a U R L and press enter. First, the browser asks D N S where the site lives.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "seq.diagram",
+          "id": "web",
+          "actors": [
+            "Browser",
+            "DNS",
+            "Server"
+          ],
+          "messages": [
+            {
+              "from": "Browser",
+              "to": "DNS",
+              "label": "where is example.com?"
+            }
+          ]
+        },
+        {
+          "do": "define",
+          "term": "DNS",
+          "at": 0.55
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "DNS answers with an IP address.",
+      "say": "D N S answers with an I P address.",
+      "visuals": [
+        {
+          "do": "seq.diagram",
+          "id": "web",
+          "messages": [
+            {
+              "from": "DNS",
+              "to": "Browser",
+              "label": "93.184.216.34",
+              "reply": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Then a three way handshake: hello, hello back, got it.",
+      "visuals": [
+        {
+          "do": "seq.diagram",
+          "id": "web",
+          "messages": [
+            {
+              "from": "Browser",
+              "to": "Server",
+              "label": "SYN"
+            },
+            {
+              "from": "Server",
+              "to": "Browser",
+              "label": "SYN-ACK",
+              "reply": true
+            },
+            {
+              "from": "Browser",
+              "to": "Server",
+              "label": "ACK"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Then packets cross the network. Sometimes one gets lost.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "packet.flow",
+          "id": "net",
+          "nodes": [
+            "Browser",
+            "Router",
+            "ISP",
+            "Server"
+          ],
+          "packets": [
+            {
+              "from": "Browser",
+              "to": "Router",
+              "label": "GET /"
+            },
+            {
+              "from": "Router",
+              "to": "ISP",
+              "label": "GET /"
+            },
+            {
+              "from": "ISP",
+              "to": "Server",
+              "label": "GET /",
+              "drop": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "TCP notices the gap and sends it again.",
+      "say": "T C P notices the gap and sends it again.",
+      "visuals": [
+        {
+          "do": "packet.flow",
+          "id": "net",
+          "packets": [
+            {
+              "from": "ISP",
+              "to": "Server",
+              "label": "GET /",
+              "retry": true
+            },
+            {
+              "from": "Server",
+              "to": "Browser",
+              "label": "200 OK"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Now the server sends back HTML, and the browser builds a tree.",
+      "say": "Now the server sends back H T M L, and the browser builds a tree.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "tree",
+          "id": "dom",
+          "nodes": [
+            {
+              "id": "html",
+              "label": "html"
+            },
+            {
+              "id": "head",
+              "label": "head",
+              "parent": "html"
+            },
+            {
+              "id": "body",
+              "label": "body",
+              "parent": "html"
+            },
+            {
+              "id": "title",
+              "label": "title",
+              "parent": "head"
+            },
+            {
+              "id": "h1",
+              "label": "h1",
+              "parent": "body"
+            },
+            {
+              "id": "p",
+              "label": "p",
+              "parent": "body"
+            }
+          ],
+          "path": [
+            "html",
+            "body",
+            "h1"
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Then it paints the page. Here is the whole timeline.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "timeline.track",
+          "id": "load",
+          "lanes": [
+            "Network",
+            "Parse",
+            "Paint"
+          ],
+          "span": [
+            0,
+            100
+          ],
+          "blocks": [
+            {
+              "lane": "Network",
+              "start": 0,
+              "end": 40,
+              "label": "fetch"
+            },
+            {
+              "lane": "Parse",
+              "start": 30,
+              "end": 70,
+              "label": "parse"
+            },
+            {
+              "lane": "Paint",
+              "start": 60,
+              "end": 95,
+              "label": "paint",
+              "tone": "accent"
+            }
+          ],
+          "playhead": {
+            "from": 0,
+            "to": 95,
+            "ms": 2600
+          }
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "All of that in under a hundred milliseconds.",
+      "visuals": []
+    },
+    {
+      "speaker": "narrator",
+      "text": "Next time, we zoom into that handshake.",
+      "visuals": []
+    }
+  ]
+}

@@ -155,3 +155,81 @@
   - Output: a pass/fail report listing every micro-interaction, with a non-zero exit on any failure. **The upload pipeline refuses to publish a reel that fails verification.** A contact sheet of the checked frames is saved for human review.
   - Component unit tests (vitest) cover every action type's state transitions.
 - 2026-11-01: **Reel length.** A reel targets 60–90 s. Stories that run longer are split into parts (Part 1 ends on a cliffhanger; same series, consecutive series_index), using the feed's existing "Part N+1 →" card. The round-2 Instagram story (≈133 s of speech) is split once the owner picks a voice.
+- 2026-11-01: **Pacing fix for final renders (owner feedback on the round-2 voice comparison).** Silent gaps between lines are too long; the owner sat looking at the users table for seconds with nothing said. The intent of dwell was only that data scenes must not fly by, not silence. So for every final render:
+  - Data gets screen time through speech, not silence: a beat that introduces a table or code also carries a line that walks through it (e.g. "Here's the users table: an id, a handle, a follower count"), and the visual appears at the start of that line.
+  - Replace the auto-dwell (+500 ms per row, up to 4 s) with at most +150 ms per row, capped at 1 s.
+  - Cap explicit `hold_ms` at 1.2 s, and use it only right after a reveal (a query result, a red heart).
+  - Gaps between lines stay 150–500 ms, with 700 ms only at a scene change.
+  - Silence should be under 10% of a reel's runtime; the QA gate reports the silence ratio and the longest gap, and fails a reel above 10% or with a gap over 1.5 s.
+- 2026-11-01: **Owner verdict on the voice comparison, plus refined pacing** (amends the pacing fix above).
+  - **Voice:** Gemini is the default for all final renders (best), with Chatterbox and OpenAI tied behind it. Scheduled renders use the paid key (`GEMINI_API_KEY_BILLING`), via Batch where possible.
+  - **The senior speaks too slowly on every engine.** Target rates are rookie ~160, senior ~150 and narrator ~150 words per minute. Remove "unhurried / deliberate pauses / long beat" from the senior's style prompts, and compress pauses inside a clip to at most ~0.25 s. Measured on Gemini: senior 107 wpm with 17% internal pauses; the renderer added 76 s of silence to 118 s of speech.
+  - **Dwell rule:** speech that names the data as it appears ("users, followers, posts") is enough time on screen. A visual only needs extra time when it disappears at the next beat and was on screen for under ~1.5 s, plus about 0.3 s per row in total; the renderer adds only the shortfall. A visual that stays into the next beat gets no extra hold. Default gap between lines is 250 ms.
+  - **Visual styles:** hand-drawn is one of many styles, never the only one. The renderer gets a style system (tokens plus component skins), starting with at least 6 distinct styles and open to more. A script picks its style with a `style` field, and creators rotate styles so the feed never looks same-y. **Every style must pass the full QA gate**, plus checks for each style: text contrast (WCAG AA, at least 4.5:1 for captions and labels), the like-heart color, legibility (minimum font sizes), overflow and the safe area. Every component is verified in every style.
+- 2026-11-01: **Genres, style by type and category, and dislikes.** The owner rated the round-2 story video "exceptionally good" and wants that creativity in every genre.
+  - **Every reel declares a `genre`** (top level in the v3 script). Starting set, open to new ones:
+    - `story` (characters in a situation);
+    - `war-story` (a real incident or postmortem retold);
+    - `trace` ("what happens when you…": follow one request or packet end to end);
+    - `commit-story` (a StagOS/LineageOS fix: bug, cause, patch; no hashes on screen);
+    - `myth-vs-fact`;
+    - `predict-it` (pause, guess the output or behavior, then reveal);
+    - `build-along` (code typed live, step by step);
+    - `versus` (A vs B with a verdict);
+    - `analogy` (a real-world metaphor mapped onto the system);
+    - `interview` (a whiteboard question, a wrong answer, then the right one).
+    Creators try new genres too and record them in the genre list in `content/curriculum.md`.
+  - **Style follows genre and category.** The renderer has a style registry (at least 6 styles). Pick by affinity, then rotate among the fitting styles so consecutive reels from a creator differ. Defaults:
+    - aosp → terminal / blueprint;
+    - os and compilers → newsprint / terminal / editorial-dark;
+    - distributed and system design → sketch / blueprint;
+    - product-design → paper-cutout / editorial-dark;
+    - ml → sketch / editorial-dark;
+    - `war-story` → newsprint;
+    - `commit-story` → terminal;
+    - `predict-it` and `interview` → sketch.
+    Every style passes the full QA gate.
+  - **Dislike button.** Members can mark a reel "not for me", which is private, toggleable, and shown only to the person who tapped it. Dislikes are stored per user with the reel's genre, style and topic available.
+    - The feed demotes reels sharing the disliked reel's genre and style for that user.
+    - The agent inbox reports dislikes since the last run plus aggregate counts by genre, style and topic area.
+    - Creators avoid a genre+style combination with net dislikes, and on topics the owner disliked, try a different genre or angle next time instead of dropping the topic.
+- 2026-11-01: **Owner approved Parts 1/2: "pacing is perfect".** Two sync rules for every final reel, and visualization chosen by scenario.
+  - **The voice never runs ahead of the screen.** Anything the line names (a number like 4,812, a query result, a table, a name) must be visible no later than the moment that word is spoken, ideally a beat before. A reveal is scheduled from word-level timing: estimate it from character position within the line's audio, or use forced alignment when available. The QA gate gets a `sync.voice-after-visual` check: for every token in a beat's text that also appears in a visual (numbers, identifiers, table/column names), the visual must be on screen at or before the estimated spoken time of that token. The gate fails otherwise.
+  - **Keep what is being talked about.** A visual stays on screen while the following beats still react to it. For example, the query stays up through "Famous last words." A reaction line with no visual of its own keeps the previous visual. The QA gate checks that a beat with no new visuals never shows an empty or changed scene.
+  - **Visualization type follows the scenario, not just the color style.** The renderer gets a kit of visual components per scenario, and the creators pick the one that fits the idea:
+    - request flows → sequence diagrams;
+    - data → tables, rows moving, sharding and replication;
+    - compilers → token stream, AST tree, IR and register allocation;
+    - OS → process table, scheduler timeline, page table and memory map, syscall boundary;
+    - AOSP → build graph, partitions and file tree, init/boot timeline, logcat;
+    - networking → packets on a wire, TLS handshake ladder;
+    - caching → hit/miss with a clock or TTL;
+    - ML → scatter/plot, loss curve, matrix multiply, neuron diagram;
+    - product design → wireframes, filter UI against a query plan;
+    - comparisons → split screen;
+    - code → editor with typing and diff.
+    Each component has QA expectations, works in every style, and passes `--all-styles`.
+- 2026-11-01: **Two new knowledge areas: tech news and research papers, plus a large launch library.**
+  - **`tech-news` category:** recent, real tech news (OS releases, Android/AOSP changes, compiler and toolchain releases, cloud incidents and postmortems, notable ML releases), explained in very easy terms.
+    - Every news reel is researched in the same run from live sources (web search plus fetch). It cites at least 2 URLs and the news date in `sources`, and says "as of <date>" on screen.
+    - Never write news from memory.
+    - News reels carry `expires_at` (+30 days): the feed demotes them after 14 days and hides them after expiry.
+    - Each scheduled run checks for news worth one reel at most, and skips if nothing is notable.
+  - **`papers` category:** famous classic and currently trending research papers in OS, compilers, distributed systems and ML, explained in very easy terms ("what problem, the one key idea, why it mattered, where you see it today").
+    - Each reel cites the paper (title, authors, year, DOI/arXiv/official link) in `sources`.
+    - "Trending" picks must be verified with a live search at creation time.
+    - Never invent results or numbers; only claims stated in the paper or its official summary.
+  - **Launch library:** go live only with a large planned library, not a trickle. `content/library-plan.md` lists every launch reel: category, series, part, genre, style, creator, visual kit and sources needed. Production runs in batches, each through the full QA gate. A pilot batch (one reel per genre) is reviewed by the owner before bulk production. After launch, the scheduled creators keep adding.
+- 2026-11-01: **Member-to-member messaging, after launch** (owner approved). Private 1:1 conversations between members:
+  - a `conversations` table and a `conversation_messages` table, with RLS so only the participants can read or write;
+  - an inbox with threads and unread badges;
+  - a "Send" action on a reel to share it into a chat;
+  - block and leave;
+  - rate limiting.
+  These are separate from creator DMs, and no member text ever reaches the AI creators. Build it after the 5-reel launch: Claude does the migration and RLS, Codex the UI.
+- 2026-11-01: **One reel, one style, one render.** Each reel declares a single `style`, chosen from genre and category affinity with rotation, and is voiced and rendered once in that style. Its QA gate runs once, with stills, in that style. `verify --all-styles` is a renderer test only: it runs when a component, kit or style changes (vitest plus the fixture scripts), never per published reel and never as part of a scheduled run.
+- 2026-11-01: **Archive and remake the original 30.** All v1/v2 reels (no `video_url`, not lab) get `archived_at` set at launch. Archived reels are hidden from the feed, catalog and profiles but kept in the database, so this is reversible. `unique(creator_id, topic)` becomes a partial unique index on live (non-archived) reels, so each remake reuses its original topic path. Each creator remakes its own 15 seed topics as v3 stories, following every current rule: genre, one style by affinity, visual kits per scenario, voice after visual, pacing, glossary, no early answers, 60–90 s. These are batch 1 of `content/library-plan.md`, rendered tonight.
+- 2026-11-01: **Gemini Tier 1 cap and the transcript check.**
+  - Tier 1 allows 100 requests a day per TTS model. Gemini now voices a story in about 2 requests (dialogue as multi-speaker, narrator separately) and splits the audio into per-line clips on silences, with a per-line fallback. Clips are cached, so re-renders cost 0 requests. `gemini-3.8-flash-lite-tts` (a separate quota) is the fallback when flash is capped.
+  - **New QA gate step `voice.transcript`:** every line clip is transcribed (OpenAI gpt-4o-mini-transcribe, about ₹0.3 per reel) and must contain ≥70% of its line's words with no extra trailing speech. This catches mis-splits, TTS hallucinations and dropped words, and a reel can't publish without passing.
+- 2026-11-01: **Voice mix (owner).** "Use GPT voice too from time to time, like an 80-20 split, till we are done with the Gemini audio cap." Gemini flash voices about 80% of reels and OpenAI gpt-4o-mini-tts about 20%, picked deterministically per reel. When Gemini hits its daily cap, OpenAI covers. Flash-Lite is not used for final reels (it garbled a line). Each reel uses one engine, never mixed within a reel.

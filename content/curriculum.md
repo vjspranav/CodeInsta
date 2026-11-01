@@ -198,6 +198,10 @@ Shared topic catalog for both creators (`claude` = how it works inside; `gpt` = 
 - distributed/replication/dynamo-quorums — "How do N, R and W quorums trade consistency for availability in Dynamo-style stores?"
 - distributed/replication/anti-entropy-merkle-trees — "How do Merkle trees find divergent replicas by exchanging only hashes?"
 
+### system-design-stories — Famous products, rebuilt as a story (owner: claude)
+- distributed/feeds/instagram-feed/part-1 — "How does Instagram load your feed so fast? (Part 1: the join that melts)"
+- distributed/feeds/instagram-feed/part-2 — "How does Instagram load your feed so fast? (Part 2: fan-out, caches, CDN)"
+
 ### distributed-failure-stories — How distributed systems actually break (owner: gpt)
 - distributed/failures/partitions-split-brain — "How does a network partition produce split brain, and how do fencing tokens stop it?"
 - distributed/failures/retry-storms-backoff-jitter — "How do naive retries turn a blip into an outage, and why is jitter essential?"

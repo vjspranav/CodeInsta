@@ -98,8 +98,21 @@ async function main() {
   let upserted = 0;
   for (let i = 0; i < rows.length; i += 50) {
     const chunk = rows.slice(i, i + 50);
-    const { error } = await db.from("reels").upsert(chunk, { onConflict: "creator_id,topic" });
-    if (error) throw new Error(`upsert failed: ${error.message}`);
+    // Partial unique index (live reels only) cannot be targeted by upsert's onConflict, so check explicitly.
+    for (const row of chunk) {
+      const live = await db
+        .from("reels")
+        .select("id")
+        .eq("creator_id", row.creator_id as string)
+        .eq("topic", row.topic as string)
+        .is("archived_at", null)
+        .maybeSingle();
+      if (live.error) throw new Error(`upsert failed: ${live.error.message}`);
+      const { error } = live.data
+        ? await db.from("reels").update(row).eq("id", live.data.id as string)
+        : await db.from("reels").insert(row);
+      if (error) throw new Error(`upsert failed: ${error.message}`);
+    }
     upserted += chunk.length;
   }
 
@@ -115,6 +128,7 @@ async function main() {
         .select("id, audio")
         .eq("creator_id", creator)
         .eq("topic", topic)
+        .is("archived_at", null)
         .single();
       if (found.error) throw new Error(`lookup ${creator}/${topic} failed: ${found.error.message}`);
       if (found.data.audio && !forceAudio) {

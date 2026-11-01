@@ -1,0 +1,1014 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "How does Instagram load your feed (and likes) so fast?",
+  "topic": "lab-v3/instagram-feed/story",
+  "tags": [
+    "instagram",
+    "feed",
+    "fan-out",
+    "caching",
+    "cdn",
+    "system-design"
+  ],
+  "level": "intermediate",
+  "cast": [
+    {
+      "id": "rookie",
+      "name": "Rookie",
+      "role": "Overconfident junior who ships things",
+      "color": "#E4572E"
+    },
+    {
+      "id": "senior",
+      "name": "Senior",
+      "role": "Calm, dry-humored staff engineer",
+      "color": "#2F6F8F"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "CDN",
+      "full": "Content Delivery Network",
+      "note": "Servers worldwide that keep copies of images close to you."
+    },
+    {
+      "term": "POP",
+      "full": "Point of Presence",
+      "note": "One CDN location, usually in your city."
+    },
+    {
+      "term": "TTL",
+      "full": "Time To Live",
+      "note": "How long a cached value lives before it expires."
+    },
+    {
+      "term": "fan-out",
+      "full": "Fan-out on write",
+      "note": "Copy one new post into every follower's feed when it is written."
+    },
+    {
+      "term": "p99",
+      "full": "99th percentile latency",
+      "note": "99 percent of requests are faster than this."
+    },
+    {
+      "term": "optimistic UI",
+      "full": "Optimistic UI",
+      "note": "Show the result instantly, confirm with the server afterwards."
+    }
+  ],
+  "key_points": [
+    "Don't join on every read: precompute feeds at write time.",
+    "Celebrities break fan-out, so pull their posts at read time.",
+    "Cache feeds, serve images from a CDN, and show likes optimistically."
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "Ship day. Rookie's feed v1 goes live.",
+      "say": "Ship day. Rookie's feed version one goes live.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "phone-left+board-right"
+        },
+        {
+          "do": "phone.show",
+          "id": "phone",
+          "app": "Instagram"
+        },
+        {
+          "do": "phone.feed",
+          "posts": 3
+        },
+        {
+          "do": "sketch.note",
+          "text": "Ship day · feed v1",
+          "at": 0.5
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "One Postgres database behind the app. Three tables. I'm basically a genius.",
+      "say": "One Post-gres database behind the app. Three tables. I'm basically a genius.",
+      "hold_ms": 1200,
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "db-focus"
+        },
+        {
+          "do": "sketch.box",
+          "id": "pg",
+          "text": "Postgres",
+          "sub": "one database",
+          "icon": "db",
+          "tone": "accent",
+          "at": 0.1
+        },
+        {
+          "do": "db.table",
+          "id": "users",
+          "name": "users",
+          "columns": [
+            "id",
+            "name"
+          ],
+          "cols": [
+            "id",
+            "name"
+          ],
+          "rows": [
+            [
+              42,
+              "maya"
+            ],
+            [
+              7,
+              "jonah"
+            ],
+            [
+              12,
+              "priya"
+            ],
+            [
+              31,
+              "leo"
+            ]
+          ],
+          "at": 0.4
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Users. Then follows, meaning who follows whom.",
+      "hold_ms": 1800,
+      "visuals": [
+        {
+          "do": "db.table",
+          "id": "follows",
+          "name": "follows",
+          "columns": [
+            "follower_id",
+            "followee_id"
+          ],
+          "cols": [
+            "follower_id",
+            "followee_id"
+          ],
+          "rows": [
+            [
+              42,
+              7
+            ],
+            [
+              42,
+              12
+            ],
+            [
+              42,
+              31
+            ],
+            [
+              7,
+              42
+            ],
+            [
+              12,
+              7
+            ]
+          ],
+          "at": 0.45
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "And posts, with author, caption and time.",
+      "hold_ms": 2200,
+      "visuals": [
+        {
+          "do": "db.table",
+          "id": "posts",
+          "name": "posts",
+          "columns": [
+            "id",
+            "author_id",
+            "caption",
+            "created_at"
+          ],
+          "cols": [
+            "id",
+            "author_id",
+            "caption",
+            "created_at"
+          ],
+          "rows": [
+            [
+              9981,
+              7,
+              "sunrise hike",
+              "10:02"
+            ],
+            [
+              9980,
+              31,
+              "new sneakers",
+              "10:01"
+            ],
+            [
+              9977,
+              12,
+              "ramen night",
+              "10:00"
+            ],
+            [
+              9975,
+              42,
+              "my first post",
+              "09:58"
+            ],
+            [
+              9970,
+              7,
+              "coffee art",
+              "09:51"
+            ]
+          ],
+          "at": "start"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Fine. Walk me through opening the feed.",
+      "pause_before_ms": 500,
+      "visuals": [
+        {
+          "do": "focus",
+          "target": "users"
+        },
+        {
+          "do": "sketch.note",
+          "text": "open the feed for user 42",
+          "at": 0.3
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Open the app, user 42. Find who they follow, grab those posts.",
+      "say": "Open the app, user forty-two. Find who they follow, grab those posts.",
+      "hold_ms": 2200,
+      "visuals": [
+        {
+          "do": "db.join",
+          "steps": [
+            {
+              "table": "users",
+              "rows": [
+                0
+              ],
+              "label": "user 42: maya"
+            },
+            {
+              "table": "follows",
+              "rows": [
+                0,
+                1,
+                2
+              ],
+              "label": "she follows 7, 12, 31"
+            },
+            {
+              "table": "posts",
+              "rows": [
+                0,
+                1,
+                2,
+                4
+              ],
+              "label": "their posts"
+            }
+          ],
+          "at": 0.3
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Sort by newest, take twenty. That's your feed.",
+      "hold_ms": 2500,
+      "visuals": [
+        {
+          "do": "db.result",
+          "id": "feed-result",
+          "name": "feed for user 42",
+          "columns": [
+            "id",
+            "author_id",
+            "caption"
+          ],
+          "cols": [
+            "id",
+            "author_id",
+            "caption"
+          ],
+          "rows": [
+            [
+              9981,
+              7,
+              "sunrise hike"
+            ],
+            [
+              9980,
+              31,
+              "new sneakers"
+            ],
+            [
+              9977,
+              12,
+              "ramen night"
+            ],
+            [
+              9970,
+              7,
+              "coffee art"
+            ]
+          ],
+          "at": 0.2
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Show me the actual query.",
+      "pause_before_ms": 500,
+      "hold_ms": 2500,
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "code.show",
+          "id": "naive-sql",
+          "lang": "sql",
+          "title": "feed_v1.sql",
+          "code": [
+            "SELECT p.id, p.author_id, p.caption",
+            "FROM posts p",
+            "JOIN follows f",
+            "  ON f.followee_id = p.author_id",
+            "WHERE f.follower_id = 42",
+            "ORDER BY p.created_at DESC",
+            "LIMIT 20;"
+          ],
+          "highlight": [
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "One join, per app open. Beautiful.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "phone-left+board-right"
+        },
+        {
+          "do": "phone.show",
+          "id": "phone2",
+          "app": "Instagram"
+        },
+        {
+          "do": "phone.tap",
+          "target": "heart",
+          "emoji": "❤️"
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Famous last words.",
+      "punchline": true,
+      "pause_before_ms": 400,
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "famous last words",
+          "at": 0.3
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Noon. Traffic spikes.",
+      "pause_before_ms": 600,
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "12:00 · traffic x40"
+        },
+        {
+          "do": "phone.spinner",
+          "at": 0.5
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "It's just spinning... and now, \"Couldn't refresh feed.\" Rude.",
+      "punchline": true,
+      "visuals": [
+        {
+          "do": "phone.tap",
+          "target": "refresh",
+          "at": "start"
+        },
+        {
+          "do": "phone.toast",
+          "text": "Couldn't refresh feed",
+          "kind": "error",
+          "at": 0.55
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Every open runs that join. How many opens per second?",
+      "pause_before_ms": 500,
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "sketch.box",
+          "id": "opens",
+          "text": "App opens",
+          "sub": "~100,000 / sec",
+          "icon": "user",
+          "tone": "accent",
+          "at": 0.5
+        },
+        {
+          "do": "sketch.note",
+          "text": "each open = 1 big join",
+          "at": 0.8
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Roughly... a hundred thousand. Per second.",
+      "pause_before_ms": 300,
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "100,000 joins / sec",
+          "at": 0.4
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Check the database.",
+      "pause_before_ms": 500,
+      "hold_ms": 2200,
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "split"
+        },
+        {
+          "do": "term.type",
+          "id": "psql",
+          "cmd": "psql -c \"SELECT count(*) FROM pg_stat_activity WHERE state = 'active';\"",
+          "out": [
+            " count",
+            " -------",
+            "  4812"
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Forty-eight hundred active queries. It's on fire.",
+      "punchline": true,
+      "hold_ms": 1500,
+      "visuals": [
+        {
+          "do": "db.table",
+          "id": "load",
+          "name": "pg_stat_activity",
+          "columns": [
+            "pid",
+            "state",
+            "query"
+          ],
+          "cols": [
+            "pid",
+            "state",
+            "query"
+          ],
+          "rows": [
+            [
+              4101,
+              "active",
+              "feed join"
+            ],
+            [
+              4102,
+              "active",
+              "feed join"
+            ],
+            [
+              4103,
+              "active",
+              "feed join"
+            ]
+          ],
+          "at": "start"
+        },
+        {
+          "do": "db.insert",
+          "table": "load",
+          "rows": [
+            [
+              4104,
+              "active",
+              "feed join"
+            ],
+            [
+              4105,
+              "active",
+              "feed join"
+            ],
+            [
+              4106,
+              "active",
+              "feed join"
+            ],
+            [
+              4107,
+              "active",
+              "feed join"
+            ],
+            [
+              4108,
+              "active",
+              "feed join"
+            ]
+          ],
+          "at": 0.4
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Same work, redone millions of times. Our p99 is eight seconds.",
+      "say": "Same work, redone millions of times. Our p ninety-nine is eight seconds.",
+      "pause_before_ms": 400,
+      "visuals": [
+        {
+          "do": "define",
+          "term": "p99",
+          "at": 0.6
+        },
+        {
+          "do": "sketch.note",
+          "text": "p99 latency: 8 s",
+          "at": 0.6
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "So do the work once. When the post is written.",
+      "pause_before_ms": 700,
+      "visuals": [
+        {
+          "do": "clear"
+        },
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "sketch.note",
+          "text": "work once, at write time"
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Copy each new post into every follower's feed table?",
+      "hold_ms": 1500,
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "db-focus"
+        },
+        {
+          "do": "db.table",
+          "id": "newpost",
+          "name": "posts",
+          "columns": [
+            "id",
+            "author_id",
+            "caption"
+          ],
+          "cols": [
+            "id",
+            "author_id",
+            "caption"
+          ],
+          "rows": [
+            [
+              9982,
+              7,
+              "trail sunset"
+            ]
+          ],
+          "at": "start"
+        },
+        {
+          "do": "db.fanout",
+          "table": "newpost",
+          "row": 0,
+          "followers": [
+            "maya",
+            "priya",
+            "leo",
+            "omar"
+          ],
+          "label": "feed",
+          "at": 0.5
+        },
+        {
+          "do": "define",
+          "term": "fan-out",
+          "at": 0.5
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Yes. Then reading is one cheap lookup.",
+      "visuals": [
+        {
+          "do": "focus",
+          "id": "newpost>f0"
+        },
+        {
+          "do": "sketch.note",
+          "text": "1 read = 1 lookup",
+          "at": 0.5
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Then a celebrity posts. Six hundred million followers.",
+      "pause_before_ms": 700,
+      "hold_ms": 1200,
+      "visuals": [
+        {
+          "do": "clear"
+        },
+        {
+          "do": "layout",
+          "template": "db-focus"
+        },
+        {
+          "do": "sketch.box",
+          "id": "star",
+          "text": "Celebrity",
+          "sub": "600,000,000 followers",
+          "icon": "user",
+          "tone": "accent",
+          "at": "start"
+        },
+        {
+          "do": "db.table",
+          "id": "starpost",
+          "name": "posts",
+          "columns": [
+            "id",
+            "author_id",
+            "caption"
+          ],
+          "cols": [
+            "id",
+            "author_id",
+            "caption"
+          ],
+          "rows": [
+            [
+              9983,
+              "star",
+              "new selfie"
+            ]
+          ],
+          "at": 0.3
+        },
+        {
+          "do": "db.fanout",
+          "table": "starpost",
+          "row": 0,
+          "followers": 6,
+          "label": "feed",
+          "count": "600,000,000",
+          "style": "explode",
+          "at": 0.65
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Six hundred million writes. For one selfie.",
+      "punchline": true,
+      "pause_before_ms": 300,
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "1 selfie = 600M writes",
+          "at": 0.3
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "The database is on fire. Again.",
+      "punchline": true,
+      "visuals": [
+        {
+          "do": "focus",
+          "id": "starpost"
+        },
+        {
+          "do": "sketch.note",
+          "text": "write storm",
+          "at": 0.4
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Hybrid. Regular accounts fan out. Celebrities get pulled at read time.",
+      "pause_before_ms": 700,
+      "visuals": [
+        {
+          "do": "clear"
+        },
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "sketch.box",
+          "id": "regular",
+          "text": "Regular accounts",
+          "sub": "pushed at write",
+          "icon": "user",
+          "at": 0.05
+        },
+        {
+          "do": "sketch.box",
+          "id": "celeb",
+          "text": "Celebrities",
+          "sub": "pulled at read",
+          "icon": "user",
+          "tone": "accent",
+          "at": 0.55
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "So the feed merges both when you open the app.",
+      "visuals": [
+        {
+          "do": "sketch.box",
+          "id": "merge",
+          "text": "Your feed",
+          "icon": "client",
+          "at": 0.3
+        },
+        {
+          "do": "sketch.arrow",
+          "from": "regular",
+          "to": "merge",
+          "label": "merge",
+          "at": 0.5
+        },
+        {
+          "do": "sketch.arrow",
+          "from": "celeb",
+          "to": "merge",
+          "at": 0.6
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Next, a cache in front. Redis, with a TTL.",
+      "pause_before_ms": 700,
+      "hold_ms": 1800,
+      "visuals": [
+        {
+          "do": "clear"
+        },
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "code.show",
+          "id": "redis",
+          "lang": "redis",
+          "title": "redis-cli",
+          "code": [
+            "> GET feed:42",
+            "(nil)",
+            "> SETEX feed:42 60 \"9981,9980,9977\"",
+            "OK"
+          ],
+          "highlight": [
+            3
+          ]
+        },
+        {
+          "do": "define",
+          "term": "TTL",
+          "at": 0.8
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Hit: instant. Miss: ask the database, then remember.",
+      "pause_before_ms": 500,
+      "hold_ms": 800,
+      "visuals": [
+        {
+          "do": "clear"
+        },
+        {
+          "do": "layout",
+          "template": "split"
+        },
+        {
+          "do": "cache.hit",
+          "key": "feed:42",
+          "value": "9981,9980,9977",
+          "at": 0.1
+        },
+        {
+          "do": "cache.miss",
+          "key": "feed:77",
+          "at": 0.55
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Images ride a CDN, served from the nearest POP.",
+      "pause_before_ms": 700,
+      "hold_ms": 800,
+      "visuals": [
+        {
+          "do": "clear"
+        },
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "sketch.box",
+          "id": "origin",
+          "text": "Origin",
+          "sub": "image storage",
+          "icon": "server",
+          "at": 0.1
+        },
+        {
+          "do": "sketch.box",
+          "id": "pop",
+          "text": "POP",
+          "sub": "in your city",
+          "icon": "server",
+          "tone": "accent",
+          "at": 0.6
+        },
+        {
+          "do": "sketch.arrow",
+          "from": "origin",
+          "to": "pop",
+          "at": 0.7
+        },
+        {
+          "do": "define",
+          "term": "CDN",
+          "at": 0.3
+        },
+        {
+          "do": "define",
+          "term": "POP",
+          "at": 0.85
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Feed loads instantly. Even on hotel Wi-Fi.",
+      "pause_before_ms": 700,
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "phone-left+board-right"
+        },
+        {
+          "do": "phone.show",
+          "id": "phone3",
+          "app": "Instagram"
+        },
+        {
+          "do": "phone.feed",
+          "posts": 3,
+          "at": 0.2
+        },
+        {
+          "do": "phone.instant",
+          "label": "0.2s",
+          "at": 0.5
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "And the heart? Tap. Done.",
+      "visuals": [
+        {
+          "do": "phone.tap",
+          "target": "heart",
+          "emoji": "❤️",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Optimistic UI. Show the like first, tell the server later.",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "UI first, server catches up",
+          "at": 0.4
+        },
+        {
+          "do": "define",
+          "term": "optimistic UI",
+          "at": 0.1
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Next ship day, I'm writing tests.",
+      "pause_before_ms": 500,
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "next ship day: tests",
+          "at": 0.4
+        }
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Good. Also, keep your phone on loud.",
+      "punchline": true,
+      "visuals": [
+        {
+          "do": "phone.toast",
+          "text": "Pager: feed latency high",
+          "kind": "error",
+          "at": 0.6
+        }
+      ]
+    }
+  ],
+  "sources": [
+    "https://redis.io/docs/latest/commands/setex/",
+    "https://www.postgresql.org/docs/current/monitoring-stats.html"
+  ]
+}

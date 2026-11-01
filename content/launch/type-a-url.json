@@ -1,0 +1,239 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "What actually happens when you type a URL and hit Enter?",
+  "topic": "networking/http/what-happens-when-you-type-a-url",
+  "genre": "trace",
+  "style": "blueprint",
+  "series": "networking-protocol-internals",
+  "series_index": 1,
+  "tags": ["networking", "browser", "dns", "tcp", "tls", "http", "dom"],
+  "level": "beginner",
+  "cast": [
+    {"id": "rookie", "name": "Rookie", "role": "Curious junior who just clicked Enter", "color": "#E4572E"},
+    {"id": "senior", "name": "Senior", "role": "Calm, dry-humored staff engineer", "color": "#2F6F8F"}
+  ],
+  "sources": [
+    "https://developer.mozilla.org/en-US/docs/Web/Performance/Guides/How_browsers_work",
+    "https://www.rfc-editor.org/rfc/rfc8446",
+    "https://www.rfc-editor.org/rfc/rfc9293",
+    "https://www.rfc-editor.org/rfc/rfc1034"
+  ],
+  "glossary": [
+    {"term": "URL", "full": "Uniform Resource Locator", "note": "The address you type to reach a page."},
+    {"term": "DNS", "full": "Domain Name System", "note": "The phone book that turns names into addresses."},
+    {"term": "TTL", "full": "Time to Live", "note": "How long an answer may be cached."},
+    {"term": "TCP", "full": "Transmission Control Protocol", "note": "Opens a reliable connection and re-sends what gets lost."},
+    {"term": "TLS", "full": "Transport Layer Security", "note": "Encrypts the connection and proves the server's identity."},
+    {"term": "HTTP", "full": "Hypertext Transfer Protocol", "note": "The request and response language of the web."},
+    {"term": "DOM", "full": "Document Object Model", "note": "The tree the browser builds from the page's markup."}
+  ],
+  "key_points": [
+    "Cache first, then DNS, TCP, TLS and HTTP, one step at a time.",
+    "DNS answers are cached for their TTL, so repeat visits skip steps.",
+    "The browser turns markup into a DOM tree, then lays out and paints."
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "Rookie types a URL and presses Enter.",
+      "say": "Rookie types a U R L and presses Enter.",
+      "visuals": [
+        {"do": "layout", "template": "board-full"},
+        {"do": "sketch.box", "id": "laptop", "text": "Browser", "sub": "Rookie's laptop", "icon": "user", "at": 0.1},
+        {"do": "sketch.box", "id": "site", "text": "example.com", "sub": "somewhere online", "icon": "db", "tone": "accent", "at": 0.3},
+        {"do": "sketch.arrow", "from": "laptop", "to": "site", "at": 0.5},
+        {"do": "define", "term": "URL", "at": 0.6}
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "I only typed a name. How does my laptop know where that site lives?",
+      "visuals": [
+        {"do": "sketch.note", "text": "a name is not an address", "at": 0.2}
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "The browser checks its cache first. Empty. So its stub resolver asks DNS.",
+      "say": "The browser checks its cache first. Empty. So its stub resolver asks D N S.",
+      "visuals": [
+        {"do": "layout", "template": "board-full"},
+        {"do": "sketch.note", "text": "browser cache: empty", "at": 0.15},
+        {
+          "do": "seq.diagram",
+          "id": "dns",
+          "actors": ["Stub", "Resolver", "Root", ".com", "Auth"],
+          "messages": [{"from": "Stub", "to": "Resolver", "label": "example.com?"}],
+          "at": 0.55
+        },
+        {"do": "define", "term": "DNS", "at": 0.85}
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Ask who, exactly?",
+      "visuals": []
+    },
+    {
+      "speaker": "senior",
+      "text": "The recursive resolver asks a root server, then the dot-com server, then the authoritative server.",
+      "visuals": [
+        {
+          "do": "seq.diagram",
+          "id": "dns",
+          "messages": [
+            {"from": "Resolver", "to": "Root", "label": "example.com?"},
+            {"from": "Root", "to": "Resolver", "label": "ask .com", "reply": true},
+            {"from": "Resolver", "to": ".com", "label": "example.com?"},
+            {"from": ".com", "to": "Resolver", "label": "ask auth", "reply": true},
+            {"from": "Resolver", "to": "Auth", "label": "example.com?"}
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "And that last one knows?",
+      "visuals": []
+    },
+    {
+      "speaker": "senior",
+      "text": "Yes. It returns the address, plus a TTL: how long everyone may remember it.",
+      "say": "Yes. It returns the address, plus a T T L: how long everyone may remember it.",
+      "visuals": [
+        {
+          "do": "seq.diagram",
+          "id": "dns",
+          "messages": [
+            {"from": "Auth", "to": "Resolver", "label": "address + TTL", "reply": true},
+            {"from": "Resolver", "to": "Stub", "label": "address", "reply": true}
+          ]
+        },
+        {"do": "define", "term": "TTL", "at": 0.5}
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Great. Now it sends the request?",
+      "visuals": []
+    },
+    {
+      "speaker": "senior",
+      "text": "First a TCP handshake: SYN, SYN-ACK, ACK. Hello, hello back, got it.",
+      "say": "First a T C P handshake: sin, sin-ack, ack. Hello, hello back, got it.",
+      "visuals": [
+        {"do": "layout", "template": "board-full"},
+        {
+          "do": "seq.diagram",
+          "id": "tcp",
+          "actors": ["Browser", "Server"],
+          "messages": [
+            {"from": "Browser", "to": "Server", "label": "SYN"},
+            {"from": "Server", "to": "Browser", "label": "SYN-ACK", "reply": true},
+            {"from": "Browser", "to": "Server", "label": "ACK"}
+          ],
+          "at": 0.15
+        },
+        {"do": "define", "term": "TCP", "at": 0.1}
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Then TLS: one round trip to agree on keys, while the browser checks the server's certificate.",
+      "say": "Then T L S: one round trip to agree on keys, while the browser checks the server's certificate.",
+      "visuals": [
+        {"do": "layout", "template": "board-full"},
+        {
+          "do": "seq.diagram",
+          "id": "tls",
+          "actors": ["Browser", "Server"],
+          "messages": [
+            {"from": "Browser", "to": "Server", "label": "ClientHello + key"},
+            {"from": "Server", "to": "Browser", "label": "ServerHello + certificate", "reply": true},
+            {"from": "Browser", "to": "Server", "label": "Finished, encrypted"}
+          ],
+          "at": 0.2
+        },
+        {"do": "define", "term": "TLS", "at": 0.1}
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "Now the request?",
+      "visuals": []
+    },
+    {
+      "speaker": "senior",
+      "text": "Now HTTP. A GET goes out, and the response comes back.",
+      "say": "Now H T T P. A GET goes out, and the response comes back.",
+      "visuals": [
+        {"do": "layout", "template": "board-full"},
+        {
+          "do": "packet.flow",
+          "id": "net",
+          "nodes": ["Browser", "Router", "Server"],
+          "packets": [
+            {"from": "Browser", "to": "Router", "label": "GET /"},
+            {"from": "Router", "to": "Server", "label": "GET /"},
+            {"from": "Server", "to": "Router", "label": "response"},
+            {"from": "Router", "to": "Browser", "label": "response"}
+          ],
+          "at": 0.2
+        },
+        {"do": "define", "term": "HTTP", "at": 0.1}
+      ]
+    },
+    {
+      "speaker": "rookie",
+      "text": "And that's the page?",
+      "visuals": []
+    },
+    {
+      "speaker": "senior",
+      "text": "Not yet. The browser parses the markup into a tree, the DOM, fetches styles and scripts, then lays out and paints.",
+      "say": "Not yet. The browser parses the markup into a tree, the D O M, fetches styles and scripts, then lays out and paints.",
+      "visuals": [
+        {"do": "layout", "template": "board-full"},
+        {
+          "do": "tree",
+          "id": "dom",
+          "nodes": [
+            {"id": "html", "label": "html"},
+            {"id": "head", "label": "head", "parent": "html"},
+            {"id": "body", "label": "body", "parent": "html"},
+            {"id": "title", "label": "title", "parent": "head"},
+            {"id": "link", "label": "styles", "parent": "head"},
+            {"id": "h1", "label": "h1", "parent": "body"},
+            {"id": "script", "label": "script", "parent": "body"}
+          ],
+          "path": ["html", "head", "link"],
+          "at": 0.25
+        },
+        {"do": "define", "term": "DOM", "at": 0.45}
+      ]
+    },
+    {
+      "speaker": "senior",
+      "text": "Every step is cached when it can be, so the next visit skips most of this.",
+      "visuals": [
+        {"do": "layout", "template": "board-full"},
+        {
+          "do": "timeline.track",
+          "id": "load",
+          "lanes": ["Network", "Parse", "Layout", "Paint"],
+          "span": [0, 100],
+          "blocks": [
+            {"lane": "Network", "start": 0, "end": 30, "label": "markup"},
+            {"lane": "Parse", "start": 20, "end": 50, "label": "DOM"},
+            {"lane": "Layout", "start": 50, "end": 75, "label": "layout"},
+            {"lane": "Paint", "start": 75, "end": 100, "label": "paint", "tone": "accent"}
+          ],
+          "playhead": {"from": 0, "to": 100, "ms": 3200},
+          "at": 0.05
+        },
+        {"do": "sketch.note", "text": "example waterfall, e.g. ~100 ms", "at": 0.3}
+      ]
+    }
+  ]
+}

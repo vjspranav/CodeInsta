@@ -1,0 +1,348 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "Attention Is All You Need, in plain words",
+  "topic": "papers/ml/attention-is-all-you-need",
+  "genre": "analogy",
+  "style": "editorial-dark",
+  "series": "papers-ml",
+  "series_index": 4,
+  "level": "beginner",
+  "tags": [
+    "papers",
+    "ml",
+    "attention",
+    "transformer",
+    "rnn",
+    "vaswani"
+  ],
+  "cast": [
+    {
+      "id": "sam",
+      "name": "Sam",
+      "role": "New ML engineer, curious and a bit lost",
+      "color": "#E4572E"
+    },
+    {
+      "id": "rao",
+      "name": "Dr. Rao",
+      "role": "Senior researcher, patient and dry",
+      "color": "#2F6F8F"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "RNN",
+      "full": "Recurrent Neural Network",
+      "note": "Reads text one word at a time, passing a memory along."
+    },
+    {
+      "term": "attention weights",
+      "full": "Attention weights",
+      "note": "Scores for how much one word looks at another."
+    },
+    {
+      "term": "GPU",
+      "full": "Graphics Processing Unit",
+      "note": "A chip that does many small calculations at once."
+    },
+    {
+      "term": "Transformer",
+      "full": "Transformer",
+      "note": "The model design introduced in the paper, built on attention."
+    },
+    {
+      "term": "GPT",
+      "full": "Generative Pre-trained Transformer",
+      "note": "A family of language models built on the Transformer."
+    }
+  ],
+  "key_points": [
+    "Old models read one word at a time, so they were slow and forgetful.",
+    "Attention lets every word look at every other word and weigh who matters.",
+    "Handling all words at once made training parallel, which led to today's large language models."
+  ],
+  "sources": [
+    "https://arxiv.org/abs/1706.03762"
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "Telephone game. A long sentence whispered down a line of kids.",
+      "visuals": [
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "sketch.box",
+          "id": "k1",
+          "text": "Kid 1",
+          "sub": "hears it first",
+          "icon": "user",
+          "at": 0.4
+        },
+        {
+          "do": "sketch.box",
+          "id": "k2",
+          "text": "Kid 2",
+          "sub": "hears Kid 1",
+          "icon": "user",
+          "at": 0.6
+        },
+        {
+          "do": "sketch.box",
+          "id": "k3",
+          "text": "Kid 3",
+          "sub": "hears Kid 2",
+          "icon": "user",
+          "at": 0.8
+        },
+        {
+          "do": "sketch.arrow",
+          "from": "k1",
+          "to": "k2",
+          "at": 0.7
+        },
+        {
+          "do": "sketch.arrow",
+          "from": "k2",
+          "to": "k3",
+          "at": 0.9
+        }
+      ]
+    },
+    {
+      "speaker": "sam",
+      "text": "By the end, the start is gone.",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "the start gets lost",
+          "at": 0.5
+        }
+      ]
+    },
+    {
+      "speaker": "rao",
+      "text": "Old language models read exactly like that. One word at a time, in order. They were called RNNs.",
+      "visuals": [
+        {
+          "do": "define",
+          "term": "RNN",
+          "at": 0.75
+        },
+        {
+          "do": "sketch.note",
+          "text": "RNN: one word at a time",
+          "at": 0.3
+        }
+      ]
+    },
+    {
+      "speaker": "sam",
+      "text": "So they forget, and they're slow.",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "forgetful and slow",
+          "at": 0.5
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "In 2017, a team of researchers published a paper called Attention Is All You Need.",
+      "visuals": [
+        {
+          "do": "clear"
+        },
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "sketch.box",
+          "id": "paper",
+          "text": "Attention Is All You Need",
+          "sub": "Vaswani et al., 2017",
+          "icon": "cloud",
+          "tone": "accent",
+          "at": 0.6
+        }
+      ]
+    },
+    {
+      "speaker": "sam",
+      "text": "So how does it stop the forgetting?",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "how?",
+          "at": 0.5
+        }
+      ]
+    },
+    {
+      "speaker": "rao",
+      "text": "Every word looks at every other word, and decides who matters.",
+      "visuals": [
+        {
+          "do": "clear"
+        },
+        {
+          "do": "layout",
+          "template": "db-focus"
+        },
+        {
+          "do": "db.table",
+          "id": "att",
+          "name": "The cat sat because it was tired",
+          "columns": [
+            "it looks at",
+            "how much"
+          ],
+          "rows": [
+            [
+              "cat",
+              "a lot"
+            ],
+            [
+              "tired",
+              "some"
+            ],
+            [
+              "sat",
+              "a little"
+            ]
+          ],
+          "at": 0.5
+        }
+      ]
+    },
+    {
+      "speaker": "rao",
+      "text": "Those scores are called attention weights. The model learns them from data.",
+      "visuals": [
+        {
+          "do": "define",
+          "term": "attention weights",
+          "at": 0.3
+        }
+      ]
+    },
+    {
+      "speaker": "sam",
+      "text": "So nothing gets whispered down a line anymore.",
+      "visuals": []
+    },
+    {
+      "speaker": "narrator",
+      "text": "Better still, every word is handled at the same time. Training runs in parallel on GPUs.",
+      "visuals": [
+        {
+          "do": "clear"
+        },
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "sketch.box",
+          "id": "rnn",
+          "text": "RNN",
+          "sub": "one word at a time",
+          "icon": "queue",
+          "at": 0.3
+        },
+        {
+          "do": "sketch.box",
+          "id": "att2",
+          "text": "Attention",
+          "sub": "all words at once",
+          "icon": "server",
+          "tone": "accent",
+          "at": 0.55
+        },
+        {
+          "do": "define",
+          "term": "GPU",
+          "at": 0.8
+        }
+      ]
+    },
+    {
+      "speaker": "rao",
+      "text": "That made huge models practical to train. It's the Transformer, and you've met it.",
+      "visuals": [
+        {
+          "do": "define",
+          "term": "Transformer",
+          "at": 0.5
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Chatbots. Translation. The T in GPT stands for Transformer.",
+      "visuals": [
+        {
+          "do": "clear"
+        },
+        {
+          "do": "layout",
+          "template": "board-full"
+        },
+        {
+          "do": "sketch.box",
+          "id": "chat",
+          "text": "Chatbots",
+          "icon": "user",
+          "at": 0.2
+        },
+        {
+          "do": "sketch.box",
+          "id": "trans",
+          "text": "Translation",
+          "icon": "cloud",
+          "at": 0.4
+        },
+        {
+          "do": "sketch.box",
+          "id": "gpt",
+          "text": "GPT",
+          "sub": "T = Transformer",
+          "icon": "cache",
+          "tone": "accent",
+          "at": 0.65
+        },
+        {
+          "do": "define",
+          "term": "GPT",
+          "at": 0.65
+        }
+      ]
+    },
+    {
+      "speaker": "sam",
+      "text": "Where does the telephone game stop matching?",
+      "visuals": []
+    },
+    {
+      "speaker": "rao",
+      "text": "Real models use learned numbers, not ears. And looking at everyone costs more as sentences grow.",
+      "visuals": [
+        {
+          "do": "sketch.note",
+          "text": "numbers, not ears",
+          "at": 0.35
+        },
+        {
+          "do": "sketch.note",
+          "text": "longer text costs more",
+          "at": 0.8
+        }
+      ]
+    }
+  ]
+}

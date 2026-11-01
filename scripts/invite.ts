@@ -1,10 +1,11 @@
 // Owner tooling for invite-only membership.
 //   npm run invite -- create [--uses N] [--note "for alice"] [--days D]
 //   npm run invite -- list
-//   npm run invite -- owner-sync   # mark ALLOWED_EMAILS users as owners
+//   npm run invite -- owner-sync   # mark ALLOWED_EMAILS users with a Google identity as owners
 import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { listAllUsers, ownerRows } from "./lib/owner-sync";
 
 if (existsSync(".env.local")) process.loadEnvFile(".env.local");
 
@@ -37,12 +38,13 @@ async function main() {
     if (error) throw error;
     console.table(data);
   } else if (cmd === "owner-sync") {
-    const owners = (process.env.ALLOWED_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
-    const { data, error } = await db.auth.admin.listUsers({ perPage: 1000 });
-    if (error) throw error;
-    const rows = data.users
-      .filter((u) => u.email && owners.includes(u.email.toLowerCase()))
-      .map((u) => ({ user_id: u.id, email: u.email!, role: "owner" }));
+    // Same rule as the app: allowlisted email AND a google provider. Never promote on email alone.
+    const users = await listAllUsers(async (page, perPage) => {
+      const { data, error } = await db.auth.admin.listUsers({ page, perPage });
+      if (error) throw error;
+      return { users: data.users };
+    });
+    const rows = ownerRows(users);
     if (rows.length) {
       const { error: upErr } = await db.from("members").upsert(rows);
       if (upErr) throw upErr;

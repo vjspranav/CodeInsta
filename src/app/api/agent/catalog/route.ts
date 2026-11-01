@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isLabTopic } from "@/lib/agent-inbox";
 import { authenticateAgent } from "@/lib/agent-auth";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
@@ -17,9 +18,11 @@ export async function GET(req: Request) {
   let q = getSupabaseAdmin()
     .from("reels")
     .select("id, topic, title, series, series_index, creator_id, created_at")
+    .is("archived_at", null)
     .order("created_at", { ascending: true });
   if (filter !== "all") q = q.eq("creator_id", filter);
   const { data, error } = await q;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ reels: data ?? [] });
+  // Lab/example reels (lab/, lab-v3/) never feed creator planning.
+  return NextResponse.json({ reels: (data ?? []).filter((r) => !isLabTopic(r.topic as string)) });
 }
