@@ -101,3 +101,61 @@ Edited Codex-owned files at the owner's request (no git, no deploy): `src/app/gl
 - Claude owns `src/app/api/mobile/**`. Added `POST /api/mobile/bootstrap` (bearer Supabase token verified via `auth.getUser(token)`, then `bootstrapOwner`, then role re-read from `members`; 401 on missing/invalid token, generic 500 on failure, always `no-store`). Tests in `route.test.ts`.
 - Stand-in edit in Codex-owned `src/middleware.ts`: one line lets `/api/mobile/bootstrap` through (it self-authenticates; otherwise cookie-less native calls would be redirected to /login instead of getting 401).
 - waiting for OWNER approval: web deploy, then `curl -X POST .../api/mobile/bootstrap` should print 401.
+
+## Mobile E2 scaffold (2026-11-02)
+- Task 2.1 done locally (uncommitted): `apps/mobile` scaffolded with Expo SDK 58.0.22 (React 19.3.0, React Native 0.88.1, TypeScript 6.0.3, New Architecture). Own `package.json`, `package-lock.json`, `.npmrc` (`save-exact=true`); no root workspace. Entry is `expo-router/entry`; placeholder `app/_layout.tsx` and `app/index.tsx` exist only so the bundle builds: Task 2.7 must overwrite `_layout.tsx` and delete `app/index.tsx`.
+- Config files: `app.config.ts`, `metro.config.js` (watchFolders `packages/shared`, `@shared` mapping, app-only nodeModulesPaths), `tsconfig.json` (`@shared/*`, `@/*`, `types: [jest, node]`), `eas.json` (development/preview/production, matching channels), `jest.config.js` (jest-expo preset, same aliases), `.env.example`, `.gitignore` (android/, ios/, .env.local, credentials/, node_modules/, .expo/ and key files).
+- ALL packages for later phases are installed here and pinned exact; later tasks must not install anything (report a missing package instead). Pinned versions (dependencies, then devDependencies as listed by package.json):
+  - `@bacons/apple-targets` 5.0.0
+  - `@fsstudio-org/google-credential-manager` 0.1.4
+  - `@react-native-google-signin/google-signin` 17.0.0
+  - `@shopify/flash-list` 2.3.2
+  - `@supabase/supabase-js` 2.118.0
+  - `@tanstack/react-query` 5.105.1
+  - `expo` 58.0.22
+  - `expo-asset` 58.0.19
+  - `expo-background-task` 58.0.12
+  - `expo-build-properties` 58.0.12
+  - `expo-clipboard` 58.0.4
+  - `expo-constants` 58.0.14
+  - `expo-crypto` 58.0.7
+  - `expo-dev-client` 58.0.18
+  - `expo-device` 58.0.5
+  - `expo-font` 58.0.11
+  - `expo-haptics` 58.0.7
+  - `expo-image` 58.0.18
+  - `expo-linking` 58.0.15
+  - `expo-notifications` 58.1.7
+  - `expo-router` 58.0.29
+  - `expo-secure-store` 58.0.2
+  - `expo-sharing` 58.0.21
+  - `expo-splash-screen` 58.0.12
+  - `expo-status-bar` 58.0.4
+  - `expo-system-ui` 58.0.7
+  - `expo-task-manager` 58.0.13
+  - `expo-updates` 58.0.20
+  - `expo-video` 58.0.13
+  - `lucide-react-native` 1.66.0
+  - `react` 19.3.0
+  - `react-dom` 19.3.0
+  - `react-native` 0.88.1
+  - `react-native-credentials-manager` 0.9.0
+  - `react-native-gesture-handler` 3.3.0
+  - `react-native-reanimated` 4.7.1
+  - `react-native-safe-area-context` 5.10.1
+  - `react-native-screens` 4.30.1
+  - `react-native-svg` 15.16.0
+  - `react-native-worklets` 0.13.0
+  - devDependencies:
+  - `@react-native/jest-preset` 0.88.1
+  - `@testing-library/react-native` 14.1.0
+  - `@types/jest` 30.0.0
+  - `@types/node` 24.19.2
+  - `@types/react` 19.3.0
+  - `jest` 30.5.2
+  - `jest-expo` 58.0.13
+  - `test-renderer` 1.3.1
+  - `typescript` 6.0.3
+- Deviations and notes: (1) `expo-apple-targets` is not an npm name; the package is `@bacons/apple-targets` 5.0.0 (its config plugin is not yet in `app.config.ts`; Task 5.x adds it). (2) `@react-native-google-signin/google-signin` 17.0.0 (free tier) has NO custom nonce support (README lists it as a paid feature; no `nonce` in its source). Per the plan fallback, also installed `react-native-credentials-manager` 0.9.0 (Android Credential Manager `googleSignIn.nonce`; iOS side only does Apple sign-in/passkeys/passwords, not Google) and `@fsstudio-org/google-credential-manager` 0.1.4 (Android Credential Manager plus iOS GoogleSignIn 9, both with a `nonce` in `configure()`; call `configure()` again with a fresh nonce per attempt; peer `react-native-svg`; its config plugin adds the iOS URL scheme and modular headers and takes `iosClientId`/`webClientId`). Task 2.5 should wrap `@fsstudio-org/google-credential-manager` as `getIdToken(nonceHash)` (one API for both platforms; it is new, 0.1.x) and may then drop the other two Google packages and the google-signin plugin in `app.config.ts`. (3) `react-dom` 19.3.0 is pinned explicitly: expo-router pulls react-dom 19.3.1, which peer-requires react ^19.3.1 and fails `npm install` against react 19.3.0. (4) `@testing-library/react-native` 14 needs `test-renderer` 1.3.1 (not react-test-renderer), and jest-expo needs `@react-native/jest-preset` 0.88.1. (5) `newArchEnabled` is no longer in the `ExpoConfig` type (New Architecture is the only mode), so `app.config.ts` casts; the value is still emitted and tested. (6) The Google iOS URL scheme falls back to `com.googleusercontent.apps.placeholder` when `EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME` is unset (the plugin throws on empty). (7) Template files AGENTS.md, LICENSE and `.claude/` in `apps/mobile` were deleted (AGENTS.md said routes live in `src/app/`; the plan uses `apps/mobile/app/`). (8) Expo-managed packages came from `npx expo install` (compatible with SDK 58), then `~` was stripped to exact versions.
+- Checks: `npx jest src/config.test.ts` 7/7 pass (first run failed on missing `eas.json`, as the TDD step requires); `npx tsc --noEmit` clean; `npx expo-doctor` 20/20 checks passed (no JDK/CocoaPods warnings surfaced); `npx expo install --check` up to date; `npx expo export --platform android` bundled; root `npm test` 45 files / 479 tests pass, `npm run lint` 0 errors / 5 warnings (unchanged), `npm run build` ok. `npm audit` reports about 40 moderate/high advisories in transitive Expo dev tooling (not addressed).
+- Not done: Step 6 (OWNER gate O3, `expo prebuild` and device run) and Step 7 (commit), per instructions. Waiting on O3 (phone, JDK).
