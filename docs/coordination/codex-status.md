@@ -1,5 +1,13 @@
 # Codex status
 
+## E1 Task 1.5 — web streak (2026-11-02, implementation complete)
+
+Dispatch ownership: `src/components/data.tsx`, `src/app/profiles/page.tsx`, `src/app/globals.css`, and the explicitly requested new `src/components/streak-label.test.ts`. Added `streak: number` to context, loaded through authenticated `learning_streak` with the browser timezone in an independent effect. Failures yield zero without affecting feed loading; cleanup ignores stale responses. Refreshes after seen-state changes. Profiles shows a muted lucide Flame and `N day streak`, hidden at zero, with responsive gutters.
+
+Verification: `npm test` passes 479 tests across 45 files, including `src/no-emoji.test.ts` and the 0/1/5 label cases; `npm run build` passes; `git diff --check` passes. The first concurrent test run hit renderer/TTS timeouts and cascading mock failures; the fresh standalone full run passed without code changes. The label test compiles the actual pure helper declaration using TypeScript because the existing Vitest configuration preserves JSX and cannot import data.tsx directly.
+
+Acceptance caveat: plain `npm run lint` fails on unrelated generated `.next-agent-29077/**` output (1401 errors). `npm run lint -- --ignore-pattern '.next-agent-*/**'` passes with five existing renderer warnings and no errors. Orchestrator must remove its obsolete generated output or add that pattern to ESLint ignores to make plain lint pass; neither path is authorized by this dispatch. No commits, deployments, production calls, dependencies, shared/backend edits, or edits to others' concurrent changes. Activity checkpoints recorded. No live authenticated/browser integration claimed.
+
 ## Task 10 ownership — independent review, 2026-11-01
 
 Codex owns the new `docs/reels/RULES.md`, `docs/reels/GENRES.md`, and `docs/coordination/review-2026-11-01.md` for this dispatch. Review evidence is local under `/tmp/codeinsta-review-2026-11-01/`. No commits, deployments, production calls or edits to Claude-owned paths are authorized in this task.

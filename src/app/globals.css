@@ -647,6 +647,18 @@ small {
   border-bottom: 1px solid var(--line);
   align-items: flex-start;
 }
+.profile-streak {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: calc(24px + env(safe-area-inset-top)) 24px 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+@media (max-width: 380px) {
+  .profile-streak { padding-inline: 16px; }
+}
 .profile-card .avatar {
   width: 55px;
   height: 55px;

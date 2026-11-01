@@ -37,6 +37,9 @@ export type ReelRow = {
   style?: string | null;
 };
 export { DAILY_ASKS };
+export function streakLabel(n: number): string {
+  return n > 0 ? `${n} day streak` : "";
+}
 type Data = {
   isOwner: boolean;
   reels: ReelRow[];
@@ -50,6 +53,7 @@ type Data = {
   refreshCategories: () => Promise<void>;
   dislike: (id: string) => Promise<string>;
   seen: Set<string>;
+  streak: number;
   userId: string;
   areas: string[];
   fulfilled: Set<string>;
@@ -72,6 +76,7 @@ export function DataProvider({ children, isOwner }: { children: React.ReactNode;
     [creators, setCreators] = useState<Creator[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [pendingRequests, setPendingRequests] = useState(0);
+  const [streak, setStreak] = useState(0);
   const [disliked, setDisliked] = useState(new Set<string>());
   const disliked$ = useRef(disliked);
   const dislikePending = useRef(new Set<string>());
@@ -98,6 +103,25 @@ export function DataProvider({ children, isOwner }: { children: React.ReactNode;
   liked$.current = liked;
   seen$.current = seen;
   user$.current = userId;
+  useEffect(() => {
+    let cancelled = false;
+    setStreak(0);
+    if (isPublic || !userId) return;
+    // Independent of library loading: a slow or unavailable RPC cannot hold up the feed.
+    const refreshStreak = async () => {
+      try {
+        const { data, error } = await browserDb().rpc("learning_streak", {
+          tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        });
+        if (!cancelled)
+          setStreak(!error && typeof data === "number" && Number.isFinite(data) ? Math.max(0, data) : 0);
+      } catch {
+        if (!cancelled) setStreak(0);
+      }
+    };
+    void refreshStreak();
+    return () => { cancelled = true; };
+  }, [isPublic, userId, seen]);
   const refreshCategories = useCallback(async () => {
     const { data, error } = await browserDb().from("categories").select("slug, label, description").order("label");
     if (error) throw new Error(error.message);
@@ -309,6 +333,7 @@ export function DataProvider({ children, isOwner }: { children: React.ReactNode;
       creators,
       liked,
       seen,
+      streak,
       userId,
       areas,
       fulfilled,
@@ -321,7 +346,7 @@ export function DataProvider({ children, isOwner }: { children: React.ReactNode;
       like,
       view,
     }),
-    [categories, pendingRequests, refreshRequests, refreshCategories, disliked, dislike, isOwner, reels, labReels, creators, liked, seen, userId, areas, fulfilled, asksLeft, noteAsked, saveInterests, loading, error, reload, like, view],
+    [categories, pendingRequests, refreshRequests, refreshCategories, disliked, dislike, isOwner, reels, labReels, creators, liked, seen, streak, userId, areas, fulfilled, asksLeft, noteAsked, saveInterests, loading, error, reload, like, view],
   );
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
