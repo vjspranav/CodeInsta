@@ -144,3 +144,16 @@ describe("safeEqual", () => {
     expect(safeEqual("", "")).toBe(true);
   });
 });
+
+describe("claim_push_token migration", () => {
+  const sql = readFileSync("supabase/migrations/0013_push_tokens.sql", "utf8");
+  it("is security definer, member-only, and closed to anon and public", () => {
+    expect(sql).toMatch(/function public\.claim_push_token\(p_token text, p_platform text\) returns void/);
+    expect(sql).toMatch(/security definer set search_path = public, pg_temp/);
+    expect(sql).toMatch(/revoke all on function public\.claim_push_token\(text, text\) from public, anon;/);
+    expect(sql).toMatch(/grant execute on function public\.claim_push_token\(text, text\) to authenticated;/);
+    expect(sql).toMatch(/not public\.is_member\(\)/);
+    expect(sql).toMatch(/errcode = '42501'/);
+    expect(sql).toMatch(/delete from public\.push_tokens where token = p_token and user_id <> uid/);
+  });
+});

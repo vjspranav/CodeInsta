@@ -39,9 +39,8 @@ export async function registerPush(userId: string): Promise<PushResult> {
     if (!permission.granted) return "denied";
 
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId: projectId() });
-    const { error } = await db
-      .from("push_tokens")
-      .upsert({ user_id: userId, token, platform: Platform.OS }, { onConflict: "user_id,token" });
+    // The RPC also evicts any other member's row for this device token (shared device).
+    const { error } = await db.rpc("claim_push_token", { p_token: token, p_platform: Platform.OS });
     if (error) return "unsupported";
     await secureStorage.setItem(TOKEN_KEY, token).catch(() => undefined);
     return "registered";

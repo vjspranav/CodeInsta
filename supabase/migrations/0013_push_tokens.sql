@@ -59,6 +59,36 @@ drop trigger if exists push_tokens_touch on public.push_tokens;
 create trigger push_tokens_touch before update on public.push_tokens
   for each row execute function public.push_tokens_touch();
 
+-- Claims a device token for the caller. A token identifies a device, so when a different member
+-- signs in on it (or the previous sign-out could not delete the row), the old owner's rows for
+-- that token are removed; otherwise their notifications would keep arriving on this device.
+-- RLS alone cannot do this (members cannot touch other members' rows), hence security definer.
+create or replace function public.claim_push_token(p_token text, p_platform text) returns void
+  language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  uid uuid := auth.uid();
+begin
+  if uid is null or not public.is_member() then
+    raise exception 'not allowed' using errcode = '42501';
+  end if;
+  if p_platform is null or p_platform not in ('android', 'ios') then
+    raise exception 'invalid platform' using errcode = '22023';
+  end if;
+  if p_token is null or char_length(p_token) not between 10 and 300 then
+    raise exception 'invalid token' using errcode = '22023';
+  end if;
+
+  delete from public.push_tokens where token = p_token and user_id <> uid;
+
+  insert into public.push_tokens (user_id, token, platform)
+  values (uid, p_token, p_platform)
+  on conflict (user_id, token)
+  do update set platform = excluded.platform, updated_at = now();
+end;
+$$;
+revoke all on function public.claim_push_token(text, text) from public, anon;
+grant execute on function public.claim_push_token(text, text) to authenticated;
+
 -- ---------------------------------------------------------------------------
 -- Notification triggers
 -- ---------------------------------------------------------------------------

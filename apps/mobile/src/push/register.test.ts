@@ -1,10 +1,10 @@
-const mockUpsert = jest.fn();
+const mockRpc = jest.fn();
 const mockDelete = jest.fn();
 const mockEq = jest.fn();
 jest.mock("@/lib/supabase", () => ({
   db: {
+    rpc: (...a: unknown[]) => mockRpc(...a),
     from: (table: string) => ({
-      upsert: (...a: unknown[]) => mockUpsert(table, ...a),
       delete: () => {
         mockDelete(table);
         const chain = {
@@ -69,18 +69,17 @@ beforeEach(() => {
   (Platform as { OS: string }).OS = "android";
   mockGetPerms.mockResolvedValue({ granted: true, canAskAgain: true });
   mockGetToken.mockResolvedValue({ data: TOKEN });
-  mockUpsert.mockResolvedValue({ error: null });
+  mockRpc.mockResolvedValue({ error: null });
 });
 
 describe("registerPush", () => {
-  it("upserts the token on (user_id, token) with the platform", async () => {
+  it("claims the token via the RPC with the platform", async () => {
     expect(await registerPush("u1")).toBe("registered");
     expect(mockGetToken).toHaveBeenCalledWith({ projectId: "proj-1" });
-    expect(mockUpsert).toHaveBeenCalledWith(
-      "push_tokens",
-      { user_id: "u1", token: TOKEN, platform: "android" },
-      { onConflict: "user_id,token" },
-    );
+    expect(mockRpc).toHaveBeenCalledWith("claim_push_token", {
+      p_token: TOKEN,
+      p_platform: "android",
+    });
     expect(store.get("codeinsta.push.token")).toBe(TOKEN);
     expect(mockChannel).toHaveBeenCalled();
   });
@@ -96,7 +95,7 @@ describe("registerPush", () => {
     mockGetPerms.mockResolvedValue({ granted: false, canAskAgain: true });
     mockRequestPerms.mockResolvedValue({ granted: false });
     expect(await registerPush("u1")).toBe("denied");
-    expect(mockUpsert).not.toHaveBeenCalled();
+    expect(mockRpc).not.toHaveBeenCalled();
     expect(mockGetToken).not.toHaveBeenCalled();
   });
 
@@ -109,13 +108,13 @@ describe("registerPush", () => {
   it("returns unsupported (silently) when the token fetch throws", async () => {
     mockGetToken.mockRejectedValue(new Error("no push entitlement"));
     await expect(registerPush("u1")).resolves.toBe("unsupported");
-    expect(mockUpsert).not.toHaveBeenCalled();
+    expect(mockRpc).not.toHaveBeenCalled();
   });
 
-  it("returns unsupported when the upsert fails or throws", async () => {
-    mockUpsert.mockResolvedValue({ error: { message: "rls" } });
+  it("returns unsupported when the claim fails or throws", async () => {
+    mockRpc.mockResolvedValue({ error: { message: "rls" } });
     expect(await registerPush("u1")).toBe("unsupported");
-    mockUpsert.mockRejectedValue(new Error("network"));
+    mockRpc.mockRejectedValue(new Error("network"));
     expect(await registerPush("u1")).toBe("unsupported");
   });
 
