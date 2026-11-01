@@ -18,6 +18,7 @@ export default ({ config }: ConfigContext): ExpoConfig =>
   ios: {
     supportsTablet: false,
     bundleIdentifier: ID,
+    entitlements: { "com.apple.security.application-groups": ["group.dev.vjspranav.codeinsta"] },
   },
   android: {
     package: ID,
@@ -43,6 +44,8 @@ export default ({ config }: ConfigContext): ExpoConfig =>
     "expo-notifications",
     "expo-background-task",
     "react-native-credentials-manager",
+    "./plugins/with-android-widget",
+    "@bacons/apple-targets",
   ],
   experiments: { typedRoutes: true },
   extra: {

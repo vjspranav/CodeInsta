@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["CodeInstaWidgetBridgeModule"]
+  },
+  "android": {
+    "modules": ["dev.vjspranav.codeinsta.widgetbridge.CodeInstaWidgetBridgeModule"]
+  }
+}
