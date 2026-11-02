@@ -1,0 +1,103 @@
+# Ten swipes up through the feed: each lands on the next reel page and no reel shows a retry state.
+# Needs at least 11 live reels (run-gate.sh checks 12 first).
+appId: dev.vjspranav.codeinsta
+---
+- launchApp:
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible:
+      id: reel-page-0
+    timeout: 30000
+- assertNotVisible:
+    id: reel-retry
+- swipe:
+    direction: UP
+    duration: 250
+- extendedWaitUntil:
+    visible:
+      id: reel-page-1
+    timeout: 5000
+- assertNotVisible:
+    id: reel-retry
+- swipe:
+    direction: UP
+    duration: 250
+- extendedWaitUntil:
+    visible:
+      id: reel-page-2
+    timeout: 5000
+- assertNotVisible:
+    id: reel-retry
+- swipe:
+    direction: UP
+    duration: 250
+- extendedWaitUntil:
+    visible:
+      id: reel-page-3
+    timeout: 5000
+- assertNotVisible:
+    id: reel-retry
+- swipe:
+    direction: UP
+    duration: 250
+- extendedWaitUntil:
+    visible:
+      id: reel-page-4
+    timeout: 5000
+- assertNotVisible:
+    id: reel-retry
+- swipe:
+    direction: UP
+    duration: 250
+- extendedWaitUntil:
+    visible:
+      id: reel-page-5
+    timeout: 5000
+- assertNotVisible:
+    id: reel-retry
+- swipe:
+    direction: UP
+    duration: 250
+- extendedWaitUntil:
+    visible:
+      id: reel-page-6
+    timeout: 5000
+- assertNotVisible:
+    id: reel-retry
+- swipe:
+    direction: UP
+    duration: 250
+- extendedWaitUntil:
+    visible:
+      id: reel-page-7
+    timeout: 5000
+- assertNotVisible:
+    id: reel-retry
+- swipe:
+    direction: UP
+    duration: 250
+- extendedWaitUntil:
+    visible:
+      id: reel-page-8
+    timeout: 5000
+- assertNotVisible:
+    id: reel-retry
+- swipe:
+    direction: UP
+    duration: 250
+- extendedWaitUntil:
+    visible:
+      id: reel-page-9
+    timeout: 5000
+- assertNotVisible:
+    id: reel-retry
+- swipe:
+    direction: UP
+    duration: 250
+- extendedWaitUntil:
+    visible:
+      id: reel-page-10
+    timeout: 5000
+- assertNotVisible:
+    id: reel-retry

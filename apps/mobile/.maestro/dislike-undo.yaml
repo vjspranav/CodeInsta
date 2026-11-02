@@ -1,0 +1,23 @@
+# Long press marks "not for me" and shows the Undo toast; Undo clears the toast and the mark.
+appId: dev.vjspranav.codeinsta
+---
+- launchApp:
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible:
+      id: reel-page-0
+    timeout: 30000
+- longPressOn:
+    id: reel-page-0
+- extendedWaitUntil:
+    visible:
+      id: reel-undo
+    timeout: 5000
+- tapOn:
+    id: reel-undo
+- assertNotVisible:
+    id: reel-undo
+- assertVisible:
+    id: reel-dislike
+    selected: false

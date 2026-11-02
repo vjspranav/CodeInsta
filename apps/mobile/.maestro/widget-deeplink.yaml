@@ -1,0 +1,15 @@
+# The widget deep link codeinsta://reel/<id> opens the feed on that reel. REEL_ID is passed by run-gate.sh (-e REEL_ID=...).
+appId: dev.vjspranav.codeinsta
+---
+- launchApp:
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible:
+      id: tab-feed
+    timeout: 30000
+- openLink: codeinsta://reel/${REEL_ID}
+- extendedWaitUntil:
+    visible:
+      id: reel-page-0
+    timeout: 15000

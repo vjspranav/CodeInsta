@@ -1,0 +1,25 @@
+# Ask sheet: type a question, send it, the sheet closes. The text is tagged so cleanup and the owner can spot it.
+appId: dev.vjspranav.codeinsta
+---
+- launchApp:
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible:
+      id: reel-page-0
+    timeout: 30000
+- tapOn:
+    id: reel-ask
+- extendedWaitUntil:
+    visible:
+      id: ask-input
+    timeout: 5000
+- tapOn:
+    id: ask-input
+- inputText: "[maestro-test] what is a page table?"
+- tapOn:
+    id: ask-send
+- extendedWaitUntil:
+    notVisible:
+      id: ask-input
+    timeout: 10000

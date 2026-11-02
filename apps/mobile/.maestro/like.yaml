@@ -1,0 +1,20 @@
+# Double tap likes the active reel (selected state on the like control); tapping the control unlikes it.
+appId: dev.vjspranav.codeinsta
+---
+- launchApp:
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible:
+      id: reel-page-0
+    timeout: 30000
+- doubleTapOn:
+    id: reel-page-0
+- assertVisible:
+    id: reel-like
+    selected: true
+- tapOn:
+    id: reel-like
+- assertVisible:
+    id: reel-like
+    selected: false

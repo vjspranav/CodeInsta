@@ -1,0 +1,12 @@
+# Workspace config: the gate runs the flows in this order (sign-in first; the rest reuse its session).
+flows:
+  - "*.yaml"
+executionOrder:
+  continueOnFailure: false
+  flowsOrder:
+    - sign-in
+    - swipe-10
+    - like
+    - dislike-undo
+    - ask
+    - widget-deeplink

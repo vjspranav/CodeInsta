@@ -1,0 +1,24 @@
+# Fresh install state, email sign-in as the Maestro test member, lands on the feed.
+# MAESTRO_EMAIL and MAESTRO_PASSWORD come from the shell env (run-gate.sh loads .env.local).
+appId: dev.vjspranav.codeinsta
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible:
+      id: login-email
+    timeout: 30000
+- tapOn:
+    id: login-email
+- inputText: ${MAESTRO_EMAIL}
+- tapOn:
+    id: login-password
+- inputText: ${MAESTRO_PASSWORD}
+- tapOn:
+    id: login-submit
+- extendedWaitUntil:
+    visible:
+      id: tab-feed
+    timeout: 30000
