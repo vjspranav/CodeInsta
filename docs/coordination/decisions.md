@@ -266,3 +266,7 @@
 - Owner: no Expo logo anywhere in the final app. The app icon (launcher, adaptive and themed) is the CodeInsta mark, using the same tile and glyph as the in-app startup logo, in the current accent token. It changes with the brand refresh (D3).
 - Owner keeps Android developer settings (wireless debugging) on until the first final version is installed, then turns them off. After that, updates go over the air (EAS Update, needs O6).
 - Native changes (new native modules, widgets, permissions, the icon) cannot ship over the air. They need a new APK, sideloaded with "install unknown apps". That does not need developer settings.
+
+## 2026-11-02 Reels B2 moves to Claude subagents
+- Owner asked for subagents on the reels as well. Codex brief 40 (scene worlds plus the variety gate) moves from the Codex queue to Claude subagents, as a recorded stand-in. Codex is out of usage until 12:41, and its queue (34, 35, 36) is app work.
+- Order: a foundation agent builds the world framework, term.session as the reference world, and the variety gate. Then the other 7 worlds run in parallel, one agent per pair. A planning agent drafts the B3 rewrite plan for the 30 remakes in the meantime.
