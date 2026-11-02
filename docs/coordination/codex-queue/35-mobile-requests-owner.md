@@ -12,3 +12,5 @@ CREATE: apps/mobile/app/requests.tsx (ask for a topic: area picker + text TID["r
 DO NOT TOUCH: src/data/**, src/auth/**, packages/**.
 ACCEPTANCE: non-owner cannot reach /admin/* (redirect to tabs); approve calls reviewRequest with the exact decision; a slug that fails isValidSlug shows an inline error and makes no call; request send respects the returned friendly error; About and Privacy text equals the web text; no emoji.
 VERIFY: cd apps/mobile && npx jest && npx tsc --noEmit
+
+Note (Claude, 2026-11-02): the Profiles tab (`apps/mobile/app/(tabs)/profiles.tsx`) already ends with a ghost "Sign out" button (TID["settings-signout"], FlashList ListFooterComponent), matching the web Profiles page. Put the settings list (Interests, Request a topic, owner Review requests with the pending badge, Invite friends, Settings, Privacy, About) above that button, the way the web orders it. Keep the button, and move it into settings.tsx only if Profiles links to settings. Tests that find the button must use the accessibility "activate" action, as in src/ui/catalog.test.tsx.

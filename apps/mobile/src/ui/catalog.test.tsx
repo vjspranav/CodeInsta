@@ -3,10 +3,11 @@ import { renderMotion } from './motion/testSetup';
 import { fireEvent, screen } from '@testing-library/react-native';
 import type { MobileReel } from '@shared/types';
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
-jest.mock('@/auth/useAuth', () => ({ useAuth: () => ({ status: mockStatus }) }));
+const mockSignOut = jest.fn(() => Promise.resolve());
+jest.mock('@/auth/useAuth', () => ({ useAuth: () => ({ status: mockStatus, signOut: mockSignOut }) }));
 jest.mock('expo-router', () => ({ Redirect: () => null, router: { push: jest.fn() }, useLocalSearchParams: () => ({ creator: 'gpt' }) }));
 jest.mock('expo-image', () => ({ Image: (props: any) => require('react').createElement(require('react-native').View, { ...props, accessibilityLabel: props.source?.uri }) }));
-jest.mock('@shopify/flash-list', () => ({ FlashList: ({ data, renderItem, ListHeaderComponent, ListEmptyComponent }: any) => <>{ListHeaderComponent}{data.map((item: any, index: number) => require('react').createElement(require('react').Fragment, { key: item.id ?? item.category.slug }, renderItem({ item, index })))}{!data.length && ListEmptyComponent}</> }));
+jest.mock('@shopify/flash-list', () => ({ FlashList: ({ data, renderItem, ListHeaderComponent, ListEmptyComponent, ListFooterComponent }: any) => <>{ListHeaderComponent}{data.map((item: any, index: number) => require('react').createElement(require('react').Fragment, { key: item.id ?? item.category.slug }, renderItem({ item, index })))}{!data.length && ListEmptyComponent}{ListFooterComponent}</> }));
 jest.mock('@/data/library', () => ({ useLibrary: () => mockState }));
 jest.mock('@/data/feedSession', () => ({ useFeedSession: () => ({ streak: mockStreak }) }));
 import { router } from 'expo-router';
@@ -35,6 +36,11 @@ it('hides zero streak and opens creator rows', async () => {
     expect(screen.queryByTestId('streak-chip')).toBeNull();
     await fireEvent(screen.getByTestId('profile-row'), 'accessibilityAction', { nativeEvent: { actionName: 'activate' } });
     expect(router.push).toHaveBeenCalledWith({ pathname: '/c/[creator]', params: { creator: 'gpt' } });
+});
+it('signs out from the bottom of profiles, like the web', async () => {
+    await renderMotion(<Profiles />);
+    await fireEvent(screen.getByTestId('settings-signout'), 'accessibilityAction', { nativeEvent: { actionName: 'activate' } });
+    expect(mockSignOut).toHaveBeenCalledTimes(1);
 });
 it('shows positive streak', async () => { mockStreak = 3; await renderMotion(<Profiles />); expect(screen.getByTestId('streak-chip')).toBeTruthy(); expect(screen.getByText('3 day streak')).toBeTruthy(); });
 it('renders creator biography and earlier series parts first', async () => {

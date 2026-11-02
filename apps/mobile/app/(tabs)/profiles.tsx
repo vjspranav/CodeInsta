@@ -10,9 +10,12 @@ import { Screen } from "@/ui/Screen";
 import { EmptyState } from "@/ui/EmptyState";
 import { CatalogState, SectionHeader } from "@/ui/SectionHeader";
 import { CreatorRow } from "@/ui/CreatorRow";
+import { Button } from "@/ui/Button";
+import { useAuth } from "@/auth/useAuth";
 export default function Profiles() {
     const { library, loading, error, reload } = useLibrary();
     const { streak } = useFeedSession();
+    const { signOut } = useAuth();
     return <Screen bottomInset={false}>
         <EnterStagger>
         <SectionHeader title="Your creators" subtitle="Two perspectives. A deeper understanding."/>
@@ -25,5 +28,6 @@ export default function Profiles() {
         : <FlashList data={library?.creators ?? []}
         keyExtractor={item => item.id}
         renderItem={({ item }) => <CreatorRow creator={item}/>}
-        ListEmptyComponent={<EmptyState title="No creators yet" body="The creators behind each series will show up here."/>}/>}</Screen>;
+        ListEmptyComponent={<EmptyState title="No creators yet" body="The creators behind each series will show up here."/>}
+        ListFooterComponent={<Button variant="ghost" label="Sign out" testID={TID['settings-signout']} onPress={() => void signOut()} style={{ marginTop: tokens.space[6] }}/>}/>}</Screen>;
 }
