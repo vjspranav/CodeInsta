@@ -275,3 +275,8 @@
 - Replaces the "all to Claude" part of the entry above. The foundation (world framework, term.session, variety gate) stays with the Claude agent already running.
 - Worlds after the foundation: Claude builds debugger, memgrid and netmap. Codex builds browser.network, incident, review and device.boot, as queue briefs on the foundation's contract, run in parallel with Codex's app briefs.
 - B3 rewrites: Codex rewrites content/remake/gpt/* (the GPT creator voice). Claude rewrites content/remake/claude/*. Both follow content/remake/B3-plan.md.
+
+## 2026-11-02 Codex out of usage until 5:42 PM: Claude takes two of its worlds
+- Codex briefs 41-45 ran in parallel at 12:42 and used up the new Codex window in about 3 minutes (reset 5:42 PM). From now on Codex briefs run one at a time through the launchd queue.
+- Claude subagents take browser.network and incident, continuing from Codex's partial files. Codex keeps review (43), device.boot (44), the GPT wave 1 rewrites (45, partly edited in place) and the app briefs 34-36.
+- Codex's partial review and device-boot folders were moved out of render/ so they do not break other agents' checks. Codex rebuilds them from its brief.
