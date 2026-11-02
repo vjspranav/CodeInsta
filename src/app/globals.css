@@ -1528,3 +1528,32 @@ input, textarea, select { background: #121212; border-color: #363636; border-rad
 .reel-actions .dislike-action span { font-size: 10px; }
 .preference-toast { display: flex; gap: 12px; align-items: center; width: fit-content; margin-top: 8px; padding: 6px 10px; border-radius: 8px; background: #181818; color: #f5f5f5; font-size: 12px; }
 .preference-toast button { padding: 4px; color: #b8d4ff; }
+
+/* Startup and navigation motion: only composited transform/opacity change. */
+.startup-cover { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: var(--bg); opacity: 1; transition: opacity var(--dur-base) var(--ease-standard); }
+.startup-logo { display: flex; align-items: center; gap: 10px; font-size: 24px; }
+.startup-cover.is-ready { opacity: 0; pointer-events: none; }
+.startup-content { opacity: 0; }
+.startup-content.is-ready { opacity: 1; transition: opacity var(--dur-base) var(--ease-standard); }
+html { view-transition-name: none; }
+.startup-content:not(.is-ready) .login-enter { animation-play-state: paused; }
+.route-content { view-transition-name: page; animation: route-fade var(--dur-base) var(--ease-standard); }
+.bottom-nav a { flex: 1; min-width: 0; }
+.nav-indicator-track { position: absolute; top: 0; inset-inline: 16px; pointer-events: none; }
+.nav-indicator { display: block; width: 25%; transform: translateX(calc(var(--active-tab) * 100%)); transition: transform var(--dur-base) var(--ease-emphasized); }
+.nav-indicator::after { content: ""; display: block; width: 28px; height: 2px; margin: auto; background: var(--text); border-radius: 2px; }
+.bottom-nav a[aria-current] svg { animation: tab-pop var(--dur-base) var(--ease-emphasized); }
+dialog[open], .feedback-sheet[open], [role="dialog"] { animation: sheet-enter var(--dur-base) var(--ease-decelerate); }
+dialog[open]::backdrop { animation: route-fade var(--dur-base) var(--ease-standard); }
+@keyframes route-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes route-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes tab-pop { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+@keyframes sheet-enter { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+::view-transition-old(page) { animation: route-out var(--dur-base) var(--ease-standard) both; }
+::view-transition-new(page) { animation: route-fade var(--dur-base) var(--ease-standard) both; }
+::view-transition-group(page) { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .route-content, .bottom-nav a[aria-current] svg, dialog[open], .feedback-sheet[open], [role="dialog"] { animation: none; }
+  .nav-indicator, .startup-cover, .startup-content.is-ready { transition: none; }
+  ::view-transition-old(page), ::view-transition-new(page) { animation-duration: 0.01ms; }
+}

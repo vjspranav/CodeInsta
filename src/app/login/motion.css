@@ -1,0 +1,58 @@
+.login-enter {
+  animation: login-enter var(--dur-base) var(--ease-emphasized) backwards;
+}
+.login-enter-logo { animation-delay: 0ms; }
+.login-enter-signin { animation-delay: 40ms; }
+.login-enter-signup { animation-delay: 80ms; }
+.login-enter-submit { animation-delay: 120ms; }
+.login-enter-google { animation-delay: 160ms; }
+.login button {
+  transition: transform var(--dur-fast) var(--ease-emphasized);
+}
+.login button:active:not(:disabled) { transform: scale(0.97); }
+.login-submit { position: relative; }
+.login-submit-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.login-submit[aria-busy="true"] .login-submit-label { opacity: 0; }
+.login-busy {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.login-busy > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: login-dot calc(var(--dur-base) * 3) var(--ease-emphasized) infinite;
+}
+.login-busy > span:nth-child(2) { animation-delay: 80ms; }
+.login-busy > span:nth-child(3) { animation-delay: 160ms; }
+.login-error-shake {
+  animation: login-error var(--dur-fast) var(--ease-emphasized);
+}
+@keyframes login-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes login-dot {
+  0%, 100% { opacity: 0.35; transform: scale(0.75); }
+  50% { opacity: 1; transform: scale(1); }
+}
+@keyframes login-error {
+  0%, 100% { transform: translateX(0); }
+  14%, 43%, 71% { transform: translateX(-6px); }
+  29%, 57%, 86% { transform: translateX(6px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .login-enter, .login-error-shake, .login-busy > span { animation: none; }
+  .login button { transition: none; }
+  .login button:active:not(:disabled) { transform: none; }
+}

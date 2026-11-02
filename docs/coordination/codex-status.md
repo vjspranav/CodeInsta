@@ -1,5 +1,15 @@
 # Codex status
 
+## E2 — web micro-animations (2026-11-02, complete)
+
+Dispatch ownership: `src/components/shell.tsx`, new `src/components/startup.tsx`, `src/app/globals.css`, `src/app/login/page.tsx`, new `src/app/login/motion.css`, and this status file. Brief 31 was already complete; all new motion consumes its duration/easing variables.
+
+- Server-rendered logo cover on the page background crossfades into mounted content after data readiness; feed routes decode the actual ordered first poster first. Poster failures or a 2.5-second safety timeout release the cover. Content is inert while covered. Public-to-member handoff resets readiness; tab changes do not replay startup.
+- Login logo/buttons enter once per mount with 12px translation and 40ms stagger, paused until startup reveals content. Native buttons press to 0.97; a fixed-size three-dot busy overlay retains button dimensions and accessible status; errors shake three times, including repeated failed submissions. Google entrance waits for GIS rendering; cross-origin Google iframe internals cannot receive the native-button press styling.
+- Persistent bottom-nav indicator slides using transform, active icons pop, internal link navigation uses View Transitions when available, and route commits have a plain fade fallback. View Transition snapshots apply only to page content so navigation stays live. Dialogs/sheets slide up. New animations affect only transform/opacity and disable motion under reduced-motion preferences.
+
+Verification: `npm test` passes 492 tests across 47 files (including `src/no-emoji.test.ts`); `npm run lint` passes with five existing renderer warnings; `NEXT_DIST_DIR=.next-codex npm run build` passes. Local production-server `/login` smoke: HTTP 200 with startup cover/logo and login animation controls in SSR output. `git diff --check` passes. Removed `.next-codex` and its generated tsconfig include; no remaining tsconfig diff. Temporary server stopped. Browser visual verification unavailable: existing Playwright has no browser executable installed. No authenticated end-to-end or visual pass claimed. No commit, deployment, production operation, dependencies or environment-file output.
+
 ## E2 — web motion tokens (2026-11-02, complete)
 
 Dispatch ownership: `src/app/globals.css`, new `src/motion-tokens.test.ts`, and this status file. Added seven root duration/easing variables matching `packages/shared/design-tokens.json`. Migrated all three existing short CSS UI motion declarations (chips: instant/standard; caption entrance: fast/decelerate; settings: fast/standard). Retained the 1s spinner and 1.8s skeleton loop. Reduced motion now caps transitions as well as animations at 0.01ms. Added two regression tests for token parity, UI usage and reduced-motion coverage; verified failure before implementation and success afterward.
@@ -166,3 +176,20 @@ Replaced the legacy GPT creator workflow in `agents/codex/PLAYBOOK.md` with v3 S
 ## E5 Task 5.4 — Android widget visuals (2026-11-02, in progress)
 
 Dispatch ownership: `apps/mobile/native/android/widget/CodeInstaWidget.kt` (composables and responsive sizing), `apps/mobile/native/android/widget/res/values/widget_colors.xml`, and `widget_strings.xml`. SnapshotReader, click intent, plugin, bridge and app config remain owned by the orchestrator. Prerequisites are committed: snapshot `f6f9b78`, Android plumbing `8a3746b`. Implementing through a delegated worker; this session owns review and this report.
+
+
+## E4 Task 4.4 — Explore, profiles, creator pages (2026-11-02, in progress)
+
+Dispatch ownership: `apps/mobile/app/(tabs)/explore.tsx`, `apps/mobile/app/(tabs)/profiles.tsx`, `apps/mobile/app/c/[creator].tsx`, `apps/mobile/src/ui/{ReelTile,CreatorRow,SectionHeader}.tsx`, and task-specific UI tests. Prerequisites 4.1 and 2.7 are committed (`ca8e9fb`, `1600e7d`); feed and reel route are committed (`7fdb826`). Implementation delegated within these paths; parent reviews and verifies. No commits, dependency changes, deployment, or production access.
+
+### Task 4.4 completed
+
+Replaced Explore and Profiles placeholders; added `app/c/[creator].tsx`, `src/ui/ReelTile.tsx`, `CreatorRow.tsx`, `SectionHeader.tsx`, and `catalog.test.tsx`. Explore uses shared search/grouping helpers, horizontal category rails, memoized cached expo-image tiles and loading/error/empty states. Profiles shows creator rows and the exact web streak copy, hidden at zero. Creator grids use `creatorReels` for series ordering and show creator biography. Tiles and rows use the motion-kit press control; static tab headers use EnterStagger.
+
+Verification: all mobile Jest suites pass (48 suites, 447 tests, including 9 new UI tests); `npx tsc --noEmit` exits 0; `git diff --check` passes. Commands used the existing Node v26.1.0 bin on PATH because the mobile-directory shell did not find npx. No packages installed.
+
+Adaptation: the new creator screen locally guards auth before mounting library content because the existing root protected group lists only tabs and the reel route; root layout was not edited. Creator screen retains bottom safe-area padding outside the tab navigator. No prerequisite blockers. Device/emulator visual, gesture, and frame-time checks remain owner integration checks; no hardware run claimed. No commits, deployment, production writes, or changes to data/feed/shared packages.
+
+## E4 Task 4.5 — Inbox (2026-11-02, in progress)
+
+Dispatch ownership: `apps/mobile/app/(tabs)/inbox.tsx`, `apps/mobile/app/inbox/[creator].tsx`, `apps/mobile/src/ui/{ThreadRow,MessageBubble,Composer}.tsx`, inbox-specific tests, and the badge-only change to `apps/mobile/app/(tabs)/_layout.tsx`. Prerequisites are committed (`ca8e9fb`, `1600e7d`). Implementation delegated within these paths; main session reviews and verifies. No commits, installs, deployment or production access.

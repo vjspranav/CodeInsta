@@ -3,6 +3,7 @@ import { useActionState, useState, useEffect, useRef } from "react";
 import { ArrowRight, Code2 } from "lucide-react";
 import { authenticate } from "./actions";
 import Script from "next/script";
+import "./motion.css";
 
 type GoogleIdentity = {
   initialize: (options: { client_id: string; ux_mode: "redirect"; login_uri: string; nonce: string }) => void;
@@ -14,6 +15,7 @@ declare global {
 export default function Login() {
   const googleButton = useRef<HTMLDivElement>(null);
   const [googleReady, setGoogleReady] = useState(false);
+  const [googleRendered, setGoogleRendered] = useState(false);
   const [invite, setInvite] = useState("");
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -41,6 +43,7 @@ export default function Login() {
         identity.initialize({ client_id: clientId, ux_mode: "redirect", login_uri: `${location.origin}/auth/google`, nonce });
         element.replaceChildren();
         identity.renderButton(element, { theme: "filled_black", size: "large", shape: "pill", text: "continue_with", width: Math.min(400, Math.floor(element.getBoundingClientRect().width)) });
+        setGoogleRendered(true);
       } catch {
         if (!controller.signal.aborted) setOauthError("Google sign-in is unavailable. Please reload and try again.");
       }
@@ -52,7 +55,7 @@ export default function Login() {
   }, [googleReady]);
   return (
     <main className="login">
-      <div className="login-brand">
+      <div className="login-brand login-enter login-enter-logo">
         <Code2 size={32} />
         <strong>codeinsta</strong>
       </div>
@@ -70,19 +73,21 @@ export default function Login() {
         </p>
         <div className="auth-tabs">
           <button
+            className="login-enter login-enter-signin"
             aria-pressed={mode === "signin"}
             onClick={() => setMode("signin")}
           >
             Sign in
           </button>
           <button
+            className="login-enter login-enter-signup"
             aria-pressed={mode === "signup"}
             onClick={() => setMode("signup")}
           >
             Create account
           </button>
         </div>
-        <form action={action}>
+        <form action={action} className={(state.error || oauthError) && !pending ? "login-error-shake" : undefined}>
           <input type="hidden" name="mode" value={mode} />
           <label>
             Email
@@ -114,19 +119,22 @@ export default function Login() {
           <p role="alert" className="error">
             {state.error || oauthError}
           </p>
-          <button className="primary" disabled={pending}>
-            {pending
-              ? "Please wait…"
-              : mode === "signup"
-                ? "Create account"
-                : "Sign in"}
-            <ArrowRight size={18} />
-          </button>
+          <div className="login-enter login-enter-submit">
+            <button className="primary login-submit" disabled={pending} aria-busy={pending}>
+              <span className="login-submit-label" aria-hidden={pending}>
+                {mode === "signup" ? "Create account" : "Sign in"}
+                <ArrowRight size={18} />
+              </span>
+              {pending && <span className="login-busy" role="status" aria-label={mode === "signup" ? "Creating account, please wait" : "Signing in, please wait"}>
+                <span aria-hidden="true" /><span aria-hidden="true" /><span aria-hidden="true" />
+              </span>}
+            </button>
+          </div>
         </form>
         {process.env.NEXT_PUBLIC_ENABLE_GOOGLE !== "false" && (
           <>
             <Script src="https://accounts.google.com/gsi/client" onReady={() => setGoogleReady(true)} onError={() => setOauthError("Google sign-in could not load. Please reload and try again.")} />
-            <div ref={googleButton} className="google" />
+            <div ref={googleButton} className={`google${googleRendered ? " login-enter login-enter-google" : ""}`} />
             {mode === "signup" && <small className="muted">New Google users need an invite code after signing in.</small>}
           </>
         )}
