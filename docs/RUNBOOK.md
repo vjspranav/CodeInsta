@@ -83,6 +83,7 @@ Without them, the run prepares everything, writes "waiting for OWNER approval: <
 - [ ] E5. Widgets (Android Glance incl. Flip cover screen; iOS WidgetKit).
 - [ ] E6. iOS build plus SideStore.
 - [ ] E7. Maestro end-to-end QA gate; install on the owner's phone.
+  - owner (2026-11-02): no Expo branding in the final app; after the first final version is installed the owner turns off developer settings, so later updates go over the air (O6 EAS project first). Native changes after that ship as a sideloaded APK.
 ### F. After launch
 - [ ] F1. Member-to-member messaging plus sharing a reel to a friend (web and apps).
 - [ ] F2. Library batches 2–12 per `content/library-plan.md`, plus the new categories frontier, ai-engineering and history. The pilot (one per genre) goes to the owner first.

@@ -261,3 +261,8 @@
 - Applied migration 0013 (push_tokens, claim_push_token, push triggers).
 - Deployed the `push` edge function with PUSH_SECRET, and created the Vault secrets push_secret and push_url.
 - This approval covered these three steps only. Later PROD steps still need their own approval.
+
+## 2026-11-02 No Expo branding; updates over the air after the first final version
+- Owner: no Expo logo anywhere in the final app. The app icon (launcher, adaptive and themed) is the CodeInsta mark, using the same tile and glyph as the in-app startup logo, in the current accent token. It changes with the brand refresh (D3).
+- Owner keeps Android developer settings (wireless debugging) on until the first final version is installed, then turns them off. After that, updates go over the air (EAS Update, needs O6).
+- Native changes (new native modules, widgets, permissions, the icon) cannot ship over the air. They need a new APK, sideloaded with "install unknown apps". That does not need developer settings.
