@@ -193,3 +193,32 @@ Adaptation: the new creator screen locally guards auth before mounting library c
 ## E4 Task 4.5 — Inbox (2026-11-02, in progress)
 
 Dispatch ownership: `apps/mobile/app/(tabs)/inbox.tsx`, `apps/mobile/app/inbox/[creator].tsx`, `apps/mobile/src/ui/{ThreadRow,MessageBubble,Composer}.tsx`, inbox-specific tests, and the badge-only change to `apps/mobile/app/(tabs)/_layout.tsx`. Prerequisites are committed (`ca8e9fb`, `1600e7d`). Implementation delegated within these paths; main session reviews and verifies. No commits, installs, deployment or production access.
+
+## B3 wave 1 — GPT remakes (2026-11-02, in progress)
+
+Dispatch ownership: only `content/remake/gpt/{databases-hands-on-ops-01,databases-hands-on-ops-02,distributed-failure-stories-01,os-syscalls-and-processes-01,compilers-optimization-debugging-01,aosp-boot-sequence-02}.json` plus this status section. Three delegated workers own disjoint pairs. Following B3 worlds, hooks and casts; capturing safe local tool output where available and explicitly labeling illustrative demonstrations otherwise. Verification uses `render/fixtures/make-audio.mjs` and full still gates. No registry edits needed; no commits, production access, publishing, package changes or paid audio.
+
+## B2 Task 41 — browser.network (2026-11-02, in progress)
+
+Dispatch ownership: `render/src/worlds/browser-network/**`, `render/tests/browser-network.test.ts`, `content/lab-v3/worlds/browser-network.json`, and one additive registry entry/import in `render/src/worlds/index.ts`. World implementation delegated; parent owns demo, integration and verification. No commits, dependency changes, production access, publishing or paid audio.
+
+## B2 world incident — 2026-11-02 (in progress)
+
+Dispatch ownership: `render/src/worlds/incident/**`, `render/tests/incident.test.ts`, `content/lab-v3/worlds/incident.json`, and the incident registration only. Model/view/tests delegated to an implementation worker; parent owns sourced demo, integration and gates. Silent fixture audio only; no commits, installs, publishing, deployment or production calls.
+
+
+## B2 world review — 2026-11-02
+
+Dispatch ownership: `render/src/worlds/review/**`, additive review-world tests in existing `render/tests/review.test.ts`, `content/lab-v3/worlds/review.json`, and one registry entry plus its import. Implementation delegated; main session owns sourced demo, integration and verification. Existing regression tests and concurrent worlds are preserved. No commits, production access, dependency changes or paid audio.
+
+## E4 Task 4.6 — Requests and settings (2026-11-02, in progress)
+
+Dispatch ownership: `apps/mobile/app/{requests,interests,settings,about,privacy}.tsx`, `app/admin/{requests,invites}.tsx`, the settings footer in `app/(tabs)/profiles.tsx`, and task-specific `src/ui/{ProfileSettings,settings-screens.test,owner-screens.test,request-screens.test,info-screens.test}` files; existing catalog test mocks may be adapted for footer imports. Data/auth/shared packages and layout/feed files remain untouched. Delegated owner, request/interests, and information screens; parent integrates settings/profile navigation and verifies. Prerequisite interfaces and motion kit exist. No commits, installs, production access or deployment.
+
+### E4 Task 4.6 completed — verification and handoff
+
+Created `app/{requests,interests,settings,about,privacy}.tsx`, `app/admin/{requests,invites}.tsx`, `src/ui/ProfileSettings.tsx`, and four screen test files. Updated Profiles footer and catalog tests. Requests use friendly returned errors, optimistic rows/rollback, owner auto-approved status, fulfilled-reel links and meaningful-action push engagement. Interests optimistically update the existing library query and roll back failures. Owner screens guard before mounting queries, validate slugs before reviewRequest, preserve exact decision payloads, and provide invite creation/copy. Information-page tests compare visible native copy with actual web source. Profiles keeps settings/sign-out accessible when library loading fails and refreshes owner pending count on focus. Motion controls, skeletons, memoized FlashList rows, token styles, keyboard avoidance and haptics are reused.
+
+Verification: failing tests observed before implementation and before review fixes; final `cd apps/mobile && npx jest --runInBand && npx tsc --noEmit` exits 0: 58 suites, 522 tests passed. `git diff --check -- apps/mobile docs/coordination/codex-status.md` passes. Independent review findings (recycled form identity, invite load/create race, hidden offline settings links, premature Settings auth redirect) addressed and scoped re-review clean. Prerequisites committed: data ca8e9fb, motion 1600e7d, push a507683/2a487a7. Generated Expo route types predate new routes, so navigation uses Href casts until Expo regenerates them.
+
+Integration limitation outside this dispatch: `src/push/usePushRegistration.ts` automatically calls registerPush after restart for engaged members and has no persistent opt-out contract. Settings calls the existing registerPush/unregisterPush APIs and reads the persisted token; disabling works for the current registration, but the orchestrator must add opt-out persistence in the push layer to preserve it after restart. unregisterPush is best-effort and exposes no failure result. Push files were not edited. Device/emulator, FCM and iOS entitlement verification remain integration checks; none claimed here. No commits, installs, deployments, production writes, env output, or changes to data/auth/shared/layout/feed files.

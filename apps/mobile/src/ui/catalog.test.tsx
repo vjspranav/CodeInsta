@@ -5,7 +5,8 @@ import type { MobileReel } from '@shared/types';
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 const mockSignOut = jest.fn(() => Promise.resolve());
 jest.mock('@/auth/useAuth', () => ({ useAuth: () => ({ status: mockStatus, signOut: mockSignOut }) }));
-jest.mock('expo-router', () => ({ Redirect: () => null, router: { push: jest.fn() }, useLocalSearchParams: () => ({ creator: 'gpt' }) }));
+jest.mock('@/data/owner', () => ({ pendingCount: jest.fn(async () => 0) }));
+jest.mock('expo-router', () => ({ useFocusEffect: (fn: any) => require('react').useEffect(fn, [fn]), Redirect: () => null, router: { push: jest.fn() }, useLocalSearchParams: () => ({ creator: 'gpt' }) }));
 jest.mock('expo-image', () => ({ Image: (props: any) => require('react').createElement(require('react-native').View, { ...props, accessibilityLabel: props.source?.uri }) }));
 jest.mock('@shopify/flash-list', () => ({ FlashList: ({ data, renderItem, ListHeaderComponent, ListEmptyComponent, ListFooterComponent }: any) => <>{ListHeaderComponent}{data.map((item: any, index: number) => require('react').createElement(require('react').Fragment, { key: item.id ?? item.category.slug }, renderItem({ item, index })))}{!data.length && ListEmptyComponent}{ListFooterComponent}</> }));
 jest.mock('@/data/library', () => ({ useLibrary: () => mockState }));
@@ -78,4 +79,11 @@ it('handles empty libraries and missing creators', async () => {
     expect(screen.getByText('Nothing new yet')).toBeTruthy();
     await view.rerender(<Creator />);
     expect(screen.getByText('Creator not found')).toBeTruthy();
+});
+it('keeps profile settings and sign out accessible when the library fails', async () => {
+    mockState = { ...mockState, loading: false, error: 'Offline' };
+    await renderMotion(<Profiles />);
+    expect(screen.getByTestId('settings-about')).toBeTruthy();
+    await fireEvent(screen.getByTestId('settings-signout'), 'accessibilityAction', { nativeEvent: { actionName: 'activate' } });
+    expect(mockSignOut).toHaveBeenCalledTimes(1);
 });

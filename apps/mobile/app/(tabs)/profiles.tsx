@@ -11,6 +11,7 @@ import { EmptyState } from "@/ui/EmptyState";
 import { CatalogState, SectionHeader } from "@/ui/SectionHeader";
 import { CreatorRow } from "@/ui/CreatorRow";
 import { Button } from "@/ui/Button";
+import { ProfileSettings } from "@/ui/ProfileSettings";
 import { useAuth } from "@/auth/useAuth";
 export default function Profiles() {
     const { library, loading, error, reload } = useLibrary();
@@ -23,11 +24,10 @@ export default function Profiles() {
         <Flame color={tokens.color.inkMuted} size={tokens.space[4]}/>
         <Text style={{ ...tokens.type.meta, color: tokens.color.ink }}>{streak} day streak</Text>
         </View> : null}
- {loading || error ? <CatalogState loading={loading} error={error} reload={reload}/>
-
-        : <FlashList data={library?.creators ?? []}
+ <FlashList data={loading || error ? [] : library?.creators ?? []}
+        ListHeaderComponent={loading || error ? <CatalogState loading={loading} error={error} reload={reload}/> : null}
         keyExtractor={item => item.id}
         renderItem={({ item }) => <CreatorRow creator={item}/>}
-        ListEmptyComponent={<EmptyState title="No creators yet" body="The creators behind each series will show up here."/>}
-        ListFooterComponent={<Button variant="ghost" label="Sign out" testID={TID['settings-signout']} onPress={() => void signOut()} style={{ marginTop: tokens.space[6] }}/>}/>}</Screen>;
+        ListEmptyComponent={loading || error ? null : <EmptyState title="No creators yet" body="The creators behind each series will show up here."/>}
+        ListFooterComponent={<><ProfileSettings /><Button variant="ghost" label="Sign out" testID={TID['settings-signout']} onPress={() => void signOut()} style={{ marginTop: tokens.space[6] }}/></>}/></Screen>;
 }
