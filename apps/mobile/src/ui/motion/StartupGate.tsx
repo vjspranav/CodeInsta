@@ -8,6 +8,7 @@ import { timings, tokens } from "@/theme/tokens";
 import { AnimatedLogo } from "./AnimatedLogo";
 import { useReducedMotion } from "./reducedMotion";
 import { LOGO_SETTLE_MS, msUntilReveal, STARTUP_EXTRA_CAP_MS } from "./startupTiming";
+import { holdStartup, markStartupRevealed } from "./startupReveal";
 
 // Keep the native splash up until the in-app logo has laid out. Module scope so it runs before the
 // first render. Rejects when the splash is already gone (fast refresh): nothing to do then.
@@ -22,14 +23,19 @@ export type StartupGateProps = {
 
 /**
  * Startup handoff: native splash (same paper color, no image) -> in-app AnimatedLogo that draws and
- * settles -> crossfade to `children` as soon as `ready` is true. Never holds the logo longer than
+ * settles -> crossfade to `children` as soon as `ready` is true. The children mount underneath from
+ * the first render so their loading overlaps the animation. Never holds the logo longer than
  * STARTUP_EXTRA_CAP_MS after its first layout: past that the app is revealed regardless and the
  * first screen shows its own skeleton.
  */
 export function StartupGate({ ready, children, testID }: StartupGateProps) {
   const reduced = useReducedMotion();
   const [laidOut, setLaidOut] = useState(false);
-  const [revealed, setRevealed] = useState(false);
+  // Hold before the children's first render, so their playback effects already see the hold.
+  const [revealed, setRevealed] = useState(() => {
+    holdStartup();
+    return false;
+  });
   const [logoGone, setLogoGone] = useState(false);
   const laidOutAt = useRef(0);
   const fade = useSharedValue(0);
@@ -67,6 +73,7 @@ export function StartupGate({ ready, children, testID }: StartupGateProps) {
 
   useEffect(() => {
     if (!revealed) return;
+    markStartupRevealed();
     fade.value = withTiming(1, reduced ? timings.fast : timings.base, (finished) => {
       "worklet";
       if (finished) scheduleOnRN(onFaded);
@@ -78,9 +85,17 @@ export function StartupGate({ ready, children, testID }: StartupGateProps) {
 
   return (
     <View testID={testID} style={styles.root}>
-      {revealed ? (
-        <Animated.View style={[StyleSheet.absoluteFill, appStyle]}>{children}</Animated.View>
-      ) : null}
+      {/* Mounted from the start so the session, data and first reel load during the logo;
+          invisible, untouchable and hidden from screen readers until revealed. */}
+      <Animated.View
+        testID={testID ? `${testID}-app` : undefined}
+        pointerEvents={revealed ? "auto" : "none"}
+        accessibilityElementsHidden={!revealed}
+        importantForAccessibility={revealed ? "auto" : "no-hide-descendants"}
+        style={[StyleSheet.absoluteFill, appStyle]}
+      >
+        {children}
+      </Animated.View>
       {logoGone ? null : (
         <Animated.View
           pointerEvents="none"

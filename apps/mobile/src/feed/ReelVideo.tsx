@@ -9,6 +9,7 @@ import { playbackState } from "./playback";
 import { usePlayerPool } from "./PlayerPoolProvider";
 import type { VideoBox } from "./layout";
 import { useAppActive } from "./useAppActive";
+import { useStartupRevealed } from "@/ui/motion/startupReveal";
 
 const colors = designColors("dark");
 
@@ -37,7 +38,10 @@ function ReelVideoImpl(props: ReelVideoProps) {
   const { source, poster, active, slot, box, soundUnlocked, userPaused } = props;
   const { players, pool, load } = usePlayerPool();
   const player = players[slot];
-  const appActive = useAppActive();
+  // Under the startup logo the reel loads but waits; it plays once the user can see it.
+  const foreground = useAppActive();
+  const startupRevealed = useStartupRevealed();
+  const appActive = foreground && startupRevealed;
   const state = useSyncExternalStore(
     pool.subscribe,
     () => pool.stateOf(slot, source),

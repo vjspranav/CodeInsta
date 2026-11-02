@@ -73,6 +73,28 @@ describe("with EXPO_PUBLIC_PERF=1", () => {
     expect(logSpy.mock.calls).toEqual([["CI_PERF first_frame_playing 900.0"]]);
   });
 
+  it("a first frame under the startup logo is logged when the logo hands off", () => {
+    const perf = createPerf(now);
+    perf.hold();
+    clock += 700;
+    perf.playing();
+    expect(logSpy).not.toHaveBeenCalled();
+    clock += 300;
+    perf.revealed();
+    perf.revealed();
+    expect(logSpy.mock.calls).toEqual([["CI_PERF first_frame_playing 1000.0"]]);
+  });
+
+  it("a first frame after the reveal is logged at once", () => {
+    const perf = createPerf(now);
+    perf.hold();
+    clock += 400;
+    perf.revealed();
+    clock += 200;
+    perf.playing();
+    expect(logSpy.mock.calls).toEqual([["CI_PERF first_frame_playing 600.0"]]);
+  });
+
   it("a page change then playing logs swipe_to_play once", () => {
     const perf = createPerf(now);
     perf.playing();

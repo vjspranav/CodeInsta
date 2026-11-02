@@ -60,6 +60,7 @@ describe("StartupGate", () => {
       {app}
     </StartupGate>
   );
+  const shown = () => screen.getByTestId("gate-app", { includeHiddenElements: true }).props.pointerEvents === "auto";
   const laidOut = () =>
     fireEvent(screen.getByTestId("gate-mark"), "layout", layout);
 
@@ -75,11 +76,18 @@ describe("StartupGate", () => {
     expect(SplashScreen.hideAsync).toHaveBeenCalledTimes(1);
   });
 
+  it("mounts the app under the logo at once, hidden from touch and screen readers", async () => {
+    await renderMotion(gate(false));
+    expect(screen.getByTestId("app", { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.getByTestId("gate-app", { includeHiddenElements: true }).props.accessibilityElementsHidden).toBe(true);
+    expect(shown()).toBe(false);
+  });
+
   it("shows the logo and not the app before anything is ready", async () => {
     await renderMotion(gate(false));
     await laidOut();
     await advance(100);
-    expect(screen.queryByTestId("app")).toBeNull();
+    expect(shown()).toBe(false);
     expect(screen.getByTestId("gate-mark")).toBeTruthy();
   });
 
@@ -87,9 +95,9 @@ describe("StartupGate", () => {
     await renderMotion(gate(true));
     await laidOut();
     await advance(LOGO_SETTLE_MS - 20);
-    expect(screen.queryByTestId("app")).toBeNull();
+    expect(shown()).toBe(false);
     await advance(40);
-    expect(screen.getByTestId("app")).toBeTruthy();
+    expect(shown()).toBe(true);
   });
 
   it("removes the logo after the crossfade", async () => {
@@ -98,33 +106,33 @@ describe("StartupGate", () => {
     await advance(LOGO_SETTLE_MS + 40);
     await advance(1000);
     expect(screen.queryByTestId("gate-mark")).toBeNull();
-    expect(screen.getByTestId("app")).toBeTruthy();
+    expect(shown()).toBe(true);
   });
 
   it("reveals as soon as ready flips true after the settle", async () => {
     const { rerender } = await renderMotion(gate(false));
     await laidOut();
     await advance(LOGO_SETTLE_MS + 300);
-    expect(screen.queryByTestId("app")).toBeNull();
+    expect(shown()).toBe(false);
     await rerender(gate(true));
     await advance(20);
-    expect(screen.getByTestId("app")).toBeTruthy();
+    expect(shown()).toBe(true);
   });
 
   it("never holds the logo past the hard cap, even if never ready", async () => {
     await renderMotion(gate(false));
     await laidOut();
     await advance(STARTUP_EXTRA_CAP_MS - 20);
-    expect(screen.queryByTestId("app")).toBeNull();
+    expect(shown()).toBe(false);
     await advance(40);
-    expect(screen.getByTestId("app")).toBeTruthy();
+    expect(shown()).toBe(true);
   });
 
   it("hides the splash and reveals within the cap even if the logo never reports a layout", async () => {
     await renderMotion(gate(true));
     await advance(STARTUP_EXTRA_CAP_MS + LOGO_SETTLE_MS + 50);
     expect(SplashScreen.hideAsync).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId("app")).toBeTruthy();
+    expect(shown()).toBe(true);
   });
 
   it("with Reduce Motion reveals a ready app without waiting for the settle", async () => {
@@ -132,6 +140,6 @@ describe("StartupGate", () => {
     await renderMotion(gate(true));
     await laidOut();
     await advance(20);
-    expect(screen.getByTestId("app")).toBeTruthy();
+    expect(shown()).toBe(true);
   });
 });

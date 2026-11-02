@@ -13,6 +13,14 @@ export function createPerf(now: () => number = () => performance.now()) {
   const marks = new Map<string, number>();
   let firstFrameLogged = false;
   let swipePending = false;
+  // While the startup logo covers the app, a first frame is not yet visible: log it at the reveal.
+  let held = false;
+  let firstFramePending = false;
+  const logFirstFrame = () => {
+    firstFrameLogged = true;
+    firstFramePending = false;
+    log("first_frame_playing", measure("first_frame_playing", "app_start"));
+  };
 
   const mark = (name: string): void => {
     if (enabled()) marks.set(name, now());
@@ -39,6 +47,15 @@ export function createPerf(now: () => number = () => performance.now()) {
     /**
      * Call when the page (active reel) changes, from the pager's onViewableItemsChanged callback.
      */
+    /** The startup logo is covering the app (StartupGate mounted). */
+    hold(): void {
+      held = true;
+    },
+    /** The startup logo handed off: a first frame that arrived under it counts from now. */
+    revealed(): void {
+      held = false;
+      if (enabled() && firstFramePending) logFirstFrame();
+    },
     pageChanged(): void {
       if (!enabled()) return;
       mark("swipe");
@@ -53,9 +70,9 @@ export function createPerf(now: () => number = () => performance.now()) {
     playing(): void {
       if (!enabled()) return;
       if (!firstFrameLogged) {
-        firstFrameLogged = true;
         swipePending = false;
-        log("first_frame_playing", measure("first_frame_playing", "app_start"));
+        if (held) firstFramePending = true;
+        else logFirstFrame();
       } else if (swipePending) {
         swipePending = false;
         log("swipe_to_play", measure("swipe_to_play", "swipe"));
