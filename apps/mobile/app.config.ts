@@ -28,7 +28,12 @@ export default ({ config }: ConfigContext): ExpoConfig =>
     supportsTablet: false,
     bundleIdentifier: ID,
     ...(process.env.APPLE_TEAM_ID ? { appleTeamId: process.env.APPLE_TEAM_ID } : {}),
-    entitlements: { "com.apple.security.application-groups": ["group.dev.vjspranav.codeinsta"] },
+    // A free Apple ID (personal team) cannot use App Groups: CODEINSTA_IOS_FREE=1 builds without one,
+    // and the widget then shows its empty state (decisions.md 2026-11-02 "iPhone install through Xcode").
+    entitlements:
+      process.env.CODEINSTA_IOS_FREE === "1"
+        ? {}
+        : { "com.apple.security.application-groups": ["group.dev.vjspranav.codeinsta"] },
   },
   android: {
     package: ID,

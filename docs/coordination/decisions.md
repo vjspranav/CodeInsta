@@ -280,3 +280,7 @@
 - Codex briefs 41-45 ran in parallel at 12:42 and used up the new Codex window in about 3 minutes (reset 5:42 PM). From now on Codex briefs run one at a time through the launchd queue.
 - Claude subagents take browser.network and incident, continuing from Codex's partial files. Codex keeps review (43), device.boot (44), the GPT wave 1 rewrites (45, partly edited in place) and the app briefs 34-36.
 - Codex's partial review and device-boot folders were moved out of render/ so they do not break other agents' checks. Codex rebuilds them from its brief.
+
+## 2026-11-02 iPhone install through Xcode
+- The owner chose Xcode with their Apple ID over iloader and SideStore. Builds go straight to the iPhone 13 through devicectl. A free account's builds expire after 7 days, so Claude reinstalls them.
+- CODEINSTA_IOS_FREE=1 builds without the App Group, which personal teams cannot use. The iOS widget then shows its empty state until there is a paid account. The paid Developer Program with TestFlight remains the upgrade path.

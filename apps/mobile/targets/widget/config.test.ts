@@ -21,6 +21,18 @@ describe("iOS widget target", () => {
     expect(appConfig.ios.entitlements["com.apple.security.application-groups"]).toEqual([APP_GROUP]);
   });
 
+  it("drops the App Group for a free Apple ID build (CODEINSTA_IOS_FREE=1)", () => {
+    process.env.CODEINSTA_IOS_FREE = "1";
+    try {
+      const freeApp = (appLoaded.default ?? appLoaded)({ config: {} }) as Record<string, any>;
+      const freeTarget = targetConfig({ ios: { bundleIdentifier: freeApp.ios.bundleIdentifier } });
+      expect(freeApp.ios.entitlements?.["com.apple.security.application-groups"]).toBeUndefined();
+      expect(freeTarget.entitlements?.["com.apple.security.application-groups"]).toBeUndefined();
+    } finally {
+      delete process.env.CODEINSTA_IOS_FREE;
+    }
+  });
+
   it("registers the apple-targets plugin", () => {
     expect(appConfig.plugins).toContain("@bacons/apple-targets");
   });
