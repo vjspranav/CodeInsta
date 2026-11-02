@@ -28,6 +28,8 @@ import {zoneHit, zoneProblems} from './src/zones';
 import {emojiProblems} from './src/noemoji';
 import type {ZoneBox} from './src/zones';
 import {installNodeMeasure} from './measure-node';
+import {worldById, worldOfItem} from './src/worlds';
+import {MAX_NOTES_SHARE, MIN_PRIMARY_SHARE, varietyStats, worldLabel} from './src/variety';
 
 installNodeMeasure();
 import type {Action} from './src/schema';
@@ -45,6 +47,7 @@ interface ProbeRep {
 	spinner: Rect | null;
 	tables: {id: string; rect: Rect; rows: number; now: number[]; past: number[]}[];
 	kits: {kind: string; key: string; rect: Rect; els: number; cur: number}[];
+	worlds?: {id: string | null; rect: Rect; text: string}[];
 	text: string;
 	problems: string[];
 	zoneBoxes: ZoneBox[];
@@ -980,6 +983,10 @@ export const deriveChecks = (story: Story, audio: AudioManifest, buildOpts: Buil
 						const b = beatAt(tl, f) ?? tl.beats[x.beat];
 						const texts = [b.text, ...captionStateAt(b, f).visible, ...visibleAt(tl, f).flatMap((v) => {
 							const it = sceneAt(tl, f)?.items.find((i) => i.key === v.key);
+							if (it?.kind === 'world') {
+								const w = worldOfItem(tl, it);
+								return w ? w.world.texts(w.world.stateAt(w.inst.events, f), it.rect) : [];
+							}
 							return it ? [String(it.props.text ?? ''), String(it.props.sub ?? ''), ...termStateAt(it, f).lines] : [];
 						})];
 						return texts.join(' ').toLowerCase().includes(t) ? null : 'text not found in state';
@@ -989,6 +996,86 @@ export const deriveChecks = (story: Story, audio: AudioManifest, buildOpts: Buil
 				break;
 		}
 	});
+
+	// --- worlds (src/worlds): each world checks its own state where it settles, and the DOM shows that state
+	const norm = (x: string) => x.replace(/\s+/g, ' ').trim();
+	for (const sc of tl.scenes) {
+		for (const item of sc.items) {
+			const wr = worldOfItem(tl, item);
+			if (!wr) continue;
+			const {world: w, inst} = wr;
+			const frames = new Set<number>([Math.max(sc.start + 1, sc.end - 2)]);
+			for (const e of inst.events) {
+				if (e.frame < sc.start || e.frame >= sc.end) continue;
+				frames.add(Math.max(sc.start + 1, Math.min(e.frame + Math.max(1, w.settle?.(e.action) ?? 1), sc.end - 2)));
+			}
+			for (const f of [...frames].sort((a, b) => a - b)) {
+				add({
+					group: `world.${w.id}`,
+					beat: beatOf(f),
+					frame: f,
+					desc: `${w.label} (scene ${sc.index}) at frame ${f}: legible, inside its slot, the screen shows the state`,
+					pure: () => {
+						const st = w.stateAt(inst.events, f);
+						const probs = w.problems?.(st, item.rect) ?? [];
+						if (!w.texts(st, item.rect).length) probs.push('the world shows no text');
+						return probs.join('; ') || null;
+					},
+					still: ({probe}) => {
+						const dom = (probe.worlds ?? []).find((x) => x.id === w.id);
+						if (!dom) return `${w.id} not in the DOM`;
+						const flat = norm(dom.text);
+						const miss = w.texts(w.stateAt(inst.events, f), item.rect).filter((tx) => norm(tx) && !flat.includes(norm(tx)));
+						return miss.length ? `not on screen: ${miss.slice(0, 4).map((m) => `"${m.slice(0, 40)}"`).join(', ')}` : null;
+					},
+				});
+			}
+		}
+	}
+	for (const inst of tl.worlds) {
+		const w = worldById(inst.world);
+		if (!w || !inst.events.length) continue;
+		add({
+			group: `world.${w.id}`,
+			beat: inst.events[0].beat,
+			frame: 0,
+			desc: `${w.label} "${inst.id}": its actions do not run over each other`,
+			pure: () => (w.timelineProblems?.(inst.events) ?? []).join('; ') || null,
+		});
+	}
+
+	// --- variety gate (decisions.md 2026-11-02): gated for scripts that declare their primary `world`
+	{
+		const vs = varietyStats(story, tl);
+		const gated = story.world !== undefined;
+		const note = gated ? '' : ' [reported, not gated: the script declares no primary world]';
+		const pc = (x: number) => `${(x * 100).toFixed(0)}%`;
+		const primary = story.world ?? vs.top;
+		const share = primary ? (vs.share[primary] ?? 0) : 0;
+		const others = Object.entries(vs.share).map(([k, v]) => `${k} ${pc(v)}`).join(', ') || 'none';
+		add({
+			group: 'world.primary',
+			beat: 0,
+			frame: 0,
+			desc: `primary world ${primary ? `${primary} (${worldLabel(primary)})` : '(none)'} on screen ${pc(share)} of the runtime (needs >= ${pc(MIN_PRIMARY_SHARE)}; on screen: ${others})${note}`,
+			pure: () => (!gated || share >= MIN_PRIMARY_SHARE ? null : `${primary} is on screen only ${pc(share)} of the runtime`),
+		});
+		add({
+			group: 'notes.share',
+			beat: 0,
+			frame: 0,
+			desc: `whiteboard-notes-only screen time ${pc(vs.notesShare)} of the runtime (max ${pc(MAX_NOTES_SHARE)}; mostly-notes beats: ${vs.notesBeats.join(', ') || 'none'})${note}`,
+			pure: () => (!gated || vs.notesShare <= MAX_NOTES_SHARE + 1e-9 ? null : `notes-only screens take ${pc(vs.notesShare)} of the runtime`),
+		});
+		const sigs = [...new Set(vs.signatures.map((x) => `${x.do} (beat ${x.beat})`))];
+		add({
+			group: 'signature',
+			beat: vs.signatures[0]?.beat ?? 0,
+			frame: 0,
+			desc: `at least one signature micro-interaction: ${sigs.slice(0, 6).join(', ') || 'none'}${note}`,
+			pure: () => (!gated || vs.signatures.length > 0 ? null : 'no signature micro-interaction (a heart turning red, a cache miss, a red non-zero exit, ...)'),
+		});
+	}
 
 	// --- timing: silence ratio, longest silent stretch, minimum on-screen time of every visual
 	const ts = timingStats(tl);

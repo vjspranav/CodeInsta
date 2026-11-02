@@ -8,6 +8,8 @@ import {DBStage} from './DBTable';
 import {PhoneMock} from './PhoneMock';
 import {SketchArrow} from './SketchArrow';
 import {KIT_VIEWS} from './Kits';
+import {worldOfItem} from '../worlds';
+import type {Item} from '../timeline';
 
 const FOCUS_DIM = 0.4;
 
@@ -59,6 +61,8 @@ export const SceneView: React.FC<{scene: Scene; tl: Timeline; frame: number}> = 
 						const View = KIT_VIEWS[it.kind];
 						return <View key={it.key} item={it} frame={frame} dim={dim} />;
 					}
+					case 'world':
+						return <WorldItem key={it.key} item={it} tl={tl} frame={frame} dim={dim} />;
 					case 'db':
 						return (
 							<DBStage
@@ -83,6 +87,15 @@ export const SceneView: React.FC<{scene: Scene; tl: Timeline; frame: number}> = 
 			{focus && (focusItem || focusPhone) && <FocusRing rect={(focusPhone ? scene.phone!.body : focusItem!.rect)} start={focus.frame} frame={frame} />}
 		</>
 	);
+};
+
+/** A registered world (src/worlds): its module draws its own state full-frame inside the item's slot. */
+const WorldItem: React.FC<{item: Item; tl: Timeline; frame: number; dim?: boolean}> = ({item, tl, frame, dim}) => {
+	const style = useStyle();
+	const r = worldOfItem(tl, item);
+	if (!r) return null;
+	const View = r.world.View;
+	return <View state={r.world.stateAt(r.inst.events, frame)} rect={item.rect} frame={frame} start={item.start} style={style} dim={dim} />;
 };
 
 const FocusRing: React.FC<{rect: Rect; start: number; frame: number}> = ({rect, start, frame}) => {

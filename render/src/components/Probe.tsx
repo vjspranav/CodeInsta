@@ -107,7 +107,7 @@ export const Probe: React.FC<{frame: number}> = ({frame}) => {
 				}
 				if (x1 > x0 && y1 > y0) zoneBoxes.push({kind: 'text', label: (el.textContent || '').trim(), rect: {x: x0, y: y0, w: x1 - x0, h: y1 - y0}});
 			}
-			for (const [sel, kind] of [['[data-shell]', 'visual'], ['[data-phone]', 'phone'], ['[data-table]', 'table'], ['[data-kit]', 'kit'], ['[data-heart]', 'heart'], ['[data-spinner]', 'spinner'], ['[data-toast]', 'toast'], ['[data-define]', 'define'], ['[data-avatar]', 'avatar']] as const) {
+			for (const [sel, kind] of [['[data-shell]', 'visual'], ['[data-phone]', 'phone'], ['[data-table]', 'table'], ['[data-kit]', 'kit'], ['[data-world]', 'world'], ['[data-heart]', 'heart'], ['[data-spinner]', 'spinner'], ['[data-toast]', 'toast'], ['[data-define]', 'define'], ['[data-avatar]', 'avatar']] as const) {
 				for (const el of q<HTMLElement>(sel)) {
 					if (eff(el).opacity < 0.05) continue;
 					const r = rect(el);
@@ -140,6 +140,7 @@ export const Probe: React.FC<{frame: number}> = ({frame}) => {
 					now: q<HTMLElement>('[data-row]').filter((r) => t.contains(r) && r.getAttribute('data-hl') === 'now').map((r) => Number(r.getAttribute('data-row'))),
 					past: q<HTMLElement>('[data-row]').filter((r) => t.contains(r) && r.getAttribute('data-hl') === 'past').map((r) => Number(r.getAttribute('data-row'))),
 				})),
+				worlds: q<HTMLElement>('[data-world]').map((k) => ({id: k.getAttribute('data-world'), rect: rect(k), text: k.innerText})),
 				kits: q<HTMLElement>('[data-kit]').map((k) => ({kind: k.getAttribute('data-kit'), key: k.getAttribute('data-kid'), rect: rect(k), els: k.querySelectorAll('[data-kel]').length, cur: k.querySelectorAll('[data-kcur]').length})),
 				text: document.body.innerText,
 				fonts,

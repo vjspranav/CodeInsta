@@ -1,11 +1,13 @@
 import type {Action, AudioManifest, Beat, LayoutName, Story} from './schema';
 import {NARRATOR_ID} from './schema';
 import {FPS, Rect} from './theme';
-import {ItemKind, packRegion, PHONE_NATIVE, regionsFor} from './layout';
+import {isStageKind, ItemKind, packRegion, PHONE_NATIVE, regionsFor} from './layout';
 import {lineTokens, matchToken, SYNC_LEAD_MS, SYNC_MAX_LEAD_MS, visualTokens} from './sync';
 import type {VisTok} from './sync';
 import {endFrames as endFramesOf} from './endcard';
 import {KIT_ACTIONS, isKitKind} from './kits';
+import {WORLD_SET, worldById, worldOfAction} from './worlds';
+import type {AnyWorld, WorldEvent} from './worlds';
 
 export const LEAD_MS = 300;
 export const TAIL_FRAMES = 20;
@@ -116,8 +118,20 @@ export interface DefineT {
 	frames: number;
 }
 
+/** One world instance (a world keeps its state across scenes: leave the terminal, come back, the scrollback is there). */
+export interface WorldInstance {
+	/** "<world id>#<instance id>" (instance id: the world.set `id`, default "main") */
+	key: string;
+	world: string;
+	id: string;
+	/** every world.set and world action of this instance, in timeline order */
+	events: WorldEvent[];
+}
+
 export interface Timeline {
 	beats: BeatT[];
+	/** world instances (registered worlds, src/worlds); scene items of kind "world" point here via props.inst */
+	worlds: WorldInstance[];
 	scenes: Scene[];
 	defines: DefineT[];
 	phoneEvents: PhoneEvent[];
@@ -150,6 +164,8 @@ const rowsOf = (a: Record<string, unknown>): number => {
 			return n;
 		}
 	}
+	const w = worldOfAction(a.do);
+	if (w?.rows) return w.rows(a as Action);
 	return 0;
 };
 
@@ -178,7 +194,9 @@ const joinExtraMs = (b: Beat, durMs: number, atMs: number[]): number => {
 	return Math.max(0, extra);
 };
 
-const hasSceneChange = (b: Beat) => b.visuals.some((a) => a.do === 'layout' || a.do === 'clear');
+/** Actions that replace the scene: layout, clear and world.set. */
+const isWipe = (a: Record<string, unknown>) => a.do === 'layout' || a.do === 'clear' || a.do === WORLD_SET;
+const hasSceneChange = (b: Beat) => b.visuals.some((a) => isWipe(a as Record<string, unknown>));
 
 export const gapBetween = (prev: Beat, cur: Beat, sceneChange = true): number => {
 	let g = prev.speaker === cur.speaker ? GAPS.sameSpeaker : GAPS.speakerChange;
@@ -200,7 +218,7 @@ export const keptIds = (next: Beat | undefined): Set<string> => {
 /** True when the next beat wipes the scene right at its start (so beat i's visuals leave). */
 const leavesBefore = (next: Beat | undefined): boolean => {
 	if (!next) return true; // end of the reel: the end card follows
-	return (next.visuals as Record<string, unknown>[]).some((a) => (a.do === 'layout' || a.do === 'clear') && atFraction(a) === 0);
+	return (next.visuals as Record<string, unknown>[]).some((a) => isWipe(a) && atFraction(a) === 0);
 };
 
 export interface BeatPlan {
@@ -238,6 +256,14 @@ export const planBeat = (b: Beat, durMs: number, autoReveal = true): BeatPlan =>
 			if ((a.do === 'layout' || a.do === 'clear') && atMs[i] <= 0 && atFraction(a) === 0) atMs[i] = lead < 0 ? lead : Math.max(0, firstShown);
 		});
 	}
+	// a world.set fires no later than the world actions that follow it in the beat (they need their world on screen)
+	vs.forEach((a, i) => {
+		if (a.do !== WORLD_SET) return;
+		for (let j = i + 1; j < vs.length; j++) {
+			if (vs[j].do === WORLD_SET || vs[j].do === 'layout') break;
+			if (worldOfAction(vs[j].do)) atMs[i] = Math.min(atMs[i], atMs[j]);
+		}
+	});
 	return {atMs, leadMs: Math.max(0, -Math.min(0, ...atMs))};
 };
 
@@ -269,7 +295,7 @@ export const buildBeats = (story: Story, audio: AudioManifest, opts: BuildOpts =
 			let wipeDelay = 0;
 			(next?.visuals ?? []).forEach((a0, ai) => {
 				const a = a0 as Record<string, unknown>;
-				if ((a.do === 'layout' || a.do === 'clear') && atFraction(a) === 0) wipeDelay = Math.max(wipeDelay, plans[i + 1].atMs[ai]);
+				if (isWipe(a) && atFraction(a) === 0) wipeDelay = Math.max(wipeDelay, plans[i + 1].atMs[ai]);
 			});
 			b.visuals.forEach((a0, ai) => {
 				const a = a0 as Record<string, unknown>;
@@ -403,6 +429,26 @@ export const buildTimeline = (story: Story, audio: AudioManifest, opts: BuildOpt
 			.map((it) => ({...it, key: `s${rawScenes.length}-k${itemN++}`, updates: [...it.updates], rect: {...it.rect}, origin: it.origin ?? it}));
 	};
 
+	// ---- worlds: one instance per (world, id); a scene item of kind "world" shows it
+	const worldInsts = new Map<string, WorldInstance>();
+	const instFor = (w: AnyWorld, id: string): WorldInstance => {
+		const key = `${w.id}#${id}`;
+		let inst = worldInsts.get(key);
+		if (!inst) {
+			inst = {key, world: w.id, id, events: []};
+			worldInsts.set(key, inst);
+		}
+		return inst;
+	};
+	const openWorld = (frame: number, w: AnyWorld, id: string | undefined): Item => {
+		close();
+		open(frame, 'world', false);
+		const inst = instFor(w, id ?? 'main');
+		const item: Item = {key: `s${rawScenes.length}-w${itemN++}`, id, kind: 'world', start: frame, props: {world: w.id, inst: inst.key}, updates: [], rect: {x: 0, y: 0, w: 0, h: 0}};
+		cur.items.push(item);
+		return item;
+	};
+
 	const ensurePhone = (frame: number) => {
 		if (cur.layout !== 'phone-left+board-right') cur.layout = 'phone-left+board-right';
 		if (cur.phoneStart === undefined) cur.phoneStart = frame;
@@ -421,10 +467,22 @@ export const buildTimeline = (story: Story, audio: AudioManifest, opts: BuildOpt
 				break;
 			}
 			case 'clear': {
-				const kept = carry(props.keep);
+				// in a world scene the world stays (only the board strip is wiped)
+				const keepIds = Array.isArray(props.keep) ? props.keep : [];
+				const worldsHere = cur.layout === 'world' ? cur.items.filter((it) => it.kind === 'world' && !(it.id && keepIds.includes(it.id))) : [];
+				const kept = [...carry(props.keep), ...worldsHere.map((it) => ({...it, key: `s${rawScenes.length}-k${itemN++}`, updates: [...it.updates], rect: {...it.rect}, origin: it.origin ?? it}))];
 				close();
 				open(frame, cur.layout, true);
 				cur.items.push(...kept);
+				break;
+			}
+			case WORLD_SET: {
+				const w = worldById(props.world);
+				if (!w) break;
+				const id = str(props.id);
+				const item = openWorld(frame, w, id);
+				instFor(w, id ?? 'main').events.push({frame, beat: evBeat, action: a});
+				touched = {item, created: true};
 				break;
 			}
 			case 'phone.show': {
@@ -518,6 +576,20 @@ export const buildTimeline = (story: Story, audio: AudioManifest, opts: BuildOpt
 			case 'focus':
 				cur.focus.push({frame, id: str(props.target) ?? str(props.id)});
 				break;
+			default: {
+				const w = worldOfAction(a.do);
+				if (!w) break;
+				let item = cur.layout === 'world' ? cur.items.find((it) => it.kind === 'world' && it.props.world === w.id) : undefined;
+				let created = false;
+				if (!item) {
+					// the world is not on screen (schema validation rejects this): open it so the timeline stays sound
+					item = openWorld(frame, w, undefined);
+					created = true;
+				}
+				worldInsts.get(String(item.props.inst))!.events.push({frame, beat: evBeat, action: a});
+				touched = {item, created};
+				break;
+			}
 			case 'define': {
 				const term = str(props.term) ?? str(props.id) ?? '';
 				const g = story.glossary.find((x) => x.term.toLowerCase() === term.toLowerCase());
@@ -557,8 +629,8 @@ export const buildTimeline = (story: Story, audio: AudioManifest, opts: BuildOpt
 		while ((pending.length > 0 || firstPage) && guard++ < 40) {
 			// try to place the first n pending items; shrink n to the first item that does not fit
 			const tryPlace = (subset: Item[]) => {
-				const hasDb = subset.some((i) => i.kind === 'db');
-				const boardItems = subset.filter((i) => i.kind !== 'db');
+				const hasDb = subset.some((i) => isStageKind(i.kind));
+				const boardItems = subset.filter((i) => !isStageKind(i.kind));
 				const regions = regionsFor(raw.layout, hasDb, boardItems.length > 0);
 				const groups: Item[][] = regions.boards.map(() => []);
 				if (groups.length === 1) groups[0] = boardItems;
@@ -579,7 +651,7 @@ export const buildTimeline = (story: Story, audio: AudioManifest, opts: BuildOpt
 						else firstUnplaced = Math.min(firstUnplaced, subset.indexOf(it));
 					});
 				});
-				for (const it of subset) if (it.kind === 'db' && regions.db) it.rect = regions.db;
+				for (const it of subset) if (isStageKind(it.kind) && regions.db) it.rect = regions.db;
 				return {regions, firstUnplaced};
 			};
 			let n = pending.length;
@@ -654,6 +726,7 @@ export const buildTimeline = (story: Story, audio: AudioManifest, opts: BuildOpt
 	const endStart = beatsEnd + TAIL_FRAMES;
 	return {
 		beats,
+		worlds: [...worldInsts.values()],
 		scenes,
 		defines,
 		phoneEvents: phoneEvents.sort((a, b) => a.frame - b.frame),

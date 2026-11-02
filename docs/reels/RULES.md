@@ -29,6 +29,7 @@ Owner: Codex. Consolidated 2026-11-01 from **all** entries in [decisions.md](../
 - **pace** — 2026-11-01, **Pacing fix for final renders (owner feedback on the round-2 voice comparison)**, [decisions.md line 158](../coordination/decisions.md#L158).
 - **verdict** — 2026-11-01, **Owner verdict on the voice comparison, plus refined pacing**, [decisions.md line 164](../coordination/decisions.md#L164).
 - **genres** — 2026-11-01, **Genres, style by type and category, and dislikes**, [decisions.md line 169](../coordination/decisions.md#L169).
+- **variety** — 2026-11-02, **Reels must not look the same; remakes hidden for a variety pass**, [decisions.md line 257](../coordination/decisions.md#L257).
 
 ## Audio
 
@@ -155,6 +156,22 @@ Owner: Codex. Consolidated 2026-11-01 from **all** entries in [decisions.md](../
   - Source: 2026-11-01 — Reels v3: "Story mode", pre-rendered video (user feedback round 1) (v3); 2026-11-01 — Owner verdict on the voice comparison, plus refined pacing (verdict); 2026-11-01 — Genres, style by type and category, and dislikes (genres).
   - Enforcement: `render/src/layout.ts; render/src/styles/sketch.ts; components/Panel.tsx, Texture.tsx, SceneView.tsx`.
   - Review: **PASS**. Registry and slot composition implement this structural direction. Assess creative fitness and animation transitions through Q7 and GENRES.md; unit success alone is not a creative-quality claim.
+- [ ] **V20 — Every new reel declares one primary world that matches its scenario (`"world"`: a registered world from `render/src/worlds`, or `phone` / `db`) and keeps it on screen for at least half the runtime.**
+  - Source: 2026-11-02 — Reels must not look the same; remakes hidden for a variety pass (variety).
+  - Enforcement: `render/src/schema.ts world + world.set validation; render/src/variety.ts; render/verify-lib.ts world.primary (gated when the script declares world)`.
+  - Review: **PASS** for the mechanism (vitest `tests/worlds.test.ts`). Runtime is frame 0 up to the end card. Scripts without `world` are reported, not gated; every new reel must declare one. The five launch reels were written before the rule and do not pass it (see Q10).
+- [ ] **V21 — A world looks like the real thing and is data-driven by the script: real commands, output, exit codes and tool formatting; its state at any frame is a pure function of the actions.**
+  - Source: 2026-11-02 — Reels must not look the same (variety); 2026-10-31 — Content preferences (user) (content).
+  - Enforcement: `render/src/worlds/types.ts WorldModule (stateAt, validate, tokens, texts, problems); render/src/worlds/<id>/model.ts; per-world vitest`.
+  - Review: **PASS** for `term.session` (prompt, typed command with block cursor, streamed output, exit status, scrollback, highlight). Real output still needs a recorded source (C5).
+- [ ] **V22 — World actions only run while their world is on screen; a world takes the whole stage (no phone or database in its scene); board notes share a strip below it.**
+  - Source: 2026-11-02 — Reels must not look the same (variety).
+  - Enforcement: `render/src/schema.ts validateStory (world.set order, layout leaves, clear keeps); render/src/layout.ts world template; render/src/timeline.ts`.
+  - Review: **PASS**. The world template is `CONTENT`, so the existing zone, safe-area and caption checks apply unchanged.
+- [ ] **V23 — Cast is shaped by the story: 0 to 4 speakers besides the narrator, each of whom speaks.**
+  - Source: 2026-11-02 — Reels must not look the same (variety): "every reel has the same 2-person cast".
+  - Enforcement: `render/src/schema.ts cast max 4; silent cast members are a validation warning`.
+  - Review: **PASS**. Creative fit of the cast stays a Q7 review item.
 
 ## Content and preferences
 
@@ -249,6 +266,18 @@ Owner: Codex. Consolidated 2026-11-01 from **all** entries in [decisions.md](../
   - Source: 2026-11-01 — Reel QA gate: micro-interaction tests (owner requirement, before any bulk creation) (qa).
   - Enforcement: `render/verify-lib.ts:903 contact-sheet generation`.
   - Review: **FAIL**. Contact-sheet exception currently logs a warning only. Record an explicit failed required check and no complete receipt when ffmpeg/contact-sheet generation fails.
+- [ ] **Q10 — Variety gate: primary world >= 50% of the runtime (`world.primary`), whiteboard-notes-only screens <= one third (`notes.share`), at least one signature micro-interaction (`signature`).**
+  - Source: 2026-11-02 — Reels must not look the same; remakes hidden for a variety pass (variety).
+  - Enforcement: `render/src/variety.ts varietyStats; render/verify-lib.ts groups world.primary, notes.share, signature; render/tests/worlds.test.ts`.
+  - Review: **PASS** for the mechanism. Applies to scripts that declare `world` (opt-in by declaration; every new reel declares one); others get the same three lines marked "reported, not gated". Notes-only means the screen shows only sketch.note / sketch.box items (with their arrows, define lower thirds, clear), measured per frame. Signature moments: phone.tap, phone.spinner, phone.toast, phone.instant, db.insert, db.join, db.fanout, db.shard, db.replicate, cache.hit, cache.miss, and each world's declared ones (term.session: a non-zero exit, or 3+ output lines streamed at >= 200 ms per line). Launch reels on the silent timing path (not gated): android-vendor-image no world, notes 33%, no signature; instagram-feed-part1 db 42% / phone 23%, notes 29%, signatures yes; part2 db 31% / phone 24%, notes 31%, signatures yes; paper-attention db 22%, notes 75%, no signature; type-a-url no world, notes 16%, no signature. None would pass world.primary as written; the B3 rewrites fix that.
+- [ ] **Q11 — Every world is checked where each of its actions settles: its own problems (legible font, nothing cut, highlight in view), its texts present in the rendered DOM, and timeline problems (actions running over each other).**
+  - Source: 2026-11-02 — Reels must not look the same (variety); 2026-11-01 — Reel QA gate: micro-interaction tests (qa).
+  - Enforcement: `render/verify-lib.ts group world.<id>; WorldModule.problems / texts / timelineProblems`.
+  - Review: **PASS** for `term.session`.
+- [ ] **Q12 — A world's `tokens` say when each text appears, so the voice-after-visual sync gate and reveal scheduling cover world text like any other visual.**
+  - Source: 2026-11-01 — Owner approved Parts 1/2 (sync rules); 2026-11-02 — Reels must not look the same (variety).
+  - Enforcement: `render/src/sync.ts visualTokens (world branch); render/src/timeline.ts planBeat (world.set fires no later than its actions)`.
+  - Review: **PASS**. A number spoken before a command finishes typing fails `sync.voice-after-visual` (tested).
 
 ## Style affinity defaults
 

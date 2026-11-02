@@ -1,7 +1,11 @@
 import {CONTENT, Rect, shrinkRect, W} from './theme';
 import type {LayoutName} from './schema';
 
-export type ItemKind = 'box' | 'note' | 'cache' | 'term' | 'code' | 'commit' | 'db' | 'seq' | 'tree' | 'track' | 'packets' | 'editor' | 'plot';
+export type ItemKind = 'box' | 'note' | 'cache' | 'term' | 'code' | 'commit' | 'db' | 'seq' | 'tree' | 'track' | 'packets' | 'editor' | 'plot' | 'world';
+
+/** Kinds that take the stage region of a layout (the live database, or a registered world): never packed with the board. */
+export const STAGE_KINDS: readonly ItemKind[] = ['db', 'world'];
+export const isStageKind = (k: ItemKind) => STAGE_KINDS.includes(k);
 
 export interface KindSpec {
 	half: boolean; // may share a row with another half item (wide regions only)
@@ -24,6 +28,7 @@ export const KIND: Record<ItemKind, KindSpec> = {
 	packets: {half: false, pref: 360, min: 220, max: 700},
 	editor: {half: false, pref: 460, min: 240, max: 1200},
 	plot: {half: false, pref: 480, min: 300, max: 1200},
+	world: {half: false, pref: 696, min: 400, max: 2000},
 };
 
 export const ROW_GAP = 44;
@@ -33,11 +38,13 @@ export interface Regions {
 	phone?: Rect;
 	/** board regions in fill order (split uses two) */
 	boards: Rect[];
+	/** the stage: the live database or a world (see STAGE_KINDS) */
 	db?: Rect;
 }
 
 export const PHONE_NATIVE = {w: 360, h: 740};
 
+/** Regions of a layout. `hasDb`: a stage item (database or world) is present. */
 export const regionsFor = (layout: LayoutName, hasDb: boolean, hasBoard: boolean): Regions => {
 	switch (layout) {
 		case 'phone-left+board-right': {
@@ -63,6 +70,8 @@ export const regionsFor = (layout: LayoutName, hasDb: boolean, hasBoard: boolean
 			if (!hasBoard) return {boards: [], db: CONTENT};
 			return {db: top, boards: [bottom]};
 		}
+		// a world fills the content area; board items (if any) share a strip at the bottom, as with the database
+		case 'world':
 		case 'db-focus':
 		case 'board-full':
 		default: {

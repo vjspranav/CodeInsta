@@ -11,6 +11,8 @@
  *    (frames) from the action's trigger.
  *  - matchToken(v, line): the earliest line token that names v.
  */
+import {worldById, worldOfAction} from './worlds';
+import type {Action} from './schema';
 
 export const SYNC_LEAD_MS = 250; // the scheduler reveals this long before the word
 export const SYNC_MIN_MS = 150; // the QA gate requires at least this much
@@ -294,6 +296,12 @@ export const visualTokens = (a: Record<string, unknown>): VisTok[] => {
 	}
 	if (k === 'define') {
 		textTokens(asStr(a.term ?? a.id), 0, out);
+		return out;
+	}
+	// registered worlds (src/worlds) say what each action shows and when
+	const world = k === 'world.set' ? worldById(a.world) : worldOfAction(k);
+	if (world) {
+		for (const t of world.tokens?.(a as Action) ?? []) textTokens(t.text, t.off, out);
 		return out;
 	}
 	if (k === 'db.table' || k === 'db.result' || k === 'db.insert') {

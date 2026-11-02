@@ -1,0 +1,152 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "Why was my git push rejected?",
+  "topic": "git/push-rejected-fetch-first",
+  "genre": "trace",
+  "style": "terminal",
+  "world": "term.session",
+  "level": "beginner",
+  "tags": ["git", "push", "fetch", "rebase", "remote-tracking-branch"],
+  "cast": [
+    {"id": "priya", "name": "Priya", "role": "Engineer shipping a cart fix", "color": "#E4572E"}
+  ],
+  "glossary": [
+    {"term": "origin/main", "full": "Remote-tracking branch", "note": "Your local copy of the server's main, updated only by fetch or pull."},
+    {"term": "fast-forward", "full": "A push that only moves a branch forward", "note": "The new commits sit on top of everything the server already has."},
+    {"term": "rebase", "full": "Replay your commits on top of another branch", "note": "git pull --rebase puts local commits after the ones just fetched."}
+  ],
+  "key_points": [
+    "git status compares with origin/main, your last fetched copy, not the server.",
+    "A push may only fast-forward: it never drops commits a teammate pushed.",
+    "Rejected? Fetch, look at what arrived, rebase on top, push again."
+  ],
+  "sources": [
+    "https://git-scm.com/docs/git-push#_note_about_fast_forwards",
+    "https://git-scm.com/docs/git-status",
+    "https://git-scm.com/docs/git-fetch",
+    "https://git-scm.com/docs/git-pull#Documentation/git-pull.txt---rebasefalsetruemergesinteractive"
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "Friday evening. Priya's cart fix is committed. One push, and the weekend starts.",
+      "visuals": [
+        {"do": "world.set", "world": "term.session", "cwd": "~/shop", "prompt": "{cwd} %", "title": "zsh: ~/shop"},
+        {"do": "term.run", "at": 0.35, "cmd": "git push origin main", "wait_ms": 500, "exit": 1, "out": [
+          "To github.com:acme/shop.git",
+          {"text": " ! [rejected]        main -> main (fetch first)", "tone": "err"},
+          "error: failed to push some refs to 'github.com:acme/shop.git'",
+          {"text": "hint: Updates were rejected because the remote contains work that you do not", "tone": "warn"},
+          {"text": "hint: have locally. This is usually caused by another repository pushing to", "tone": "warn"},
+          {"text": "hint: the same ref. If you want to integrate the remote changes, use", "tone": "warn"},
+          {"text": "hint: 'git pull' before pushing again.", "tone": "warn"}
+        ]}
+      ]
+    },
+    {
+      "speaker": "priya",
+      "text": "Rejected? Exit code one. It says fetch first, but I pulled this morning.",
+      "visuals": [
+        {"do": "term.highlight", "at": 0.45, "match": "(fetch first)"}
+      ]
+    },
+    {
+      "speaker": "priya",
+      "text": "And status agrees with me. My branch is ahead by one commit.",
+      "visuals": [
+        {"do": "term.highlight", "off": true},
+        {"do": "term.run", "cmd": "git status", "out": [
+          "On branch main",
+          "Your branch is ahead of 'origin/main' by 1 commit.",
+          "  (use \"git push\" to publish your local commits)",
+          "",
+          "nothing to commit, working tree clean"
+        ]}
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Ahead of what, though? Ahead of origin slash main.",
+      "visuals": [
+        {"do": "term.highlight", "match": "ahead of 'origin/main'"}
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "That is not the server. It is Priya's local copy of the server's branch, a remote-tracking branch.",
+      "visuals": [
+        {"do": "define", "term": "origin/main", "at": 0.55}
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Git status never asks the server. Its copy is only as fresh as her last fetch, this morning.",
+      "visuals": []
+    },
+    {
+      "speaker": "priya",
+      "text": "So the server may have moved. Let me ask it, quietly.",
+      "visuals": [
+        {"do": "term.clear"},
+        {"do": "term.run", "cmd": "git fetch -q"}
+      ]
+    },
+    {
+      "speaker": "priya",
+      "text": "Now status says diverged. One commit each side.",
+      "visuals": [
+        {"do": "term.run", "cmd": "git status", "out": [
+          "On branch main",
+          "Your branch and 'origin/main' have diverged,",
+          "and have 1 and 1 different commits each, respectively.",
+          "  (use \"git pull\" if you want to integrate the remote branch with yours)"
+        ]},
+        {"do": "term.highlight", "at": "end", "match": "have diverged"}
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Whose commit? The log can list what the server has and her main does not.",
+      "visuals": [
+        {"do": "term.highlight", "off": true},
+        {"do": "term.run", "at": 0.3, "cmd": "git log --format='%an: %s' main..origin/main", "out": ["Sam: Add rate limit"]}
+      ]
+    },
+    {
+      "speaker": "priya",
+      "text": "Sam pushed his rate limit. If git took my push, his commit would vanish from main.",
+      "visuals": [
+        {"do": "term.highlight", "match": "Sam: Add rate limit"}
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "That is the rule. A normal push may only fast-forward the branch, never drop work someone else pushed.",
+      "visuals": [
+        {"do": "define", "term": "fast-forward", "at": 0.5}
+      ]
+    },
+    {
+      "speaker": "priya",
+      "text": "Then my commit goes on top of his. Pull with rebase.",
+      "visuals": [
+        {"do": "term.highlight", "off": true},
+        {"do": "term.run", "cmd": "git pull --rebase", "out": ["Successfully rebased and updated refs/heads/main."]},
+        {"do": "define", "term": "rebase", "at": 0.6}
+      ]
+    },
+    {
+      "speaker": "priya",
+      "text": "And push again. Quiet mode prints nothing, so watch the status bar.",
+      "visuals": [
+        {"do": "term.run", "cmd": "git push -q origin main", "wait_ms": 400}
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Exit zero. Next rejection: fetch, look at what arrived, rebase on top. Never force over a teammate.",
+      "visuals": []
+    }
+  ]
+}

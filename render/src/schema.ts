@@ -1,5 +1,6 @@
 import {z} from 'zod';
 import {DEFAULT_STYLE, STYLE_IDS} from './styles';
+import {PRIMARY_WORLD_IDS, registryProblems, WORLD_ACTION_KINDS, WORLD_IDS, WORLD_SET, worldById, worldOfAction} from './worlds';
 
 /**
  * Script schema v3 ("Story mode"), see docs/coordination/decisions.md -> "Reels v3".
@@ -43,6 +44,8 @@ export const ACTION_KINDS = [
 	'layout',
 	'clear',
 	'focus',
+	// puts a registered world (src/worlds) on screen as the primary scene: {do: "world.set", world: "<id>", ...}
+	'world.set',
 ] as const;
 
 export const LAYOUTS = [
@@ -50,11 +53,23 @@ export const LAYOUTS = [
 	'board-full',
 	'db-focus',
 	'split',
+	// a world fills the content area (world.set opens it; board items share a strip at the bottom)
+	'world',
 ] as const;
+
+/** Built-in action kinds plus every registered world's own kinds (src/worlds/index.ts). */
+export const ALL_ACTION_KINDS = [...ACTION_KINDS, ...WORLD_ACTION_KINDS] as [string, ...string[]];
+{
+	const probs = registryProblems(ACTION_KINDS);
+	if (probs.length) throw new Error(`world registry: ${probs.join('; ')}`);
+}
+
+/** Speakers a script's cast may hold (story-shaped: a solo explainer up to a small ensemble), narrator not counted. */
+export const MAX_CAST = 4;
 
 export const NARRATOR_ID = 'narrator';
 
-export const ActionKindSchema = z.enum(ACTION_KINDS);
+export const ActionKindSchema = z.enum(ALL_ACTION_KINDS);
 export const LayoutSchema = z.enum(LAYOUTS);
 
 export const AtSchema = z.union([
@@ -139,7 +154,8 @@ export const StorySchema = z.object({
 	topic: z.string().min(1),
 	tags: z.array(z.string()).default([]),
 	level: z.string().min(1),
-	cast: z.array(CastMemberSchema),
+	// 0-4 cast members besides the narrator: the story decides (a narrator-led trace, a solo engineer, a pair, an incident room)
+	cast: z.array(CastMemberSchema).max(MAX_CAST, `cast: at most ${MAX_CAST} speakers besides the narrator`),
 	glossary: z.array(GlossaryEntrySchema).default([]),
 	beats: z.array(BeatSchema).min(1),
 	sources: z.array(z.string()).optional(),
@@ -153,6 +169,9 @@ export const StorySchema = z.object({
 	style: StyleSchema.default(DEFAULT_STYLE as never).optional(),
 	// explicit expectations checked by verify.ts on top of the derived ones
 	expect: z.array(ExpectSchema).optional(),
+	// the reel's primary world: a registered world id (src/worlds) or "phone" / "db". Declaring it opts the
+	// script into the variety gate (world.primary, notes.share, signature); every new reel declares one.
+	world: z.string().min(1).optional(),
 });
 
 /** Per-line audio clip as produced by the TTS step. */
@@ -268,6 +287,45 @@ export const validateStory = (input: unknown): ValidationResult => {
 		});
 		for (const a of b.visuals) if (typeof (a as Record<string, unknown>).id === 'string') seenIds.add((a as Record<string, unknown>).id as string);
 	});
+	// worlds: known ids, per-action validation by the world, and world actions only while their world is on screen
+	if (story.world !== undefined && !PRIMARY_WORLD_IDS.includes(story.world)) {
+		errors.push(`world: "${story.world}" is not a registered world (${PRIMARY_WORLD_IDS.join(' | ')})`);
+	}
+	let onScreen: string | undefined;
+	const setWorlds = new Set<string>();
+	story.beats.forEach((b, i) => {
+		b.visuals.forEach((a, j) => {
+			const rec = a as Record<string, unknown>;
+			const at = `beats.${i}.visuals.${j}`;
+			if (a.do === WORLD_SET) {
+				const w = worldById(rec.world);
+				if (!w) {
+					errors.push(`${at}: world.set needs "world" in ${WORLD_IDS.join(' | ') || '(no worlds registered)'}`);
+					onScreen = undefined;
+					return;
+				}
+				for (const e of w.validate(a as Action, {story, beat: i, index: j})) errors.push(`${at}: ${e}`);
+				onScreen = w.id;
+				setWorlds.add(w.id);
+				return;
+			}
+			if (a.do === 'layout') {
+				if (rec.template === 'world') errors.push(`${at}: the world layout is opened by world.set, not by layout`);
+				onScreen = undefined;
+			}
+			if (onScreen && /^(phone|db)\./.test(a.do)) errors.push(`${at}: ${a.do} cannot share the ${onScreen} world's scene (a world takes the whole stage); use a layout first`);
+			const w = worldOfAction(a.do);
+			if (!w) return;
+			if (onScreen !== w.id) errors.push(`${at}: ${a.do} needs the ${w.id} world on screen: add {"do": "world.set", "world": "${w.id}"} first (a layout leaves the world)`);
+			for (const e of w.validate(a as Action, {story, beat: i, index: j})) errors.push(`${at}: ${e}`);
+		});
+	});
+	if (story.world && worldById(story.world) && !setWorlds.has(story.world)) {
+		errors.push(`world: the script declares "${story.world}" as its primary world but never puts it on screen (world.set)`);
+	}
+	for (const c of story.cast) {
+		if (!story.beats.some((b) => b.speaker === c.id)) warnings.push(`cast.${c.id}: never speaks (shape the cast by the story; drop silent members)`);
+	}
 	if (story.beats[0] && story.beats[0].visuals.length === 0) {
 		errors.push('beats.0.visuals: the first beat must have at least one visual (later beats may inherit the previous scene)');
 	}
