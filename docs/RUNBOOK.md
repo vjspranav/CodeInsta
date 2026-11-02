@@ -83,6 +83,7 @@ Without them, the run prepares everything, writes "waiting for OWNER approval: <
 - [ ] E4. All other screens plus notifications.
 - [ ] E5. Widgets (Android Glance incl. Flip cover screen; iOS WidgetKit).
 - [ ] E6. iOS build plus SideStore.
+  - progress (2026-11-02): unsigned IPA builds (scripts/mobile/build-ipa.sh, 15 MB, widget.appex inside; about 6.5 min with prebuild); the simulator build links. docs/mobile/README.md written. Release keystore made (key file backed up to iCloud Drive CodeInsta-backup; its password only in .env.local). Firebase google-services.json wired into Android builds. Next: owner installs via SideStore (O4), O6 Expo account for OTA and the FCM key upload.
 - [ ] E7. Maestro end-to-end QA gate; install on the owner's phone.
   - owner (2026-11-02): no Expo branding in the final app; after the first final version is installed the owner turns off developer settings, so later updates go over the air (O6 EAS project first). Native changes after that ship as a sideloaded APK.
 ### F. After launch

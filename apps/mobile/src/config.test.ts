@@ -32,6 +32,21 @@ describe("app.config.ts", () => {
     expect(config.android.package).toBe("dev.vjspranav.codeinsta");
   });
 
+  it("reads ios.appleTeamId from APPLE_TEAM_ID", () => {
+    const prev = process.env.APPLE_TEAM_ID;
+    try {
+      delete process.env.APPLE_TEAM_ID;
+      const without = resolve({ config: {} });
+      expect(without.ios.appleTeamId).toBeUndefined();
+      process.env.APPLE_TEAM_ID = "ABCDE12345";
+      const withTeam = resolve({ config: {} });
+      expect(withTeam.ios.appleTeamId).toBe("ABCDE12345");
+    } finally {
+      if (prev === undefined) delete process.env.APPLE_TEAM_ID;
+      else process.env.APPLE_TEAM_ID = prev;
+    }
+  });
+
   it("enables the New Architecture", () => {
     expect(config.newArchEnabled).toBe(true);
   });
