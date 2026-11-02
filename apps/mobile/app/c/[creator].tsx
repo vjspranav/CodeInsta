@@ -10,6 +10,9 @@ import { Screen } from "@/ui/Screen";
 import { EmptyState } from "@/ui/EmptyState";
 import { CatalogState, SectionHeader } from "@/ui/SectionHeader";
 import { ReelTile } from "@/ui/ReelTile";
+import { CreatorAvatar } from "@/ui/CreatorAvatar";
+import { View } from "react-native";
+import { tokens } from "@/theme/tokens";
 export default function CreatorPage() {
     const { status } = useAuth();
     const route = routeForStatus(status);
@@ -32,6 +35,7 @@ function CreatorContent() {
         : <FlashList data={reels} numColumns={2}
         keyExtractor={item => item.id}
         ListHeaderComponent={<>
+        <View style={{ paddingTop: tokens.space[4] }}><CreatorAvatar creatorId={creator.id} size={tokens.layout.headerHeight + tokens.space[5]}/></View>
         <SectionHeader title={creator.display_name} subtitle={creator.handle}/>
         <SectionHeader title={`${reels.length} reels`} subtitle={creator.bio}/>
         </>}

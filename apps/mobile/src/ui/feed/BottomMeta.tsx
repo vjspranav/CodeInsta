@@ -1,11 +1,11 @@
 import { memo, useCallback, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { Image } from "expo-image";
 import type { Creator, MobileReel } from "@shared/types";
 
 import type { Rect } from "@/feed/layout";
 import { tokens } from "@/theme/tokens";
 import { PressableScale } from "@/ui/motion/PressableScale";
+import { CreatorAvatar } from "@/ui/CreatorAvatar";
 import { NextPartCard } from "./NextPartCard";
 import { overlayTextShadow, textStyle } from "./styles";
 
@@ -46,20 +46,7 @@ function BottomMetaImpl({ rect, screenHeight, textWidth, reel, creator, next, on
     >
       {next ? <NextPartCard partIndex={next.series_index} onPress={() => onNextPart(next)} /> : null}
       <View style={styles.creator}>
-        {creator?.avatar_url ? (
-          <Image
-            source={{ uri: creator.avatar_url }}
-            style={styles.avatar}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            transition={0}
-            recyclingKey={creator.id}
-          />
-        ) : (
-          <View style={[styles.avatar, styles.avatarFallback]}>
-            <Text style={styles.avatarInitial}>{handle.slice(0, 1).toUpperCase()}</Text>
-          </View>
-        )}
+        <CreatorAvatar creatorId={reel.creator_id} size={AVATAR} />
         <Text style={styles.handle} numberOfLines={1}>
           {handle}
         </Text>
@@ -92,9 +79,6 @@ const styles = StyleSheet.create({
     gap: tokens.space[2],
   },
   creator: { flexDirection: "row", alignItems: "center", gap: tokens.space[2] },
-  avatar: { width: AVATAR, height: AVATAR, borderRadius: tokens.radius.pill, backgroundColor: tokens.color.surfaceRaised },
-  avatarFallback: { alignItems: "center", justifyContent: "center" },
-  avatarInitial: { ...textStyle("meta"), color: tokens.color.text, fontWeight: "700" },
   handle: { ...textStyle("bodySmall"), ...overlayTextShadow, color: tokens.color.text, fontWeight: "700", flexShrink: 1 },
   badge: {
     paddingHorizontal: tokens.space[2],

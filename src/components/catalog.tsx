@@ -2,7 +2,8 @@
 import Link from "next/link";
 import { ArrowUpRight, ChevronRight, ClipboardCheck, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
-import { Avatar, LoadState, useData, type ReelRow } from "./data";
+import { LoadState, useData, type ReelRow } from "./data";
+import { CreatorAvatar } from "./creator-avatar";
 import { signOut } from "@/app/login/actions";
 export function ReelGrid({ reels }: { reels: ReelRow[] }) {
   return (
@@ -104,7 +105,7 @@ export function Profiles({ creatorId }: { creatorId?: string }) {
         </header>
         {creators.map((c) => (
           <Link className="profile-card" key={c.id} href={`/c/${c.id}`}>
-            <Avatar creator={c} />
+            <CreatorAvatar creatorId={c.id} />
             <div>
               <h2>{c.display_name}</h2>
               <p>{c.handle}</p>
@@ -141,7 +142,7 @@ export function Profiles({ creatorId }: { creatorId?: string }) {
   return (
     <main className="content-page">
       <header className="profile-header">
-        <Avatar creator={creator} />
+        <CreatorAvatar creatorId={creator.id} />
         <h1>{creator.display_name}</h1>
         <p>{creator.handle}</p>
         <p className="muted">{creator.bio}</p>

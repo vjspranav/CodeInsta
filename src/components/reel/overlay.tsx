@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, Heart, ThumbsDown, MessageCircle, Pause, Play, Volume2, VolumeX } from "lucide-react";
-import { Avatar, useData, type ReelRow } from "../data";
+import { useData, type ReelRow } from "../data";
+import { CreatorAvatar } from "../creator-avatar";
 import { Feedback } from "./feedback";
 import { zoneStyle, zoneStyleGrowUp } from "./overlay-zones";
 
@@ -48,7 +49,7 @@ export function ReelOverlay({ reel, next, unlocked, muted, paused, done, sheet, 
       <div className="reel-meta" style={video ? zoneStyleGrowUp("bottomMeta") : undefined}>
         <div className={video ? "meta-card" : undefined}>
         <Link className="creator-link" href={`/c/${reel.creator_id}`}>
-          <Avatar creator={creator} />
+          <CreatorAvatar creatorId={reel.creator_id} />
           <strong>{creator?.handle ?? reel.creator_id}</strong>
           <span className="creator-badge">
             {reel.creator_id === "gpt" ? "Build & debug" : "Under the hood"}
