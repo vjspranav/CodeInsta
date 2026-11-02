@@ -270,3 +270,8 @@
 ## 2026-11-02 Reels B2 moves to Claude subagents
 - Owner asked for subagents on the reels as well. Codex brief 40 (scene worlds plus the variety gate) moves from the Codex queue to Claude subagents, as a recorded stand-in. Codex is out of usage until 12:41, and its queue (34, 35, 36) is app work.
 - Order: a foundation agent builds the world framework, term.session as the reference world, and the variety gate. Then the other 7 worlds run in parallel, one agent per pair. A planning agent drafts the B3 rewrite plan for the 30 remakes in the meantime.
+
+## 2026-11-02 Reels split between Claude and Codex (owner: "it doesn't have to be all or none")
+- Replaces the "all to Claude" part of the entry above. The foundation (world framework, term.session, variety gate) stays with the Claude agent already running.
+- Worlds after the foundation: Claude builds debugger, memgrid and netmap. Codex builds browser.network, incident, review and device.boot, as queue briefs on the foundation's contract, run in parallel with Codex's app briefs.
+- B3 rewrites: Codex rewrites content/remake/gpt/* (the GPT creator voice). Claude rewrites content/remake/claude/*. Both follow content/remake/B3-plan.md.
