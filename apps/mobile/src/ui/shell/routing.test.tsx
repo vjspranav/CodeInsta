@@ -54,7 +54,7 @@ async function open(status: string) {
   mockAuth.status = status;
   const view = await renderMotion(<RootLayout />);
   // The startup gate holds the logo for its settle time, then reveals the app.
-  await waitFor(() => expect(screen.queryByText(/^route:/)).toBeTruthy(), { timeout: 4000 });
+  await waitFor(() => expect(screen.queryAllByText(/^route:/).length).toBeGreaterThan(0), { timeout: 4000 });
   return view;
 }
 
@@ -71,7 +71,8 @@ describe("root layout auth gate", () => {
     ["ready", "(tabs)"],
   ])("%s admits only the %s route", async (status, route) => {
     await open(status);
-    expect(screen.getAllByText(/^route:/)).toHaveLength(1);
+    // The ready group also holds the reel/[id] deep link route.
+    expect(screen.getAllByText(/^route:/)).toHaveLength(status === "ready" ? 2 : 1);
     expect(screen.getByText(`route:${route}`)).toBeTruthy();
     expect(routeForStatus(status as never)).toBe(route);
   });

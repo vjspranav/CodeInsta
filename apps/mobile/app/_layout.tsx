@@ -44,6 +44,7 @@ function RootNavigator() {
         </Stack.Protected>
         <Stack.Protected guard={status === "ready"}>
           <Stack.Screen name="(tabs)" options={fade} />
+          <Stack.Screen name="reel/[id]" />
         </Stack.Protected>
       </Stack>
     </>
