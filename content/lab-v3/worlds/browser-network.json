@@ -1,0 +1,254 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "Slow, cached, or blocked?",
+  "topic": "networking/devtools-waterfall",
+  "genre": "trace",
+  "style": "blueprint",
+  "world": "browser.network",
+  "level": "intermediate",
+  "tags": [
+    "browser",
+    "network",
+    "cache",
+    "cors"
+  ],
+  "cast": [],
+  "glossary": [
+    {
+      "term": "TTFB",
+      "full": "Time To First Byte",
+      "note": "Waiting includes network round-trip time and server response preparation."
+    },
+    {
+      "term": "CORS",
+      "full": "Cross-Origin Resource Sharing",
+      "note": "Response headers control whether browser code may read a cross-origin response."
+    }
+  ],
+  "key_points": [
+    "A long wait for the first byte is different from a long download.",
+    "304 validates a stored response; a memory-cache hit avoids that round trip.",
+    "A CORS failure can block script access even when a server responds."
+  ],
+  "sources": [
+    "https://developer.chrome.com/docs/devtools/network/reference",
+    "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/304",
+    "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS/Errors/CORSMissingAllowOrigin"
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "A page feels slow. Open Network. These timings are illustrative, not a production capture.",
+      "visuals": [
+        {
+          "do": "world.set",
+          "world": "browser.network",
+          "url": "https://shop.example"
+        },
+        {
+          "do": "net.request",
+          "key": "page",
+          "name": "/",
+          "status": 200,
+          "timing": {
+            "dns": 20,
+            "connect": 30,
+            "tls": 40,
+            "ttfb": 800,
+            "download": 20
+          },
+          "headers": [
+            {
+              "name": "Accept",
+              "value": "text/html",
+              "dir": "req"
+            },
+            {
+              "name": "Content-Type",
+              "value": "text/html"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Five segments: lookup, connect, encrypt, wait, download. Look at the long one: waiting for the first byte.",
+      "visuals": [
+        {
+          "do": "net.select",
+          "key": "page"
+        },
+        {
+          "do": "net.focus",
+          "phase": "ttfb"
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Time to first byte covers the network round trip and server work. A long wait alone cannot prove a slow database.",
+      "visuals": []
+    },
+    {
+      "speaker": "narrator",
+      "text": "Now encryption. The browser pays it once per new connection, so later requests on it show zero here.",
+      "visuals": [
+        {
+          "do": "net.focus",
+          "phase": "tls"
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Next, the stylesheet. The browser holds a copy and asks if it is current, sending its entity tag in If-None-Match.",
+      "visuals": [
+        {
+          "do": "net.request",
+          "key": "css",
+          "name": "app.css",
+          "status": 304,
+          "cache": "revalidated",
+          "start_ms": 910,
+          "timing": {
+            "dns": 0,
+            "connect": 0,
+            "tls": 0,
+            "ttfb": 60,
+            "download": 0
+          },
+          "headers": [
+            {
+              "name": "If-None-Match",
+              "value": "\"v1\"",
+              "dir": "req"
+            },
+            {
+              "name": "ETag",
+              "value": "\"v1\""
+            },
+            {
+              "name": "Cache-Control",
+              "value": "no-cache"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Three-oh-four: not modified. No body is sent, and the browser reuses its stored copy after one short round trip.",
+      "visuals": [
+        {
+          "do": "net.select",
+          "key": "css"
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "The logo comes from memory cache. While that response is fresh, no request leaves the browser.",
+      "visuals": [
+        {
+          "do": "net.request",
+          "key": "logo",
+          "name": "logo.svg",
+          "status": 200,
+          "cache": "memory",
+          "start_ms": 930,
+          "timing": {
+            "dns": 0,
+            "connect": 0,
+            "tls": 0,
+            "ttfb": 0,
+            "download": 0
+          },
+          "headers": [
+            {
+              "name": "Cache-Control",
+              "value": "max-age=3600"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "One cross-origin fetch turns red. Cross-Origin Resource Sharing decides whether page script may read a response.",
+      "visuals": [
+        {
+          "do": "net.request",
+          "key": "api",
+          "name": "api.example/cart",
+          "error": "CORS blocked",
+          "start_ms": 970,
+          "timing": {
+            "dns": 10,
+            "connect": 20,
+            "tls": 30,
+            "ttfb": 80,
+            "download": 0
+          },
+          "headers": [
+            {
+              "name": "Origin",
+              "value": "https://shop.example",
+              "dir": "req"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "The response has no Access-Control-Allow-Origin, so the browser hides it from script. The server did answer.",
+      "visuals": [
+        {
+          "do": "net.select",
+          "key": "api"
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "This last request never finishes. It stays pending, with no status and no headers to read.",
+      "visuals": [
+        {
+          "do": "net.request",
+          "key": "orders",
+          "name": "/api/orders",
+          "start_ms": 1000,
+          "duration_ms": 2500,
+          "pending": true,
+          "timing": {
+            "dns": 0,
+            "connect": 0,
+            "tls": 0,
+            "ttfb": 400,
+            "download": 0
+          }
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Select each request before blaming the network. Waiting, cache reuse, blocked reads, and hangs need different fixes.",
+      "visuals": [
+        {
+          "do": "net.select",
+          "key": "page"
+        },
+        {
+          "do": "net.focus",
+          "phase": "ttfb"
+        }
+      ]
+    }
+  ]
+}
