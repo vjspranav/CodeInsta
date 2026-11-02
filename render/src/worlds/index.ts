@@ -7,12 +7,14 @@ import type {Action} from '../schema';
 import type {AnyWorld} from './types';
 import type {Item, Timeline, WorldInstance} from '../timeline';
 import {termSession} from './term-session';
+import {netmap} from './netmap';
 
 export type {AnyWorld, WorldEvent, WorldModule, WorldText, WorldViewProps, WorldValidateCtx} from './types';
 export {defineWorld} from './types';
 
 export const WORLDS: AnyWorld[] = [
 	termSession,
+	netmap,
 	// add new worlds here, one line each
 ];
 

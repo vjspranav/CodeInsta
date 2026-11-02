@@ -1,0 +1,472 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "Who leads after the partition?",
+  "topic": "distributed/raft-leader-election-partition",
+  "genre": "trace",
+  "style": "blueprint",
+  "world": "netmap",
+  "level": "intermediate",
+  "tags": [
+    "raft",
+    "consensus",
+    "leader-election",
+    "partition",
+    "distributed-systems"
+  ],
+  "cast": [
+    {
+      "id": "ana",
+      "name": "Ana",
+      "role": "On-call engineer",
+      "color": "#2F6F8F"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "term",
+      "full": "Raft's election epoch",
+      "note": "A number that grows by one whenever a server starts an election; a higher term always wins."
+    },
+    {
+      "term": "election timeout",
+      "full": "How long a follower waits for a heartbeat",
+      "note": "Chosen at random, 150 to 300 ms in the paper; a heartbeat resets it."
+    },
+    {
+      "term": "majority",
+      "full": "More than half of the servers",
+      "note": "Two of three. A candidate needs one to win, and a leader needs one to commit."
+    }
+  ],
+  "key_points": [
+    "A follower that hears no heartbeat before its election timeout becomes a candidate in a higher term.",
+    "A candidate needs votes from a majority; each server votes once per term.",
+    "A leader that sees a higher term steps down. An isolated old leader cannot commit."
+  ],
+  "sources": [
+    "https://raft.github.io/raft.pdf",
+    "https://raft.github.io/"
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "A small Raft cluster. S1 is the leader and wears the crown; S2 and S3 are followers.",
+      "visuals": [
+        {
+          "do": "world.set",
+          "world": "netmap",
+          "title": "raft cluster",
+          "nodes": [
+            {
+              "id": "s1",
+              "label": "S1",
+              "kind": "server",
+              "x": 0.12,
+              "y": 0.5
+            },
+            {
+              "id": "s2",
+              "label": "S2",
+              "kind": "server",
+              "x": 0.88,
+              "y": 0.02
+            },
+            {
+              "id": "s3",
+              "label": "S3",
+              "kind": "server",
+              "x": 0.88,
+              "y": 0.98
+            }
+          ],
+          "links": [
+            {
+              "a": "s1",
+              "b": "s2"
+            },
+            {
+              "a": "s1",
+              "b": "s3"
+            },
+            {
+              "a": "s2",
+              "b": "s3"
+            }
+          ]
+        },
+        {
+          "do": "nm.role",
+          "at": 0.45,
+          "node": "s1",
+          "role": "leader",
+          "term": 1
+        },
+        {
+          "do": "nm.role",
+          "at": 0.75,
+          "node": "s2",
+          "role": "follower",
+          "term": 1
+        },
+        {
+          "do": "nm.role",
+          "at": 0.78,
+          "node": "s3",
+          "role": "follower",
+          "term": 1
+        },
+        {
+          "do": "nm.stat",
+          "at": 0.8,
+          "id": "term",
+          "label": "max term",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "The leader sends heartbeats, AppendEntries messages with no entries. Each one refills a follower's election timer.",
+      "visuals": [
+        {
+          "do": "nm.timer",
+          "at": 0.05,
+          "node": "s2",
+          "ms": 9300,
+          "label": "150 ms"
+        },
+        {
+          "do": "nm.timer",
+          "at": 0.05,
+          "node": "s3",
+          "ms": 20000,
+          "label": "299 ms"
+        },
+        {
+          "do": "nm.send",
+          "at": 0.12,
+          "from": "s1",
+          "to": "s2",
+          "kind": "AppendEntries",
+          "resets": true
+        },
+        {
+          "do": "nm.send",
+          "at": 0.14,
+          "from": "s1",
+          "to": "s3",
+          "kind": "AppendEntries",
+          "resets": true
+        }
+      ]
+    },
+    {
+      "speaker": "ana",
+      "text": "In the paper each timer is random, between 150 and 300 milliseconds.",
+      "visuals": [
+        {
+          "do": "define",
+          "term": "election timeout",
+          "at": 0.2
+        },
+        {
+          "do": "nm.send",
+          "at": 0.3,
+          "from": "s1",
+          "to": "s2",
+          "kind": "AppendEntries",
+          "resets": true
+        },
+        {
+          "do": "nm.send",
+          "at": 0.3,
+          "from": "s1",
+          "to": "s3",
+          "kind": "AppendEntries",
+          "resets": true
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Now a partition cuts S1 off from the other two.",
+      "visuals": [
+        {
+          "do": "nm.send",
+          "at": 0.05,
+          "from": "s1",
+          "to": "s2",
+          "kind": "AppendEntries",
+          "resets": true
+        },
+        {
+          "do": "nm.send",
+          "at": 0.05,
+          "from": "s1",
+          "to": "s3",
+          "kind": "AppendEntries",
+          "resets": true
+        },
+        {
+          "do": "nm.partition",
+          "at": 0.3,
+          "groups": [
+            [
+              "s1"
+            ],
+            [
+              "s2",
+              "s3"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "S1 does not know. It keeps sending heartbeats that go nowhere.",
+      "visuals": [
+        {
+          "do": "nm.log",
+          "at": 0.1,
+          "node": "s1",
+          "text": "term 1: leader, heartbeat sent"
+        },
+        {
+          "do": "nm.send",
+          "at": 0.25,
+          "from": "s1",
+          "to": "s2",
+          "kind": "AppendEntries"
+        },
+        {
+          "do": "nm.send",
+          "at": 0.27,
+          "from": "s1",
+          "to": "s3",
+          "kind": "AppendEntries"
+        }
+      ]
+    },
+    {
+      "speaker": "ana",
+      "text": "S2 and S3 hear silence, so their timers run down. S2's runs out first.",
+      "visuals": [
+        {
+          "do": "nm.log",
+          "at": 0.7,
+          "node": "s2",
+          "text": "no heartbeat, timeout",
+          "tone": "warn"
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "S2 adds one to its term, votes for itself, and becomes a candidate.",
+      "visuals": [
+        {
+          "do": "nm.role",
+          "at": 0.12,
+          "node": "s2",
+          "role": "candidate",
+          "term": 2
+        },
+        {
+          "do": "nm.timer",
+          "at": 0.12,
+          "node": "s2",
+          "ms": 16000,
+          "label": "170 ms"
+        },
+        {
+          "do": "nm.log",
+          "at": 0.5,
+          "node": "s2",
+          "text": "term 2: candidate, voted for self"
+        },
+        {
+          "do": "nm.stat",
+          "at": 0.5,
+          "id": "term",
+          "label": "max term",
+          "value": 2
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "It asks S3 and S1 for votes with RequestVote.",
+      "visuals": [
+        {
+          "do": "nm.send",
+          "at": 0.2,
+          "from": "s2",
+          "to": "s3",
+          "kind": "RequestVote"
+        },
+        {
+          "do": "nm.send",
+          "at": 0.24,
+          "from": "s2",
+          "to": "s1",
+          "kind": "RequestVote"
+        }
+      ]
+    },
+    {
+      "speaker": "ana",
+      "text": "S3 has not voted in term 2, so it says yes. That is two of three, a majority.",
+      "visuals": [
+        {
+          "do": "nm.role",
+          "at": 0.0,
+          "node": "s3",
+          "term": 2
+        },
+        {
+          "do": "nm.timer",
+          "at": 0.0,
+          "node": "s3",
+          "ms": 20000,
+          "label": "299 ms"
+        },
+        {
+          "do": "nm.log",
+          "at": 0.1,
+          "node": "s3",
+          "text": "term 2: voted for S2"
+        },
+        {
+          "do": "nm.send",
+          "at": 0.12,
+          "from": "s3",
+          "to": "s2",
+          "kind": "VoteGranted"
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "S2 wins and takes the crown for term 2.",
+      "visuals": [
+        {
+          "do": "nm.role",
+          "at": 0.35,
+          "node": "s2",
+          "role": "leader",
+          "term": 2
+        },
+        {
+          "do": "nm.timer",
+          "at": 0.35,
+          "node": "s2",
+          "off": true
+        },
+        {
+          "do": "nm.log",
+          "at": 0.4,
+          "node": "s2",
+          "text": "term 2: won, leader",
+          "tone": "ok"
+        }
+      ]
+    },
+    {
+      "speaker": "ana",
+      "text": "S1 still wears its old crown, but it can reach no majority, so it can commit nothing.",
+      "visuals": [
+        {
+          "do": "nm.send",
+          "at": 0.1,
+          "from": "s2",
+          "to": "s3",
+          "kind": "AppendEntries",
+          "resets": true
+        },
+        {
+          "do": "nm.send",
+          "at": 0.12,
+          "from": "s2",
+          "to": "s1",
+          "kind": "AppendEntries"
+        },
+        {
+          "do": "nm.focus",
+          "at": 0.4,
+          "node": "s1"
+        },
+        {
+          "do": "nm.log",
+          "at": 0.45,
+          "node": "s1",
+          "text": "no majority, cannot commit",
+          "tone": "err"
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Then the cable comes back.",
+      "visuals": [
+        {
+          "do": "nm.focus",
+          "at": 0.0,
+          "off": true
+        },
+        {
+          "do": "nm.heal",
+          "at": 0.3
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "S2's heartbeat carries term 2. S1 sees the higher term and steps down.",
+      "visuals": [
+        {
+          "do": "nm.send",
+          "at": 0.05,
+          "from": "s2",
+          "to": "s1",
+          "kind": "AppendEntries"
+        },
+        {
+          "do": "nm.send",
+          "at": 0.07,
+          "from": "s2",
+          "to": "s3",
+          "kind": "AppendEntries",
+          "resets": true
+        },
+        {
+          "do": "nm.role",
+          "at": 0.3,
+          "node": "s1",
+          "role": "follower",
+          "term": 2
+        },
+        {
+          "do": "nm.log",
+          "at": 0.35,
+          "node": "s1",
+          "text": "saw term 2, stepped down",
+          "tone": "ok"
+        },
+        {
+          "do": "nm.timer",
+          "at": 0.35,
+          "node": "s1",
+          "ms": 9000,
+          "label": "230 ms"
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "One leader per term, a majority to win it, and the higher term always wins.",
+      "visuals": []
+    }
+  ]
+}
