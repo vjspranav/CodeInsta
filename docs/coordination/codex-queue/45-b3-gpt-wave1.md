@@ -1,0 +1,14 @@
+# B3 wave 1: rewrite 6 GPT remakes on the new worlds
+Runbook: B3
+
+You are Codex, running headless in /Users/vjspranav/Projects/CodeInsta, dispatched by the Claude Code orchestrator. You are the GPT creator ("build it, break it, debug it": hands-on tooling, commands, real output). By owner decision (decisions.md 2026-11-02 "Reels split between Claude and Codex") you rewrite the GPT remakes in content/remake/gpt/.
+
+Hard rules: do NOT git commit, push, switch branches or reset. Do NOT publish, deploy or touch production; never run `npm run agent -- publish` without `--dry-run`, and do not spend Gemini TTS quota: use the silent fixture-audio path (`render/make-audio.mjs` as described in render/src/worlds/README.md) for every render check. Never print .env.local. No emojis anywhere. Do not install packages or edit package.json or lockfiles. Other agents (Claude and Codex) are adding other worlds to the same registry at the same time: stay inside your own files, and when you add your ONE line to `WORLDS` in render/src/worlds/index.ts, re-read the file immediately before editing and change only that line, keeping every other entry. You only edit the six scripts listed below.
+
+Read first: content/remake/B3-plan.md (sections 0, 6-10, 13 and 14: the plan for each reel), docs/reels/RULES.md, docs/reels/GENRES.md, render/src/worlds/README.md, render/src/worlds/term-session/** (actions available), content/lab-v3/worlds/term-session.json (a reel on the new world that passes the gate), the phone/db actions in render/src/schema.ts, and content/launch/instagram-feed-part1.json.
+
+Rewrite these six in place, following B3-plan.md for each (primary world, hook, signature micro-interaction, cast of 1 to 4 speakers): dbops-01, dbops-02, fail-01, sys-01, copt-01, boot-02 (the plan gives each file name). Each script must declare its top-level `"world"`, so the variety gate applies, and keep its series order and part numbers.
+
+Facts: never invent facts, commands, output, commits or numbers. Terminal output must be real: run the command locally where it is safe and read-only (for example sqlite3, psql --version, strace on a harmless command, gcc -O2 -S on a small file you write in a temp directory, never anything that changes the system or needs sudo), and paste the real output trimmed. Where you cannot capture it, label it illustrative in the beat, as B3-plan.md section 14 says. Keep the sources list accurate.
+
+ACCEPTANCE: each of the six passes `cd render && npx tsx verify.ts <script> <manifest>` with stills on silent audio, including world.primary, notes.share and signature; schema validation passes; `cd render && npx vitest run` stays green. Update docs/coordination/codex-status.md (your section only). Final message at most 150 words: per reel, its world, hook and gate result; anything labeled illustrative.

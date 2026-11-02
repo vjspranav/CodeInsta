@@ -1,0 +1,14 @@
+# B2 world: device.boot
+Runbook: B2
+
+You are Codex, running headless in /Users/vjspranav/Projects/CodeInsta, dispatched by the Claude Code orchestrator, standing in for Claude on the Claude-owned renderer (render/**) by owner decision (decisions.md 2026-11-02 "Reels split between Claude and Codex").
+
+Hard rules: do NOT git commit, push, switch branches or reset. Do NOT publish, deploy or touch production; never run `npm run agent -- publish` without `--dry-run`, and do not spend Gemini TTS quota: use the silent fixture-audio path (`render/make-audio.mjs` as described in render/src/worlds/README.md) for every render check. Never print .env.local. No emojis anywhere. Do not install packages or edit package.json or lockfiles. Other agents (Claude and Codex) are adding other worlds to the same registry at the same time: stay inside your own files, and when you add your ONE line to `WORLDS` in render/src/worlds/index.ts, re-read the file immediately before editing and change only that line, keeping every other entry.
+
+Read first: render/src/worlds/README.md (the exact add-a-world steps), render/src/worlds/types.ts (the WorldModule contract), render/src/worlds/term-session/** and render/tests/term-session.test.ts (the reference world: copy its structure, quality bar and test style), docs/reels/RULES.md (V20-V23, Q10-Q12), docs/reels/GENRES.md, docs/coordination/decisions.md ("Reels must not look the same"), and content/launch/instagram-feed-part1.json (the reel the owner loves: live, data-driven, micro-interactions).
+
+Build the world `device.boot` in render/src/worlds/device-boot/: an Android device screen booting (bootloader, kernel, init, zygote, system_server, boot animation stages, a status line), with a logcat stream beside or under it, and failure states such as a boot loop or a verified-boot refusal. It must be full-frame, animated, data-driven beat by beat from the script, deterministic (stateAt is pure), styled through all 6 style themes, inside the overlay safe zones, and declare signature actions. Tests in render/tests/device-boot.test.ts (state, validation, signature, texts/problems), following the term-session tests.
+
+Demo: content/lab-v3/worlds/device-boot.json, 60-75 s, declares `"world": "device.boot"`, real facts only and short real snippets (for example the real init stages with real logcat tags (init, zygote, SystemServer, ActivityManager) and a real AVB message). It must pass `cd render && npx tsx verify.ts <script> <manifest>` (with stills) on silent audio, including world.primary, notes.share and signature.
+
+ACCEPTANCE: `cd render && npx vitest run` green and `npx tsc --noEmit` clean; root `npm test` green; the demo passes the full gate. Update docs/coordination/codex-status.md (your section only). Final message at most 120 words: actions added, signature interactions, test count, demo gate result, anything left.
