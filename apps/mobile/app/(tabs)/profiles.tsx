@@ -1,17 +1,29 @@
-import { Users } from "lucide-react-native";
+import { EnterStagger } from "@/ui/motion/EnterStagger";
+import { FlashList } from "@shopify/flash-list";
+import { Text, View } from "react-native";
+import { Flame } from "lucide-react-native";
+import { useLibrary } from "@/data/library";
+import { useFeedSession } from "@/data/feedSession";
 import { tokens } from "@/theme/tokens";
-import { EmptyState } from "@/ui/EmptyState";
+import { TID } from "@/testids";
 import { Screen } from "@/ui/Screen";
-
-// Placeholder until the Profiles task replaces this screen.
+import { EmptyState } from "@/ui/EmptyState";
+import { CatalogState, SectionHeader } from "@/ui/SectionHeader";
+import { CreatorRow } from "@/ui/CreatorRow";
 export default function Profiles() {
-  return (
-    <Screen bottomInset={false}>
-      <EmptyState
-        title="Profiles"
-        body="The creators behind each series will show up here."
-        icon={<Users color={tokens.color.inkMuted} size={32} />}
-      />
-    </Screen>
-  );
+    const { library, loading, error, reload } = useLibrary();
+    const { streak } = useFeedSession();
+    return <Screen bottomInset={false}>
+        <EnterStagger>
+        <SectionHeader title="Your creators" subtitle="Two perspectives. A deeper understanding."/>
+        </EnterStagger>{streak > 0 ? <View testID={TID['streak-chip']} style={{ flexDirection: 'row', gap: tokens.space[2], alignItems: 'center', paddingBottom: tokens.space[4] }}>
+        <Flame color={tokens.color.inkMuted} size={tokens.space[4]}/>
+        <Text style={{ ...tokens.type.meta, color: tokens.color.ink }}>{streak} day streak</Text>
+        </View> : null}
+ {loading || error ? <CatalogState loading={loading} error={error} reload={reload}/>
+
+        : <FlashList data={library?.creators ?? []}
+        keyExtractor={item => item.id}
+        renderItem={({ item }) => <CreatorRow creator={item}/>}
+        ListEmptyComponent={<EmptyState title="No creators yet" body="The creators behind each series will show up here."/>}/>}</Screen>;
 }
