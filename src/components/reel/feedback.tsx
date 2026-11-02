@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
+import Link from "next/link";
+import { Inbox, X } from "lucide-react";
+import { sentCopy } from "@/app/inbox/asks";
 import { browserDb } from "@/lib/supabase/browser";
 import { DAILY_ASKS, useData, type ReelRow } from "../data";
 
@@ -15,7 +17,7 @@ export function Feedback({
     { userId, isOwner, asksLeft, noteAsked } = useData();
   const [error, setError] = useState(""),
     [pending, setPending] = useState(false),
-    [queued, setQueued] = useState(false);
+    [queued, setQueued] = useState<"dm" | "reel" | null>(null);
   const who = reel.creator_id === "gpt" ? "GPT" : "Claude",
     blocked = asksLeft === 0;
   useEffect(() => {
@@ -33,18 +35,26 @@ export function Feedback({
       {queued ? (
         <div className="ask-done">
           <div className="row">
-            <h2>Queued</h2>
+            <h2>Sent to {who}</h2>
             <button type="button" aria-label="Close" onClick={close}>
               <X />
             </button>
           </div>
-          <p role="status">Queued, usually answered within the hour.</p>
+          <p role="status">{sentCopy(who, queued)}</p>
           {asksLeft !== null && (
             <p className="muted">
               {asksLeft} of {DAILY_ASKS} questions left today
             </p>
           )}
-          <button type="button" className="primary" onClick={close}>
+          <Link
+            className="primary"
+            href={`/inbox?creator=${encodeURIComponent(reel.creator_id)}`}
+            onClick={close}
+          >
+            <Inbox size={20} aria-hidden />
+            Go to Inbox
+          </Link>
+          <button type="button" onClick={close} style={{ width: "100%", marginTop: 8 }}>
             Done
           </button>
         </div>
@@ -76,7 +86,7 @@ export function Feedback({
               return;
             }
             noteAsked();
-            setQueued(true);
+            setQueued(form.get("wants") === "reel" ? "reel" : "dm");
           }}
         >
           <div className="row">

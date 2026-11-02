@@ -1,0 +1,101 @@
+/* Ask tracking in the Inbox. Same tokens as globals.css (--panel, --line, --muted, --accent, --text). */
+.asks {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0 0 0 72px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ask {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.threadAsk {
+  margin: 12px 0 12px 30px;
+}
+.top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.top time {
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.reel {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+.reel span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+a.reel:hover span {
+  text-decoration: underline;
+}
+.body {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.statusRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+}
+.answered {
+  color: var(--accent);
+}
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent);
+  font-size: 13px;
+  min-height: 44px;
+  padding: 0;
+}
+.more {
+  color: var(--accent);
+  font-size: 13px;
+  padding: 0;
+  text-align: left;
+}
+.focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (max-width: 480px) {
+  .asks {
+    padding-left: 0;
+  }
+}

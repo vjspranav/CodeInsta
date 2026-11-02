@@ -1,4 +1,4 @@
-import { fetchThreads, fetchUnreadCount, markThreadRead, sendMessage } from "./inbox";
+import { fetchThreads, fetchUnreadCount, markThreadRead, sendMessage, threadTimeline } from "./inbox";
 
 type Result = { data?: unknown; error?: unknown; count?: number | null };
 type Call = [string, unknown[]];
@@ -149,5 +149,31 @@ describe("fetchUnreadCount", () => {
   it("is 0 on error", async () => {
     mockFrom.mockReturnValue(builder({ count: null, error: { message: "x" } }).proxy);
     expect(await fetchUnreadCount()).toBe(0);
+  });
+});
+
+describe("threadTimeline", () => {
+  const ask = (id: string, creatorId: string, createdAt: string) => ({
+    id,
+    creatorId,
+    reelId: null,
+    reelTitle: null,
+    body: id,
+    wants: "dm" as const,
+    createdAt,
+    status: "waiting" as const,
+    answerMessageId: null,
+    answerReel: null,
+  });
+  it("merges this creator's asks with messages, oldest first", () => {
+    const items = threadTimeline(
+      [msg("m1", "claude", "creator", "2026-10-01T11:00:00Z")],
+      [ask("a1", "claude", "2026-10-01T10:00:00Z"), ask("a2", "gpt", "2026-10-01T10:30:00Z"), ask("a3", "claude", "2026-10-01T12:00:00Z")],
+      "claude",
+    );
+    expect(items.map((i) => i.key)).toEqual(["a:a1", "m:m1", "a:a3"]);
+  });
+  it("shows asks in a thread with no messages", () => {
+    expect(threadTimeline([], [ask("a1", "gpt", "2026-10-01T10:00:00Z")], "gpt")).toHaveLength(1);
   });
 });

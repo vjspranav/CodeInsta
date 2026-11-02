@@ -31,7 +31,10 @@ jest.mock("@/data/asks", () => ({
   askQuestion: (...args: unknown[]) => mockAskQuestion(...args),
 }));
 
-import { AskSheet, LIMIT_COPY, QUEUED_COPY } from "./AskSheet";
+const mockPush = jest.fn();
+jest.mock("expo-router", () => ({ router: { push: (...a: unknown[]) => mockPush(...a) } }));
+
+import { AskSheet, LIMIT_COPY } from "./AskSheet";
 import { GlossarySheet } from "./GlossarySheet";
 import { ShareAction, shareMessage } from "./ShareAction";
 
@@ -42,6 +45,7 @@ beforeEach(() => {
   mockMeaningful.mockReset();
   mockAsksLeft.mockReset().mockResolvedValue(3);
   mockAskQuestion.mockReset().mockResolvedValue("");
+  mockPush.mockReset();
 });
 
 const type = async (text: string) => {
@@ -113,7 +117,7 @@ describe("AskSheet", () => {
     expect(isDisabled(TID["ask-send"])).toBe(false);
   });
 
-  it("sends the question, confirms, and closes", async () => {
+  it("sends the question and confirms where the answer arrives", async () => {
     const { onClose, onSent } = await open();
     await type("  What is a resolver?  ");
     await activate(TID["ask-send"]);
@@ -124,9 +128,30 @@ describe("AskSheet", () => {
       body: "  What is a resolver?  ",
       wants: "dm",
     });
-    expect(onSent).toHaveBeenCalledWith(QUEUED_COPY);
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Sent to Claude")).toBeTruthy();
+    expect(screen.getByTestId("ask-sent").props.children).toBe("Claude will answer in your Inbox, usually within the hour.");
+    expect(screen.getByText("2 of 3 questions left today")).toBeTruthy();
+    expect(onSent).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
     expect(mockMeaningful).toHaveBeenCalledTimes(1);
+  });
+
+  it("Go to Inbox closes the sheet and opens that creator's thread", async () => {
+    const { onClose } = await open();
+    await type("What is a resolver?");
+    await activate(TID["ask-send"]);
+    await activate("ask-go-inbox");
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(mockPush).toHaveBeenCalledWith({ pathname: "/inbox/[creator]", params: { creator: "claude" } });
+  });
+
+  it("Done just closes the confirmation", async () => {
+    const { onClose } = await open();
+    await type("Why?");
+    await activate(TID["ask-send"]);
+    await activate("ask-done");
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(mockPush).not.toHaveBeenCalled();
   });
 
   it("asks for a reel when that answer is chosen", async () => {
@@ -135,6 +160,7 @@ describe("AskSheet", () => {
     await activate("ask-wants-reel");
     await activate(TID["ask-send"]);
     expect(mockAskQuestion).toHaveBeenCalledWith(expect.objectContaining({ wants: "reel" }));
+    expect(screen.getByTestId("ask-sent").props.children).toBe("Claude will make a reel about it. Track it in your Inbox.");
   });
 
   it("keeps the sheet open and shows the error when sending fails", async () => {

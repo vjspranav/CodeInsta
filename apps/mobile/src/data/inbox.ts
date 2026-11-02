@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { db } from "@/lib/supabase";
+import type { Creator } from "@shared/types";
+import type { Ask } from "./asks";
 
 /** `messages` row as the web inbox reads it (select *). RLS limits rows to the signed-in member. */
 export type Message = {
@@ -114,4 +116,50 @@ export function useUnreadCount(): number {
     staleTime: INBOX_POLL_MS,
   });
   return data ?? 0;
+}
+
+/** One row of a thread: a creator or user message, or one of the member's questions. */
+export type ThreadItem =
+  | { kind: "message"; key: string; at: string; message: Message }
+  | { kind: "ask"; key: string; at: string; ask: Ask };
+
+/**
+ * A thread as a timeline: messages and the member's questions to this creator, oldest first, so a
+ * question sits right above the DM that answers it. A thread with no messages still shows its asks.
+ */
+export function threadTimeline(messages: Message[], asks: Ask[], creatorId: string): ThreadItem[] {
+  const items: ThreadItem[] = [
+    ...messages.map((message) => ({ kind: "message" as const, key: `m:${message.id}`, at: message.created_at, message })),
+    ...asks
+      .filter((ask) => ask.creatorId === creatorId)
+      .map((ask) => ({ kind: "ask" as const, key: `a:${ask.id}`, at: ask.createdAt, ask })),
+  ];
+  return items.sort((a, b) => a.at.localeCompare(b.at) || (a.kind === b.kind ? 0 : a.kind === "ask" ? -1 : 1));
+}
+
+/** Short local time, the same format as the web inbox. */
+export function shortTime(iso: string): string {
+  return new Date(iso).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+/** Questions shown under each creator in the list; the thread shows all of them. */
+export const ASKS_PER_CREATOR = 3;
+
+export type InboxListRow =
+  | { type: "thread"; key: string; creator: Creator; thread?: Thread; waiting: number }
+  | { type: "ask"; key: string; ask: Ask; creatorName: string }
+  | { type: "more"; key: string; creator: Creator; count: number };
+
+/** Each creator's thread row, then that creator's latest questions with their status. */
+export function inboxRows(creators: Creator[], threads: Thread[] | undefined, asks: Ask[] | undefined): InboxListRow[] {
+  const rows: InboxListRow[] = [];
+  for (const creator of creators) {
+    const mine = (asks ?? []).filter((a) => a.creatorId === creator.id);
+    const thread = threads?.find((t) => t.creatorId === creator.id);
+    rows.push({ type: "thread", key: `t:${creator.id}`, creator, thread, waiting: mine.filter((a) => a.status === "waiting").length });
+    for (const ask of mine.slice(0, ASKS_PER_CREATOR))
+      rows.push({ type: "ask", key: `a:${ask.id}`, ask, creatorName: creator.display_name });
+    if (mine.length > ASKS_PER_CREATOR) rows.push({ type: "more", key: `more:${creator.id}`, creator, count: mine.length });
+  }
+  return rows;
 }

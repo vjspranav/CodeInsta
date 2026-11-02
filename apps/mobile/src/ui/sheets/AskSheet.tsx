@@ -1,5 +1,7 @@
 import { memo, useCallback, useEffect, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
+import { router } from "expo-router";
+import { Inbox } from "lucide-react-native";
 import { DAILY_ASKS } from "@shared/validation";
 import type { MobileReel } from "@shared/types";
 
@@ -14,6 +16,12 @@ import { PressableScale } from "@/ui/motion/PressableScale";
 import { BottomSheet } from "./BottomSheet";
 
 export const QUEUED_COPY = "Queued, usually answered within the hour.";
+/** Post-send confirmation: where the answer will arrive (same copy as the web sheet). */
+export function sentCopy(who: string, wants: "dm" | "reel"): string {
+  return wants === "reel"
+    ? `${who} will make a reel about it. Track it in your Inbox.`
+    : `${who} will answer in your Inbox, usually within the hour.`;
+}
 export const LIMIT_COPY = `You've used all ${DAILY_ASKS} questions for today. Try again later.`;
 const PLACEHOLDER = "What would you like to understand next?";
 const MEMBER_MAX = 1000;
@@ -33,12 +41,15 @@ export type AskSheetProps = {
   visible: boolean;
   onClose(): void;
   reel: Pick<MobileReel, "id" | "title" | "creator_id"> | null;
-  /** Called with the confirmation copy after a successful send (the sheet closes itself). */
+  /**
+   * @deprecated No longer called. After a successful send the sheet stays open on its own
+   * confirmation (where the answer arrives, with Go to Inbox), so a caller toast would repeat it.
+   */
   onSent?(message: string): void;
 };
 
 /** Same wording as the web Feedback sheet: who the question goes to, the choice of answer, the limit. */
-function AskSheetImpl({ visible, onClose, reel, onSent }: AskSheetProps) {
+function AskSheetImpl({ visible, onClose, reel }: AskSheetProps) {
   const { user, role } = useAuth();
   const isOwner = role === "owner";
   const userId = user?.id ?? "";
@@ -48,6 +59,8 @@ function AskSheetImpl({ visible, onClose, reel, onSent }: AskSheetProps) {
   const [pending, setPending] = useState(false);
   // undefined: still counting (treated as allowed); null: owner, no limit.
   const [left, setLeft] = useState<number | null | undefined>(undefined);
+  // Set after a successful send: the sheet switches to its confirmation.
+  const [sent, setSent] = useState<Wants | null>(null);
 
   useEffect(() => {
     if (!visible) return;
@@ -55,6 +68,7 @@ function AskSheetImpl({ visible, onClose, reel, onSent }: AskSheetProps) {
     setWants("dm");
     setError("");
     setPending(false);
+    setSent(null);
   }, [visible, reel?.id]);
 
   useEffect(() => {
@@ -85,9 +99,33 @@ function AskSheetImpl({ visible, onClose, reel, onSent }: AskSheetProps) {
       return;
     }
     markMeaningfulAction();
-    onSent?.(QUEUED_COPY);
+    if (typeof left === "number") setLeft(Math.max(0, left - 1));
+    setSent(wants);
+  }, [body, canSend, left, reel, wants]);
+
+  const goToInbox = useCallback(() => {
+    const creator = reel?.creator_id;
     onClose();
-  }, [body, canSend, onClose, onSent, reel, wants]);
+    if (creator) router.push({ pathname: "/inbox/[creator]", params: { creator } });
+  }, [onClose, reel?.creator_id]);
+
+  if (sent)
+    return (
+      <BottomSheet visible={visible} onClose={onClose} title={`Sent to ${who}`} closeTestID={TID["ask-close"]} testID="ask-sheet">
+        <Text testID="ask-sent" style={styles.sent} accessibilityRole="alert">
+          {sentCopy(who, sent)}
+        </Text>
+        {typeof left === "number" ? <Text style={styles.muted}>{`${left} of ${DAILY_ASKS} questions left today`}</Text> : null}
+        <Button
+          testID="ask-go-inbox"
+          label="Go to Inbox"
+          icon={<Inbox size={tokens.space[5]} color={tokens.color.onAccent} />}
+          onPress={goToInbox}
+          style={styles.send}
+        />
+        <Button testID="ask-done" label="Done" variant="ghost" onPress={onClose} style={styles.done} />
+      </BottomSheet>
+    );
 
   return (
     <BottomSheet
@@ -191,4 +229,6 @@ const styles = StyleSheet.create({
   muted: { ...textStyle("bodySmall"), color: tokens.color.muted, marginTop: tokens.space[2] },
   error: { ...textStyle("bodySmall"), color: tokens.color.errorText, marginTop: tokens.space[2] },
   send: { marginTop: tokens.space[4] },
+  done: { marginTop: tokens.space[2] },
+  sent: { ...textStyle("body"), color: tokens.color.text },
 });

@@ -1,11 +1,15 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowLeft, Send } from "lucide-react";
 import { browserDb } from "@/lib/supabase/browser";
-import { Avatar, LoadState, useData } from "./data";
+import { AskStatus } from "@/app/inbox/ask-status";
+import { ASKS_PER_CREATOR, fetchAsks, threadTimeline, waitingPreview, type Ask, type AsksDb } from "@/app/inbox/asks";
+import styles from "@/app/inbox/inbox.module.css";
+import { CreatorAvatar } from "./creator-avatar";
+import { LoadState, useData } from "./data";
 type Message = {
   id: string;
   creator_id: string;
@@ -14,27 +18,38 @@ type Message = {
   body_md: string;
   created_at: string;
   read_at: string | null;
+  feedback_id?: string | null;
 };
 export function Inbox() {
   const { creators, userId, loading, isOwner } = useData(),
     params = useSearchParams();
   const [thread, setThread] = useState(params.get("creator") ?? ""),
+    [focus, setFocus] = useState(params.get("message") ?? ""),
     [messages, setMessages] = useState<Message[]>([]),
+    [asks, setAsks] = useState<Ask[]>([]),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [draft, setDraft] = useState("");
   const end = useRef<HTMLDivElement>(null);
   const load = useCallback(async () => {
-    const { data, error } = await browserDb()
-      .from("messages")
-      .select("*")
-      .order("created_at");
-    if (error) setError("Could not load messages. Try again.");
-    else {
-      setMessages(data ?? []);
+    const db = browserDb();
+    const [res, asked] = await Promise.all([
+      db.from("messages").select("*").order("created_at"),
+      fetchAsks(db as unknown as AsksDb, userId).then(
+        (rows) => ({ rows, failed: false }),
+        () => ({ rows: null, failed: true }),
+      ),
+    ]);
+    if (asked.rows) setAsks(asked.rows);
+    if (res.error) setError("Could not load messages. Try again.");
+    else if (asked.failed) {
+      setMessages(res.data ?? []);
+      setError("Could not load your questions. Try again.");
+    } else {
+      setMessages(res.data ?? []);
       setError("");
     }
-  }, []);
+  }, [userId]);
   useEffect(() => {
     if (!userId) return;
     void load();
@@ -66,21 +81,29 @@ export function Inbox() {
       cancelled = true;
     };
   }, [messages, thread]);
+  const items = useMemo(() => threadTimeline(messages, asks, thread), [messages, asks, thread]);
   useEffect(() => {
-    end.current?.scrollIntoView({ block: "end" });
-  }, [messages.length, thread]);
+    // "Read answer" opens the thread at that DM; otherwise follow the newest message.
+    const target = focus ? document.getElementById(`m-${focus}`) : null;
+    if (target) target.scrollIntoView({ block: "center" });
+    else if (!focus) end.current?.scrollIntoView({ block: "end" });
+  }, [items.length, thread, focus]);
+  const open = (creatorId: string, message = "") => {
+    setFocus(message);
+    setThread(creatorId);
+  };
   if (loading) return <LoadState />;
   const creator = creators.find((c) => c.id === thread);
   return (
     <main className="content-page inbox-page">
       <header className="row">
         {creator && (
-          <button aria-label="Back to threads" onClick={() => setThread("")}>
+          <button aria-label="Back to threads" onClick={() => open("")}>
             <ArrowLeft />
           </button>
         )}
         <h1>{creator?.display_name ?? "Inbox"}</h1>
-        {creator && <Avatar creator={creator} />}
+        {creator && <CreatorAvatar creatorId={creator.id} />}
       </header>
       {error && (
         <div role="alert">
@@ -89,7 +112,7 @@ export function Inbox() {
         </div>
       )}
       {!creator ? (
-        <>
+        <div className="messages">
           <p className="muted">
             {isOwner
               ? "Ask a question. Build on what you learned."
@@ -99,38 +122,70 @@ export function Inbox() {
             const list = messages.filter((m) => m.creator_id === c.id),
               unread = list.filter(
                 (m) => m.sender === "creator" && !m.read_at,
-              ).length;
+              ).length,
+              mine = asks.filter((a) => a.creatorId === c.id),
+              waiting = mine.filter((a) => a.status === "waiting").length;
             return (
-              <button
-                className="thread"
-                key={c.id}
-                onClick={() => setThread(c.id)}
-              >
-                <Avatar creator={c} />
-                <div>
-                  <strong>{c.display_name}</strong>
-                  <p>
-                    {list.at(-1)?.body_md.slice(0, 80) ??
-                      (isOwner ? "Start a conversation" : "No answers yet")}
-                  </p>
-                </div>
-                {unread > 0 && <span className="unread">{unread}</span>}
-              </button>
+              <Fragment key={c.id}>
+                <button className="thread" onClick={() => open(c.id)}>
+                  <CreatorAvatar creatorId={c.id} />
+                  <div>
+                    <strong>{c.display_name}</strong>
+                    <p>
+                      {list.at(-1)?.body_md.slice(0, 80) ??
+                        (waiting
+                          ? waitingPreview(waiting, c.display_name)
+                          : isOwner
+                            ? "Start a conversation"
+                            : "No answers yet")}
+                    </p>
+                  </div>
+                  {unread > 0 && <span className="unread">{unread}</span>}
+                </button>
+                {mine.length > 0 && (
+                  <ul className={styles.asks} aria-label={`Your questions to ${c.display_name}`}>
+                    {mine.slice(0, ASKS_PER_CREATOR).map((ask) => (
+                      <li key={ask.id}>
+                        <AskStatus
+                          ask={ask}
+                          creatorName={c.display_name}
+                          onOpenAnswer={(a) => open(a.creatorId, a.answerMessageId ?? "")}
+                          compact
+                        />
+                      </li>
+                    ))}
+                    {mine.length > ASKS_PER_CREATOR && (
+                      <li>
+                        <button type="button" className={styles.more} onClick={() => open(c.id)}>
+                          See all {mine.length} questions
+                        </button>
+                      </li>
+                    )}
+                  </ul>
+                )}
+              </Fragment>
             );
           })}
-        </>
+        </div>
       ) : (
         <>
           <div className="messages">
-            {messages
-              .filter((m) => m.creator_id === thread)
-              .map((m) => (
-                <div key={m.id} className={`message ${m.sender}`}>
+            {items.map((item) =>
+              item.kind === "ask" ? (
+                <div key={item.key} className={styles.threadAsk}>
+                  <AskStatus ask={item.ask} creatorName={creator.display_name} />
+                </div>
+              ) : (
+                <div
+                  key={item.key}
+                  id={`m-${item.message.id}`}
+                  className={`message ${item.message.sender}${item.message.id === focus ? ` ${styles.focus}` : ""}`}
+                >
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {m.body_md}
+                    {item.message.body_md}
                   </ReactMarkdown>
-                  <time dateTime={m.created_at}>
-                    {new Date(m.created_at).toLocaleString([], {
+                  <time dateTime={item.message.created_at}>
+                    {new Date(item.message.created_at).toLocaleString([], {
                       month: "short",
                       day: "numeric",
                       hour: "2-digit",
@@ -138,8 +193,9 @@ export function Inbox() {
                     })}
                   </time>
                 </div>
-              ))}
-            {!messages.some((m) => m.creator_id === thread) && (
+              ),
+            )}
+            {!items.length && (
               <div className="empty">
                 {isOwner ? (
                   <>
@@ -176,6 +232,7 @@ export function Inbox() {
               if (error) setError("Message was not sent. Try again.");
               else {
                 setDraft("");
+                setFocus("");
                 await load();
               }
             }}
