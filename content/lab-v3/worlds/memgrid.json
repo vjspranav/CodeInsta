@@ -1,0 +1,160 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "Four lookups to read one byte: page walk, TLB, page fault, fork",
+  "topic": "os/virtual-memory/page-walk-tlb-fault-cow",
+  "genre": "trace",
+  "style": "blueprint",
+  "world": "memgrid",
+  "level": "intermediate",
+  "tags": ["virtual-memory", "x86-64", "page-table", "tlb", "page-fault", "copy-on-write", "fork"],
+  "cast": [
+    {"id": "ravi", "name": "Ravi", "role": "Engineer new to kernels", "color": "#E4572E"},
+    {"id": "mira", "name": "Mira", "role": "Kernel developer", "color": "#2F6F8F"}
+  ],
+  "glossary": [
+    {"term": "TLB", "full": "Translation lookaside buffer", "note": "A small CPU cache of recent page-to-frame translations."},
+    {"term": "CR3", "full": "Control register 3", "note": "On x86 it holds the physical address of the top-level page table."},
+    {"term": "page fault", "full": "A translation that cannot finish", "note": "The kernel can fill in the entry, then retry the instruction."},
+    {"term": "copy-on-write", "full": "Share now, copy at the first write", "note": "Fork shares frames read-only; a write makes a private copy."}
+  ],
+  "key_points": [
+    "x86-64 with 4 KiB pages splits a 48-bit address into four 9-bit indexes and a 12-bit offset.",
+    "A TLB miss costs a page walk of up to four dependent reads; a TLB hit costs none.",
+    "A page fault is the kernel filling in a missing entry; fork plus copy-on-write copies a frame only when someone writes."
+  ],
+  "sources": [
+    "https://docs.kernel.org/mm/page_tables.html",
+    "https://docs.kernel.org/arch/x86/x86_64/mm.html",
+    "https://docs.kernel.org/arch/x86/tlb.html",
+    "https://man7.org/linux/man-pages/man2/fork.2.html"
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "Ravi's program reads one byte. The CPU only has a virtual address.",
+      "visuals": [
+        {"do": "world.set", "world": "memgrid", "levels": 4, "proc": "app", "pid": "4242", "title": "x86-64 paging", "frames": 12, "tlb": 4},
+        {"do": "mem.map", "va": "0x0000555d1a2b4000", "frame": 0, "flags": "x", "label": "code"},
+        {"do": "mem.map", "va": "0x00007f3a5c2e1000", "frame": 3, "flags": "rw", "label": "heap"},
+        {"do": "mem.map", "va": "0x00007ffd9e4c3000", "frame": 5, "flags": "rw", "label": "stack"},
+        {"do": "mem.addr", "at": 0.4, "va": "0x00007f3a5c2e1a48", "op": "read"}
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Forty-eight bits: four indexes of nine bits, then a twelve bit offset into a 4 KiB page.",
+      "say": "Forty-eight bits: four indexes of nine bits each, then a twelve bit offset into a four kibibyte page.",
+      "visuals": [
+        {"do": "mem.split", "at": 0.08}
+      ]
+    },
+    {
+      "speaker": "ravi",
+      "text": "So how does it find the page?",
+      "visuals": []
+    },
+    {
+      "speaker": "mira",
+      "text": "First the TLB, a cache of finished translations. Empty, so a miss.",
+      "say": "First the T L B, a cache of finished translations. Empty, so a miss.",
+      "visuals": [
+        {"do": "define", "term": "TLB", "at": 0.1},
+        {"do": "mem.lookup", "at": 0.35, "expect": "miss"}
+      ]
+    },
+    {
+      "speaker": "mira",
+      "text": "A miss sends the MMU to walk the page table, starting from CR3.",
+      "say": "A miss sends the M M U to walk the page table, starting from C R three.",
+      "visuals": [
+        {"do": "define", "term": "CR3", "at": 0.55},
+        {"do": "mem.walk", "at": 0.45}
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Each index picks one entry, and each entry names the next table. Four tables, four dependent RAM reads.",
+      "visuals": []
+    },
+    {
+      "speaker": "mira",
+      "text": "The last entry names frame three. Frame plus offset is the physical address, and the TLB keeps it.",
+      "say": "The last entry names frame three. Frame plus offset is the physical address, and the T L B keeps it.",
+      "visuals": [
+        {"do": "mem.tlbfill", "at": 0.6, "note": "TLB filled: this page now translates without a walk"}
+      ]
+    },
+    {
+      "speaker": "mira",
+      "text": "Same page again: the TLB answers at once. No walk, no RAM reads.",
+      "say": "Same page again: the T L B answers at once. No walk, no RAM reads.",
+      "visuals": [
+        {"do": "mem.addr", "va": "0x00007f3a5c2e1f10", "op": "read"},
+        {"do": "mem.split", "at": 0.1},
+        {"do": "mem.lookup", "at": 0.3, "expect": "hit"}
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "A brand new page is different. The first touch finds an empty entry.",
+      "visuals": [
+        {"do": "mem.addr", "va": "0x00007f3a5c2e2010", "op": "write"},
+        {"do": "mem.split", "at": 0.1},
+        {"do": "mem.lookup", "at": 0.3, "expect": "miss"},
+        {"do": "mem.walk", "at": 0.5}
+      ]
+    },
+    {
+      "speaker": "mira",
+      "text": "Not present: the CPU raises a page fault and the kernel takes over.",
+      "say": "Not present: the C P U raises a page fault and the kernel takes over.",
+      "visuals": [
+        {"do": "define", "term": "page fault", "at": 0.2},
+        {"do": "mem.fault", "at": 0.7, "src": "zero", "label": "heap", "flags": "rw"}
+      ]
+    },
+    {
+      "speaker": "mira",
+      "text": "It picks a free frame, zeroes it, fills in the entry, and the instruction runs again.",
+      "visuals": [
+        {"do": "mem.walk", "at": 0.5, "fill": true}
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Now fork. The child gets copies of the page tables, not of the memory.",
+      "visuals": [
+        {"do": "mem.fork", "at": 0.35, "child": "child", "pid": "4243"}
+      ]
+    },
+    {
+      "speaker": "mira",
+      "text": "Every shared frame turns read-only, marked copy-on-write.",
+      "visuals": [
+        {"do": "define", "term": "copy-on-write", "at": 0.1}
+      ]
+    },
+    {
+      "speaker": "ravi",
+      "text": "Until someone writes.",
+      "visuals": [
+        {"do": "mem.addr", "at": 0.2, "proc": "child", "va": "0x00007f3a5c2e1a48", "op": "write"}
+      ]
+    },
+    {
+      "speaker": "mira",
+      "text": "The child writes, the read-only entry faults, and the kernel copies just that frame.",
+      "visuals": [
+        {"do": "mem.split", "at": 0.0},
+        {"do": "mem.walk", "at": 0.1},
+        {"do": "mem.cow", "at": 0.7}
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "The TLB hides the walk. Copy-on-write hides the copy, until a fault says otherwise.",
+      "visuals": []
+    }
+  ]
+}

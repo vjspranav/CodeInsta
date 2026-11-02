@@ -10,6 +10,7 @@ import {termSession} from './term-session';
 import {netmap} from './netmap';
 import {browserNetwork} from './browser-network';
 import {debuggerWorld} from './debugger';
+import {memgrid} from './memgrid';
 
 export type {AnyWorld, WorldEvent, WorldModule, WorldText, WorldViewProps, WorldValidateCtx} from './types';
 export {defineWorld} from './types';
@@ -19,6 +20,7 @@ export const WORLDS: AnyWorld[] = [
 	netmap,
 	browserNetwork,
 	debuggerWorld,
+	memgrid,
 	// add new worlds here, one line each
 ];
 
