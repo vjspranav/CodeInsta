@@ -1,10 +1,15 @@
 import type { ConfigContext, ExpoConfig } from "expo/config";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import designTokens from "../../packages/shared/design-tokens.json";
 
 const ID = "dev.vjspranav.codeinsta";
 // Native splash background = the app paper color (dark bg token), so the handoff to the in-app
 // animated logo (src/ui/motion/StartupGate) has no visible seam. No splash image: the logo is drawn in-app.
 const SPLASH_BG = designTokens.color.dark.bg;
+// Firebase config for Android push (FCM). Gitignored; the env var overrides the default location.
+const GOOGLE_SERVICES =
+  process.env.GOOGLE_SERVICES_JSON ?? (existsSync(join(__dirname, "google-services.json")) ? "./google-services.json" : undefined);
 
 // `newArchEnabled` is no longer in the ExpoConfig type (the New Architecture is the only mode in
 // current SDKs) but the plan and config test keep it explicit, hence the cast.
@@ -22,6 +27,7 @@ export default ({ config }: ConfigContext): ExpoConfig =>
   ios: {
     supportsTablet: false,
     bundleIdentifier: ID,
+    ...(process.env.APPLE_TEAM_ID ? { appleTeamId: process.env.APPLE_TEAM_ID } : {}),
     entitlements: { "com.apple.security.application-groups": ["group.dev.vjspranav.codeinsta"] },
   },
   android: {
@@ -33,9 +39,7 @@ export default ({ config }: ConfigContext): ExpoConfig =>
       monochromeImage: "./assets/android-icon-monochrome.png",
     },
     predictiveBackGestureEnabled: false,
-    ...(process.env.GOOGLE_SERVICES_JSON
-      ? { googleServicesFile: process.env.GOOGLE_SERVICES_JSON }
-      : {}),
+    ...(GOOGLE_SERVICES ? { googleServicesFile: GOOGLE_SERVICES } : {}),
   },
   runtimeVersion: { policy: "appVersion" },
   updates: process.env.EAS_PROJECT_ID
@@ -50,6 +54,7 @@ export default ({ config }: ConfigContext): ExpoConfig =>
     "expo-background-task",
     "react-native-credentials-manager",
     "./plugins/with-android-widget",
+    "./plugins/with-release-signing",
     "@bacons/apple-targets",
   ],
   experiments: { typedRoutes: true },
