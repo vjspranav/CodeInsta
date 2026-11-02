@@ -284,3 +284,6 @@
 ## 2026-11-02 iPhone install through Xcode
 - The owner chose Xcode with their Apple ID over iloader and SideStore. Builds go straight to the iPhone 13 through devicectl. A free account's builds expire after 7 days, so Claude reinstalls them.
 - CODEINSTA_IOS_FREE=1 builds without the App Group, which personal teams cannot use. The iOS widget then shows its empty state until there is a paid account. The paid Developer Program with TestFlight remains the upgrade path.
+
+## 2026-11-02 Web deploy: ask tracking, Inbox, creator logos
+- The owner approved this deploy in chat ("Yes, deploy"). Live: ask tracking on Inbox, answers linked, the creator brand marks, and the Codex settings screens are app-only. The approval covered this deploy only.
