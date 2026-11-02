@@ -1,0 +1,433 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "Why does my loop skip the last number?",
+  "topic": "debugging/lldb-off-by-one",
+  "genre": "trace",
+  "style": "editorial-dark",
+  "world": "debugger",
+  "level": "beginner",
+  "tags": [
+    "debugging",
+    "lldb",
+    "breakpoint",
+    "call-stack",
+    "off-by-one",
+    "assert"
+  ],
+  "cast": [
+    {
+      "id": "maya",
+      "name": "Maya",
+      "role": "Engineer chasing a failing test",
+      "color": "#2F6F8F"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "breakpoint",
+      "full": "A line where the debugger stops the program",
+      "note": "Execution pauses before that line runs, and you can read every variable."
+    },
+    {
+      "term": "call stack",
+      "full": "The chain of functions that are running right now",
+      "note": "Frame zero is the innermost call."
+    },
+    {
+      "term": "off-by-one",
+      "full": "A loop or index that stops one step early or late",
+      "note": "i < n - 1 never reads the last element."
+    }
+  ],
+  "key_points": [
+    "Stop where the value goes wrong, then step: each step shows which line changed which variable.",
+    "A breakpoint on the return line shows the final value without clicking through every pass.",
+    "The call stack shows who called whom, so a failing assert points back to your own line."
+  ],
+  "sources": [
+    "https://lldb.llvm.org/use/tutorial.html",
+    "https://lldb.llvm.org/use/map.html",
+    "https://man7.org/linux/man-pages/man3/assert.3.html"
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "The test wants fifteen. The function returns ten. Let's freeze it mid-loop.",
+      "visuals": [
+        {
+          "do": "world.set",
+          "world": "debugger",
+          "file": "sum.c",
+          "lang": "c",
+          "code": [
+            "#include <assert.h>",
+            "#include <stdio.h>",
+            "",
+            "int sum_array(const int *a, int n) {",
+            "    int total = 0;",
+            "    for (int i = 0; i < n - 1; i++)",
+            "        total += a[i];",
+            "    return total;",
+            "}",
+            "",
+            "int main(void) {",
+            "    int a[5] = {1, 2, 3, 4, 5};",
+            "    int s = sum_array(a, 5);",
+            "    assert(s == 15);",
+            "    printf(\"sum = %d\\n\", s);",
+            "    return 0;",
+            "}"
+          ],
+          "title": "lldb ./sum",
+          "prompt": "(lldb)",
+          "breakpoints": [
+            5
+          ],
+          "line": 5,
+          "reason": "breakpoint",
+          "vars": {
+            "a": "0x16fdfe370",
+            "n": 5,
+            "total": "1876944296"
+          },
+          "stack": [
+            {
+              "fn": "sum_array",
+              "at": ":5"
+            },
+            "main",
+            "start"
+          ]
+        },
+        {
+          "do": "dbg.cmd",
+          "out": [
+            "Process 99164 stopped",
+            "frame #0: 0x00000001000004bc sum`sum_array(a=0x000000016fdfe370, n=5) at sum.c:5:9"
+          ],
+          "line_ms": 250
+        }
+      ]
+    },
+    {
+      "speaker": "maya",
+      "text": "We stopped on line five, the top of sum array. N is five, so five numbers get added.",
+      "visuals": [
+        {
+          "do": "dbg.mark",
+          "at": 0.55,
+          "var": "n"
+        }
+      ]
+    },
+    {
+      "speaker": "maya",
+      "text": "Total is garbage, because C never clears locals. Step over, and it becomes zero.",
+      "visuals": [
+        {
+          "do": "dbg.mark",
+          "var": "total",
+          "at": 0.1
+        },
+        {
+          "do": "dbg.step",
+          "kind": "over",
+          "at": 0.62,
+          "line": 6,
+          "vars": {
+            "total": 0
+          }
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Keep stepping. Each pass adds one number, and i climbs by one.",
+      "visuals": [
+        {
+          "do": "dbg.mark",
+          "off": true
+        },
+        {
+          "do": "dbg.step",
+          "kind": "over",
+          "at": 0.2,
+          "line": 7,
+          "vars": {
+            "i": 0
+          }
+        },
+        {
+          "do": "dbg.step",
+          "kind": "over",
+          "at": 0.5,
+          "line": 6,
+          "vars": {
+            "total": 1
+          }
+        },
+        {
+          "do": "dbg.step",
+          "kind": "over",
+          "at": 0.8,
+          "line": 7,
+          "vars": {
+            "i": 1
+          }
+        }
+      ]
+    },
+    {
+      "speaker": "maya",
+      "text": "Too slow. Put a breakpoint on the return, and continue.",
+      "visuals": [
+        {
+          "do": "dbg.break",
+          "at": 0.04,
+          "line": 8,
+          "cmd": "b sum.c:8",
+          "out": [
+            "Breakpoint 2: where = sum`sum_array + 92 at sum.c:8:12, address = 0x000000010000050c"
+          ]
+        },
+        {
+          "do": "dbg.continue",
+          "at": 0.42,
+          "cmd": "continue",
+          "line": 8,
+          "run_ms": 600,
+          "pre": [
+            "Process 99164 resuming"
+          ],
+          "out": [
+            "Process 99164 stopped",
+            "frame #0: 0x000000010000050c sum`sum_array(a=0x000000016fdfe370, n=5) at sum.c:8:12"
+          ],
+          "vars": {
+            "total": {
+              "value": 10,
+              "tone": "bad"
+            }
+          },
+          "drop": [
+            "i"
+          ],
+          "stack": [
+            {
+              "fn": "sum_array",
+              "at": ":8"
+            },
+            "main",
+            "start"
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Ten, not fifteen. The loop quit one pass early.",
+      "visuals": [
+        {
+          "do": "dbg.mark",
+          "at": 0.7,
+          "line": 6
+        }
+      ]
+    },
+    {
+      "speaker": "maya",
+      "text": "Add it up yourself: one plus two plus three plus four plus five is fifteen.",
+      "visuals": [
+        {
+          "do": "dbg.cmd",
+          "at": 0.0,
+          "cmd": "p 1+2+3+4+5",
+          "out": [
+            "(int) 15"
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "maya",
+      "text": "The last element is five, and n minus one is only four.",
+      "visuals": [
+        {
+          "do": "dbg.cmd",
+          "at": 0.05,
+          "cmd": "p a[4]",
+          "out": [
+            "(const int) 5"
+          ]
+        },
+        {
+          "do": "dbg.cmd",
+          "at": 0.5,
+          "cmd": "p n - 1",
+          "out": [
+            "(int) 4"
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Now let it run on, and the assert in main trips.",
+      "visuals": [
+        {
+          "do": "dbg.mark",
+          "off": true
+        },
+        {
+          "do": "dbg.continue",
+          "at": 0.15,
+          "cmd": "continue",
+          "line": 14,
+          "reason": "assert",
+          "run_ms": 700,
+          "pre": [
+            {
+              "text": "Assertion failed: (s == 15), function main, file sum.c, line 14.",
+              "tone": "err"
+            },
+            "Process 99164 resuming"
+          ],
+          "out": [
+            "Process 99164 stopped",
+            "* thread #1, queue = 'com.apple.main-thread', stop reason = hit program assert"
+          ],
+          "stack": [
+            "__pthread_kill",
+            "pthread_kill",
+            "abort",
+            "__assert_rtn",
+            {
+              "fn": "main",
+              "at": "sum.c:14"
+            },
+            "start"
+          ],
+          "frame": 4,
+          "vars_reset": true,
+          "vars": {
+            "a": "{1, 2, 3, 4, 5}",
+            "s": {
+              "value": 10,
+              "tone": "bad"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "speaker": "maya",
+      "text": "Six frames. Libc is just aborting. Frame four is our line, and s is ten.",
+      "visuals": [
+        {
+          "do": "dbg.mark",
+          "at": 0.3,
+          "frame": 4
+        },
+        {
+          "do": "dbg.mark",
+          "at": 0.62,
+          "var": "s"
+        },
+        {
+          "do": "define",
+          "term": "call stack",
+          "at": 0.2
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "There it is. I less than n minus one stops at three. An off by one.",
+      "visuals": [
+        {
+          "do": "dbg.mark",
+          "off": true
+        },
+        {
+          "do": "dbg.mark",
+          "at": 0.15,
+          "line": 6
+        },
+        {
+          "do": "define",
+          "term": "off-by-one",
+          "at": 0.4
+        }
+      ]
+    },
+    {
+      "speaker": "maya",
+      "text": "Kill it, drop the breakpoints, and fix the condition.",
+      "visuals": [
+        {
+          "do": "dbg.exit",
+          "at": 0.0,
+          "cmd": "kill",
+          "status": 9,
+          "msg": "killed",
+          "out": [
+            "Process 99164 exited with status = 9 (0x00000009) killed"
+          ]
+        },
+        {
+          "do": "dbg.break",
+          "at": 0.3,
+          "lines": [
+            5,
+            8
+          ],
+          "off": true,
+          "cmd": "breakpoint delete 1 2",
+          "out": [
+            "2 breakpoints deleted; 0 breakpoint locations disabled."
+          ]
+        },
+        {
+          "do": "dbg.mark",
+          "off": true,
+          "at": 0.62
+        },
+        {
+          "do": "dbg.edit",
+          "at": 0.66,
+          "line": 6,
+          "text": "    for (int i = 0; i < n; i++)"
+        }
+      ]
+    },
+    {
+      "speaker": "maya",
+      "text": "Rebuild and run it again. Sum is fifteen, and the exit status is zero.",
+      "visuals": [
+        {
+          "do": "dbg.cmd",
+          "at": 0.0,
+          "cmd": "platform shell cc -g -O0 -o sum sum.c",
+          "cps": 40
+        },
+        {
+          "do": "dbg.exit",
+          "at": 0.45,
+          "cmd": "run",
+          "status": 0,
+          "out": [
+            "sum = 15",
+            "Process 6579 launched: '~/demo/sum' (arm64)",
+            "Process 6579 exited with status = 0 (0x00000000)"
+          ]
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Do not guess where a loop ends. Step to it and read the numbers.",
+      "visuals": []
+    }
+  ]
+}
