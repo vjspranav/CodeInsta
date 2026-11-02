@@ -69,12 +69,19 @@ describe("root layout auth gate", () => {
     ["needsInvite", "join"],
     ["needsOnboarding", "onboarding"],
     ["ready", "(tabs)"],
-  ])("%s admits only the %s route", async (status, route) => {
+  ])("%s starts on the %s route", async (status, route) => {
     await open(status);
-    // The ready group also holds the reel/[id] deep link route.
-    expect(screen.getAllByText(/^route:/)).toHaveLength(status === "ready" ? 2 : 1);
-    expect(screen.getByText(`route:${route}`)).toBeTruthy();
+    const routes = screen.getAllByText(/^route:/).map((n) => String(n.props.children));
+    // The first declared screen is the one a fresh launch lands on (iOS opened About before this was explicit).
+    expect(routes[0]).toBe(`route:${route}`);
     expect(routeForStatus(status as never)).toBe(route);
+    // About and Privacy are public, like on the web; everything else needs a member session.
+    expect(routes).toEqual(expect.arrayContaining(["route:about", "route:privacy"]));
+    const memberOnly = ["route:reel/[id]", "route:settings", "route:interests", "route:requests", "route:admin/requests", "route:admin/invites"];
+    for (const r of memberOnly) {
+      if (status === "ready") expect(routes).toContain(r);
+      else expect(routes).not.toContain(r);
+    }
   });
 
   it("registers widget refresh once, and clears the query cache when the session ends", async () => {

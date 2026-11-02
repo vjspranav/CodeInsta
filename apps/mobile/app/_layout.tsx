@@ -45,7 +45,16 @@ function RootNavigator() {
         <Stack.Protected guard={status === "ready"}>
           <Stack.Screen name="(tabs)" options={fade} />
           <Stack.Screen name="reel/[id]" />
+          <Stack.Screen name="settings" />
+          <Stack.Screen name="interests" />
+          <Stack.Screen name="requests" />
+          <Stack.Screen name="admin/requests" />
+          <Stack.Screen name="admin/invites" />
         </Stack.Protected>
+        {/* Public pages, like the web's /about and /privacy. Declared last so a fresh launch never
+            lands on them: every screen must be listed here, or expo-router adds it unguarded. */}
+        <Stack.Screen name="about" />
+        <Stack.Screen name="privacy" />
       </Stack>
     </>
   );
