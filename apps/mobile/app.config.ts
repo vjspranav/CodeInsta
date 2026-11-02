@@ -51,6 +51,8 @@ export default ({ config }: ConfigContext): ExpoConfig =>
     ? { url: `https://u.expo.dev/${process.env.EAS_PROJECT_ID}` }
     : undefined,
   plugins: [
+    // First on purpose: its entitlements mod runs last and removes what later plugins add.
+    "./plugins/with-free-ios-signing",
     "expo-router",
     ["expo-splash-screen", { backgroundColor: SPLASH_BG, dark: { backgroundColor: SPLASH_BG } }],
     "expo-secure-store",
