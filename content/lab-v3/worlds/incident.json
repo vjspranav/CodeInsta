@@ -1,0 +1,535 @@
+{
+  "version": 3,
+  "format": "story",
+  "title": "One rule, a global outage",
+  "topic": "distributed/cloudflare-regex-outage",
+  "genre": "war-story",
+  "style": "editorial-dark",
+  "world": "incident",
+  "level": "intermediate",
+  "tags": [
+    "incident",
+    "postmortem",
+    "regex",
+    "backtracking"
+  ],
+  "cast": [],
+  "glossary": [
+    {
+      "term": "WAF",
+      "full": "Web application firewall",
+      "note": "It inspects requests and blocks ones that match attack rules."
+    },
+    {
+      "term": "backtracking",
+      "full": "A regex retrying other ways to match",
+      "note": "Nested wildcards can retry so many ways that one match eats a whole CPU."
+    }
+  ],
+  "key_points": [
+    "A rule that blocks the right requests can still cost too much CPU to run.",
+    "Tests need a cost budget as well as a correctness check.",
+    "Emergency access must work when your own tools are down."
+  ],
+  "sources": [
+    "https://blog.cloudflare.com/details-of-the-cloudflare-outage-on-july-2-2019/"
+  ],
+  "beats": [
+    {
+      "speaker": "narrator",
+      "text": "July second, 2019. One firewall rule change, and Cloudflare went dark for twenty-seven minutes.",
+      "visuals": [
+        {
+          "do": "world.set",
+          "world": "incident",
+          "channel": "inc-waf-0702",
+          "sub": "schematic curves, real numbers",
+          "from": "13:30",
+          "to": "14:55"
+        },
+        {
+          "do": "incident.status",
+          "text": "Quiet: all checks green",
+          "level": "ok",
+          "utc": "13:30"
+        },
+        {
+          "do": "incident.metric",
+          "name": "CPU",
+          "value": 15,
+          "max": 100,
+          "display": "normal",
+          "tone": "ok",
+          "utc": "13:30"
+        },
+        {
+          "do": "incident.metric",
+          "name": "Traffic",
+          "value": 100,
+          "max": 100,
+          "display": "normal",
+          "tone": "ok",
+          "utc": "13:30"
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Tests passed at 13:37. At 13:42 it deployed, and a change request was filed automatically.",
+      "visuals": [
+        {
+          "do": "incident.message",
+          "role": "Release",
+          "text": "Build passed all tests",
+          "utc": "13:37",
+          "at": 0.0
+        },
+        {
+          "do": "incident.message",
+          "role": "Release",
+          "text": "Deployed: minor XSS rule change",
+          "utc": "13:42",
+          "at": 0.3
+        },
+        {
+          "do": "incident.ticket",
+          "at": 0.5,
+          "kind": "CHANGE REQUEST",
+          "title": "XSS detection rule change",
+          "status": "FILED"
+        },
+        {
+          "do": "incident.metric",
+          "name": "CPU",
+          "value": 15,
+          "max": 100,
+          "display": "normal",
+          "tone": "ok",
+          "utc": "13:42",
+          "at": 0.3
+        },
+        {
+          "do": "incident.metric",
+          "name": "Traffic",
+          "value": 100,
+          "max": 100,
+          "display": "normal",
+          "tone": "ok",
+          "utc": "13:42",
+          "at": 0.3
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Three minutes later, a test of the firewall from outside Cloudflare failed. The first page went out.",
+      "visuals": [
+        {
+          "do": "incident.alert",
+          "text": "WAF synthetic test failing",
+          "state": "firing",
+          "utc": "13:45",
+          "id": "waf",
+          "at": 0.1
+        },
+        {
+          "do": "incident.status",
+          "text": "Paged: firewall fault",
+          "level": "warn",
+          "utc": "13:45",
+          "at": 0.1
+        },
+        {
+          "do": "incident.message",
+          "role": "PagerDuty",
+          "text": "WAF synthetic test failing",
+          "utc": "13:45",
+          "at": 0.45
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Then came a traffic alert and 502 errors. Eighty percent of traffic was gone.",
+      "visuals": [
+        {
+          "do": "incident.alert",
+          "text": "Global traffic drop",
+          "state": "firing",
+          "utc": "13:45",
+          "id": "traffic",
+          "at": 0.05
+        },
+        {
+          "do": "incident.metric",
+          "name": "Traffic",
+          "value": 20,
+          "max": 100,
+          "display": "-80%",
+          "tone": "err",
+          "utc": "13:45",
+          "at": 0.05
+        },
+        {
+          "do": "incident.message",
+          "role": "Support",
+          "text": "Customers see 502 error pages",
+          "utc": "13:45",
+          "at": 0.3
+        },
+        {
+          "do": "incident.message",
+          "role": "Solutions Eng",
+          "text": "We have lost 80% of our traffic",
+          "utc": "13:45",
+          "at": 0.55,
+          "typing_ms": 500
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Processors in cities worldwide were nearly exhausted. SRE declared a P0.",
+      "visuals": [
+        {
+          "do": "incident.metric",
+          "name": "CPU",
+          "value": 99,
+          "max": 100,
+          "display": "nearly 100%",
+          "tone": "err",
+          "utc": "13:45",
+          "at": 0.0
+        },
+        {
+          "do": "incident.status",
+          "text": "P0 declared",
+          "level": "err",
+          "utc": "13:45",
+          "at": 0.1
+        },
+        {
+          "do": "incident.message",
+          "role": "SRE",
+          "text": "P0 declared: CPU exhausted worldwide",
+          "utc": "13:45",
+          "at": 0.3,
+          "typing_ms": 500
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "At 14:00 the firewall was identified as the cause, and strace confirmed it.",
+      "visuals": [
+        {
+          "do": "incident.status",
+          "text": "Cause found: the WAF",
+          "level": "warn",
+          "utc": "14:00",
+          "at": 0.0
+        },
+        {
+          "do": "incident.metric",
+          "name": "CPU",
+          "value": 99,
+          "max": 100,
+          "display": "nearly 100%",
+          "tone": "err",
+          "utc": "14:00",
+          "at": 0.0
+        },
+        {
+          "do": "incident.metric",
+          "name": "Traffic",
+          "value": 20,
+          "max": 100,
+          "display": "-80%",
+          "tone": "err",
+          "utc": "14:00",
+          "at": 0.0
+        },
+        {
+          "do": "incident.message",
+          "role": "Performance",
+          "text": "Live CPU data points at the WAF",
+          "utc": "14:00",
+          "at": 0.1,
+          "typing_ms": 400
+        },
+        {
+          "do": "define",
+          "term": "WAF",
+          "at": 0.3
+        },
+        {
+          "do": "incident.message",
+          "role": "Engineer",
+          "text": "strace confirms: WAF is the culprit",
+          "utc": "14:00",
+          "at": 0.65,
+          "typing_ms": 400
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "One regular expression backtracked until the processors ran dry. No test measured CPU cost.",
+      "visuals": [
+        {
+          "do": "incident.message",
+          "role": "Engineer",
+          "text": "Regex .*(?:.*=.*) backtracks badly",
+          "utc": "14:00",
+          "at": 0.0,
+          "typing_ms": 500
+        },
+        {
+          "do": "define",
+          "term": "backtracking",
+          "at": 0.35
+        },
+        {
+          "do": "incident.message",
+          "role": "Engineer",
+          "text": "Tests never checked CPU cost",
+          "utc": "14:00",
+          "at": 0.8,
+          "typing_ms": 400
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Even the fix was hard. Cloudflare's own login service was down, so engineers needed a rarely used bypass.",
+      "visuals": [
+        {
+          "do": "incident.message",
+          "role": "SRE",
+          "text": "Access is down: no control panel login",
+          "utc": "14:02",
+          "at": 0.05,
+          "typing_ms": 400
+        },
+        {
+          "do": "incident.message",
+          "role": "SRE",
+          "text": "Jira and builds need the rare bypass",
+          "utc": "14:02",
+          "at": 0.55,
+          "typing_ms": 400
+        },
+        {
+          "do": "incident.metric",
+          "name": "CPU",
+          "value": 99,
+          "max": 100,
+          "display": "nearly 100%",
+          "tone": "err",
+          "utc": "14:02",
+          "at": 0.0
+        },
+        {
+          "do": "incident.metric",
+          "name": "Traffic",
+          "value": 20,
+          "max": 100,
+          "display": "-80%",
+          "tone": "err",
+          "utc": "14:02",
+          "at": 0.0
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "At 14:02 someone proposed a global terminate. At 14:07 it was executed.",
+      "visuals": [
+        {
+          "do": "incident.status",
+          "text": "Mitigating: WAF global terminate",
+          "level": "warn",
+          "utc": "14:02",
+          "at": 0.0
+        },
+        {
+          "do": "incident.message",
+          "role": "Engineer",
+          "text": "Proposal: global terminate for the WAF",
+          "utc": "14:02",
+          "at": 0.1
+        },
+        {
+          "do": "incident.message",
+          "role": "Engineer",
+          "text": "Global terminate executed",
+          "utc": "14:07",
+          "at": 0.65
+        },
+        {
+          "do": "incident.metric",
+          "name": "CPU",
+          "value": 99,
+          "max": 100,
+          "display": "nearly 100%",
+          "tone": "err",
+          "utc": "14:07",
+          "at": 0.65
+        },
+        {
+          "do": "incident.metric",
+          "name": "Traffic",
+          "value": 20,
+          "max": 100,
+          "display": "-80%",
+          "tone": "err",
+          "utc": "14:07",
+          "at": 0.65
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "By 14:09, traffic and processors were back to normal. Twenty-seven minutes.",
+      "visuals": [
+        {
+          "do": "incident.metric",
+          "name": "CPU",
+          "value": 15,
+          "max": 100,
+          "display": "normal",
+          "tone": "ok",
+          "utc": "14:09",
+          "at": 0.0
+        },
+        {
+          "do": "incident.metric",
+          "name": "Traffic",
+          "value": 100,
+          "max": 100,
+          "display": "normal",
+          "tone": "ok",
+          "utc": "14:09",
+          "at": 0.0
+        },
+        {
+          "do": "incident.alert",
+          "text": "All alerts cleared",
+          "state": "resolved",
+          "utc": "14:09",
+          "all": true,
+          "at": 0.1
+        },
+        {
+          "do": "incident.status",
+          "text": "Recovered: traffic and CPU normal",
+          "level": "ok",
+          "utc": "14:09",
+          "at": 0.1
+        },
+        {
+          "do": "incident.message",
+          "role": "SRE",
+          "text": "Traffic and CPU back to expected levels",
+          "utc": "14:09",
+          "at": 0.5
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "After testing in one city, the firewall returned worldwide at 14:52.",
+      "visuals": [
+        {
+          "do": "incident.message",
+          "role": "SRE",
+          "text": "Fix tested in one city, customers removed",
+          "utc": "14:30",
+          "at": 0.0,
+          "typing_ms": 400
+        },
+        {
+          "do": "incident.metric",
+          "name": "CPU",
+          "value": 15,
+          "max": 100,
+          "display": "normal",
+          "tone": "ok",
+          "utc": "14:30",
+          "at": 0.0
+        },
+        {
+          "do": "incident.metric",
+          "name": "Traffic",
+          "value": 100,
+          "max": 100,
+          "display": "normal",
+          "tone": "ok",
+          "utc": "14:30",
+          "at": 0.0
+        },
+        {
+          "do": "incident.message",
+          "role": "Release",
+          "text": "WAF re-enabled globally",
+          "utc": "14:52",
+          "at": 0.6
+        },
+        {
+          "do": "incident.status",
+          "text": "WAF restored globally",
+          "level": "ok",
+          "utc": "14:52",
+          "at": 0.6
+        },
+        {
+          "do": "incident.metric",
+          "name": "CPU",
+          "value": 15,
+          "max": 100,
+          "display": "normal",
+          "tone": "ok",
+          "utc": "14:52",
+          "at": 0.6
+        },
+        {
+          "do": "incident.metric",
+          "name": "Traffic",
+          "value": 100,
+          "max": 100,
+          "display": "normal",
+          "tone": "ok",
+          "utc": "14:52",
+          "at": 0.6
+        }
+      ]
+    },
+    {
+      "speaker": "narrator",
+      "text": "Fixes: restore the CPU limit, inspect all 3,868 rules, then adopt a regex engine with run-time guarantees.",
+      "visuals": [
+        {
+          "do": "incident.message",
+          "role": "Cloudflare",
+          "text": "Fix: re-add CPU protection",
+          "utc": "14:52",
+          "at": 0.0
+        },
+        {
+          "do": "incident.message",
+          "role": "Cloudflare",
+          "text": "Inspected all 3,868 managed rules",
+          "utc": "14:52",
+          "at": 0.35
+        },
+        {
+          "do": "incident.message",
+          "role": "Cloudflare",
+          "text": "Plan: re2 or Rust regex engine",
+          "utc": "14:52",
+          "at": 0.7
+        }
+      ]
+    }
+  ]
+}

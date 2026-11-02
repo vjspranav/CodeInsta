@@ -7,20 +7,22 @@ import type {Action} from '../schema';
 import type {AnyWorld} from './types';
 import type {Item, Timeline, WorldInstance} from '../timeline';
 import {termSession} from './term-session';
-import {netmap} from './netmap';
 import {browserNetwork} from './browser-network';
-import {debuggerWorld} from './debugger';
 import {memgrid} from './memgrid';
+import {netmap} from './netmap';
+import {debuggerWorld} from './debugger';
+import {incident} from './incident';
 
 export type {AnyWorld, WorldEvent, WorldModule, WorldText, WorldViewProps, WorldValidateCtx} from './types';
 export {defineWorld} from './types';
 
 export const WORLDS: AnyWorld[] = [
 	termSession,
-	netmap,
-	browserNetwork,
 	debuggerWorld,
+	netmap,
 	memgrid,
+	browserNetwork,
+	incident,
 	// add new worlds here, one line each
 ];
 
