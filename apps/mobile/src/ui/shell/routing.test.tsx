@@ -75,9 +75,9 @@ describe("root layout auth gate", () => {
     // The first declared screen is the one a fresh launch lands on (iOS opened About before this was explicit).
     expect(routes[0]).toBe(`route:${route}`);
     expect(routeForStatus(status as never)).toBe(route);
-    // About and Privacy are public, like on the web; everything else needs a member session.
-    expect(routes).toEqual(expect.arrayContaining(["route:about", "route:privacy"]));
-    const memberOnly = ["route:reel/[id]", "route:settings", "route:interests", "route:requests", "route:admin/requests", "route:admin/invites"];
+    // Outside a session only the one auth screen exists, so a launch cannot land anywhere else.
+    if (status !== "ready") expect(routes).toEqual([`route:${route}`]);
+    const memberOnly = ["route:about", "route:privacy", "route:reel/[id]", "route:settings", "route:interests", "route:requests", "route:admin/requests", "route:admin/invites"];
     for (const r of memberOnly) {
       if (status === "ready") expect(routes).toContain(r);
       else expect(routes).not.toContain(r);

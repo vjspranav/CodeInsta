@@ -50,11 +50,12 @@ function RootNavigator() {
           <Stack.Screen name="requests" />
           <Stack.Screen name="admin/requests" />
           <Stack.Screen name="admin/invites" />
+          <Stack.Screen name="about" />
+          <Stack.Screen name="privacy" />
         </Stack.Protected>
-        {/* Public pages, like the web's /about and /privacy. Declared last so a fresh launch never
-            lands on them: every screen must be listed here, or expo-router adds it unguarded. */}
-        <Stack.Screen name="about" />
-        <Stack.Screen name="privacy" />
+        {/* Every screen must sit in exactly one guarded group. expo-router adds unlisted screens
+            unguarded, and a signed-out launch then opens the first available file by name: About
+            sorted before login on iOS. */}
       </Stack>
     </>
   );
