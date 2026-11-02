@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024"><g fill="none">
+<path d="M150 512H874M512 150V874" stroke="#7D9BB8" stroke-width="12" stroke-dasharray="64 18 12 18"/>
+<path d="M374.16 358.91A206 206 0 0 1 649.84 358.91M713.5 469.17A206 206 0 0 1 575.66 707.92M448.34 707.92A206 206 0 0 1 310.5 469.17" stroke="#66C8F5" stroke-width="26" stroke-linecap="round"/>
+<path d="M512 718H712.83" stroke="#66C8F5" stroke-width="16" stroke-dasharray="26 20"/>
+<path d="M732.83 718H1110" stroke="#66C8F5" stroke-width="30"/>
+<circle cx="512" cy="512" r="302" stroke="#E8F1F8" stroke-width="32"/>
+<path d="M327.85 351.92A244 244 0 0 1 696.15 351.92L593.51 441.15A108 108 0 0 0 430.49 441.15ZM742.71 432.56A244 244 0 0 1 558.56 751.52L532.61 618.02A108 108 0 0 0 614.12 476.84ZM465.44 751.52A244 244 0 0 1 281.29 432.56L409.88 476.84A108 108 0 0 0 491.39 618.02Z" stroke="#E8F1F8" stroke-width="28" stroke-linejoin="round"/>
+<circle cx="512" cy="512" r="58" stroke="#E8F1F8" stroke-width="28"/><path d="M512 454V430M562 541L583 553M462 541L441 553" stroke="#E8F1F8" stroke-width="28"/>
+</g></svg>
