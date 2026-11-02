@@ -5,6 +5,7 @@
  "topic": "aosp/build/product-makefile-inheritance",
  "genre": "commit-story",
  "style": "terminal",
+ "world": "term.session",
  "series": "aosp-build-system",
  "series_index": 3,
  "level": "intermediate",
@@ -17,15 +18,15 @@
  ],
  "cast": [
   {
-   "id": "rookie",
-   "name": "Rookie",
-   "role": "Overconfident junior who ships things",
+   "id": "sam",
+   "name": "Sam",
+   "role": "Release engineer on the broken build",
    "color": "#E4572E"
   },
   {
-   "id": "senior",
-   "name": "Senior",
-   "role": "Calm, dry-humored staff engineer",
+   "id": "dara",
+   "name": "Dara",
+   "role": "StagOS maintainer who knows why the recovery target went away",
    "color": "#2F6F8F"
   }
  ],
@@ -44,158 +45,272 @@
  "key_points": [
   "PRODUCT_PACKAGES accumulates across every inherited makefile.",
   "Each name in it must match a real module, or the build stops.",
-  "Removing a stale name fixes the error."
+  "Removing the stale name from both compression makefiles fixes the error."
  ],
  "sources": [
   "https://github.com/StagOS/android_build_make/commit/bba99035e74fe329c811478366159b96215d1068",
+  "https://github.com/StagOS/android_build_make/blob/bba99035e74fe329c811478366159b96215d1068/core/main.mk",
   "https://source.android.com/docs/setup/create/new-device"
  ],
  "beats": [
   {
    "speaker": "narrator",
-   "text": "A StagOS build stops on one red line.",
+   "text": "A StagOS build. A single letter at the prompt, and it stops.",
    "visuals": [
     {
-     "do": "layout",
-     "template": "board-full"
+     "do": "world.set",
+     "world": "term.session",
+     "cwd": "~/stag",
+     "prompt": "{cwd} $",
+     "title": "bash: ~/stag"
     },
     {
-     "do": "term.type",
-     "id": "sh",
+     "do": "term.run",
      "cmd": "m",
      "out": [
-      "… includes non-existent modules in PRODUCT_PACKAGES"
-     ]
-    },
-    {
-     "do": "sketch.note",
-     "at": 0.7,
-     "text": "error text quoted from the commit message"
+      {
+       "text": "... includes non-existent modules in PRODUCT_PACKAGES",
+       "tone": "err"
+      },
+      "Offending entries:",
+      "   snapuserd.recovery",
+      {
+       "text": "error: Build failed",
+       "tone": "err"
+      }
+     ],
+     "exit": 1,
+     "wait_ms": 600,
+     "line_ms": 240,
+     "at": 0.1
     }
    ]
   },
   {
-   "speaker": "rookie",
+   "speaker": "sam",
    "text": "Non-existent modules? I haven't added a package all week.",
-   "visuals": []
-  },
-  {
-   "speaker": "senior",
-   "text": "Nobody did. So which assumption broke? Open the case file.",
    "visuals": [
     {
-     "do": "layout",
-     "template": "board-full"
-    },
-    {
-     "do": "commit.story",
-     "repo": "StagOS/android_build_make",
-     "title": "Remove non existent snapuserd.recovery package",
-     "broke": "Build stops: includes non-existent modules in PRODUCT_PACKAGES"
+     "do": "term.highlight",
+     "match": "non-existent modules",
+     "at": 0.3
     }
    ]
   },
   {
-   "speaker": "senior",
-   "text": "PRODUCT_PACKAGES is one big list. Every name in it must match a real module.",
+   "speaker": "narrator",
+   "text": "These lines are condensed from the build's own check in build/make's main.mk. It lists every package name that no module answers to.",
+   "say": "These lines are condensed from the build's own check in build make's main dot m k. It lists every package name that no module answers to.",
    "visuals": [
     {
-     "do": "layout",
-     "template": "board-full"
+     "do": "define",
+     "term": "PRODUCT_PACKAGES",
+     "at": 0.6
+    }
+   ]
+  },
+  {
+   "speaker": "dara",
+   "text": "Nobody added one. A name went stale. Find where it's listed.",
+   "visuals": [
+    {
+     "do": "term.highlight",
+     "off": true
     },
     {
-     "do": "code.editor",
-     "id": "f",
-     "file": "compression.mk",
-     "diff": [
+     "do": "term.clear",
+     "at": 0.35
+    },
+    {
+     "do": "term.run",
+     "cmd": "cd build/make/target/product/virtual_ab_ota",
+     "cwd": "virtual_ab_ota",
+     "cps": 40,
+     "at": 0.45
+    }
+   ]
+  },
+  {
+   "speaker": "sam",
+   "text": "Here it is. Two makefiles, both for Virtual A/B compression.",
+   "say": "Here it is. Two makefiles, both for Virtual A B compression.",
+   "visuals": [
+    {
+     "do": "term.run",
+     "cmd": "grep -n snapuserd.recovery *.mk",
+     "out": [
+      "compression.mk:32:    snapuserd.recovery",
+      "compression_retrofit.mk:28:    snapuserd.recovery"
+     ],
+     "cps": 30,
+     "at": 0.0
+    },
+    {
+     "do": "define",
+     "term": "A/B",
+     "at": 0.75
+    }
+   ]
+  },
+  {
+   "speaker": "dara",
+   "text": "Your device makefile never lists these. It inherits them, through chains like this.",
+   "visuals": [
+    {
+     "do": "term.run",
+     "cmd": "grep -n inherit-product compression*.mk",
+     "out": [
+      "compression_with_xor.mk:18:$(call inherit-product, $(SRC_TARGET_DIR)/product/virtual_ab_ota/compression.mk)",
+      "compression.mk:17:$(call inherit-product, $(SRC_TARGET_DIR)/product/virtual_ab_ota/launch_with_vendor_ramdisk.mk)"
+     ],
+     "cps": 30,
+     "at": 0.0
+    }
+   ]
+  },
+  {
+   "speaker": "dara",
+   "text": "Each inherited makefile adds to the package list. Lists pile up; scalars like the product name take the most derived value.",
+   "visuals": [
+    {
+     "do": "term.highlight",
+     "match": "compression_with_xor.mk:18",
+     "at": 0.2
+    }
+   ]
+  },
+  {
+   "speaker": "sam",
+   "text": "So one stale name anywhere in the chain lands in my list.",
+   "visuals": [
+    {
+     "do": "term.highlight",
+     "off": true
+    },
+    {
+     "do": "term.run",
+     "cmd": "sed -n 28,32p compression.mk",
+     "out": [
+      "PRODUCT_VIRTUAL_AB_COMPRESSION := true",
       "PRODUCT_PACKAGES += \\",
       "    snapuserd.vendor_ramdisk \\",
-      "-    snapuserd \\",
-      "-    snapuserd.recovery"
-     ]
-    }
-   ],
-   "say": "PRODUCT PACKAGES is one big list. Every name in it must match a real module."
-  },
-  {
-   "speaker": "rookie",
-   "text": "One big list, from one file?",
-   "visuals": []
-  },
-  {
-   "speaker": "senior",
-   "text": "From every makefile you inherit. Lists pile up across them; scalars like PRODUCT_NAME take the most derived value.",
-   "visuals": [
+      "    snapuserd \\",
+      "    snapuserd.recovery"
+     ],
+     "cps": 30,
+     "at": 0.0
+    },
     {
-     "do": "sketch.note",
-     "at": 0.5,
-     "text": "lists accumulate, scalars: most derived wins"
+     "do": "term.highlight",
+     "match": "    snapuserd.recovery",
+     "at": "end"
     }
-   ],
-   "say": "From every makefile you inherit. Lists pile up across them; scalars like PRODUCT NAME take the most derived value."
+   ]
   },
   {
-   "speaker": "senior",
-   "text": "So one stale name anywhere stays in the list. Here, it's snapuserd.recovery.",
-   "visuals": [
-    {
-     "do": "sketch.note",
-     "at": 0.6,
-     "text": "snapuserd.recovery: nothing answers to this name"
-    }
-   ],
-   "say": "So one stale name anywhere stays in the list. Here, it's snap user D dot recovery."
-  },
-  {
-   "speaker": "rookie",
+   "speaker": "sam",
    "text": "What did that line assume?",
    "visuals": []
   },
   {
-   "speaker": "senior",
-   "text": "That a recovery build of snapuserd still exists. The commit says the recovery target was removed in an earlier change.",
-   "visuals": [],
-   "say": "That a recovery build of snap user D still exists. The commit says the recovery target was removed in an earlier change."
-  },
-  {
-   "speaker": "rookie",
-   "text": "Then the fix is just deleting it?",
+   "speaker": "dara",
+   "text": "That a recovery build of snapuserd still exists. The real commit says the recovery target was removed in an earlier change.",
+   "say": "That a recovery build of snap user d still exists. The real commit says the recovery target was removed in an earlier change.",
    "visuals": []
   },
   {
-   "speaker": "senior",
-   "text": "Yes, from both Virtual A/B compression makefiles. The list shrinks by one name.",
+   "speaker": "narrator",
+   "text": "The fix in StagOS build/make: remove the non existent snapuserd.recovery package. Its diff, trimmed:",
+   "say": "The fix in Stag O S build make: remove the non existent snap user d dot recovery package. Its diff, trimmed:",
    "visuals": [
     {
-     "do": "commit.story",
-     "repo": "StagOS/android_build_make",
-     "fix": "Delete snapuserd.recovery from both compression makefiles"
+     "do": "term.highlight",
+     "off": true
     },
     {
-     "do": "code.editor",
-     "id": "f",
-     "diff": [
-      "+    snapuserd"
-     ]
+     "do": "term.clear"
+    },
+    {
+     "do": "term.run",
+     "cmd": "git diff --relative -U2 compression.mk",
+     "out": [
+      "--- a/compression.mk",
+      "+++ b/compression.mk",
+      {
+       "text": "@@ -29,4 +29,3 @@ PRODUCT_VIRTUAL_AB_COMPRESSION := true",
+       "tone": "dim"
+      },
+      " PRODUCT_PACKAGES += \\",
+      "     snapuserd.vendor_ramdisk \\",
+      {
+       "text": "-    snapuserd \\",
+       "tone": "err"
+      },
+      {
+       "text": "-    snapuserd.recovery",
+       "tone": "err"
+      },
+      {
+       "text": "+    snapuserd",
+       "tone": "ok"
+      }
+     ],
+     "cps": 30,
+     "line_ms": 220,
+     "at": 0.05
     }
    ]
   },
   {
-   "speaker": "senior",
-   "text": "Now every name matches a module again. The commit's test note: run m, and that error is gone.",
+   "speaker": "sam",
+   "text": "One name out, and snapuserd drops its trailing backslash, because it's last in the list now.",
+   "say": "One name out, and snap user d drops its trailing backslash, because it's last in the list now.",
    "visuals": [
     {
-     "do": "commit.story",
-     "repo": "StagOS/android_build_make",
-     "why": "Every PRODUCT_PACKAGES name resolves to a module again"
+     "do": "term.highlight",
+     "match": "+    snapuserd",
+     "at": 0.3
     }
-   ],
-   "say": "Now every name matches a module again. The commit's test note: run em, and that error is gone."
+   ]
   },
   {
-   "speaker": "rookie",
-   "text": "One stale word in a list can stop the whole build.",
-   "punchline": true,
+   "speaker": "dara",
+   "text": "Same change in the retrofit file. Two files touched.",
+   "visuals": [
+    {
+     "do": "term.highlight",
+     "off": true
+    },
+    {
+     "do": "term.run",
+     "cmd": "git diff --relative --stat",
+     "out": [
+      " compression.mk          | 3 +--",
+      " compression_retrofit.mk | 3 +--",
+      " 2 files changed, 2 insertions(+), 4 deletions(-)"
+     ],
+     "at": 0.0
+    }
+   ]
+  },
+  {
+   "speaker": "sam",
+   "text": "And now nothing in this folder names the recovery build.",
+   "visuals": [
+    {
+     "do": "term.run",
+     "cmd": "grep -n snapuserd.recovery *.mk || echo \"no matches\"",
+     "out": [
+      "no matches"
+     ],
+     "cps": 30,
+     "at": 0.0
+    }
+   ]
+  },
+  {
+   "speaker": "dara",
+   "text": "The commit's test note: run m, and that error is no longer present.",
    "visuals": []
   }
  ]

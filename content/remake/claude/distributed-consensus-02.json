@@ -1,10 +1,11 @@
 {
  "version": 3,
  "format": "story",
- "title": "Why can't a Raft leader commit old entries by counting replicas?",
+ "title": "A majority had it. It still vanished.",
  "topic": "distributed/consensus/raft-log-replication-safety",
  "genre": "interview",
  "style": "sketch",
+ "world": "db",
  "series": "distributed-consensus",
  "series_index": 2,
  "level": "advanced",
@@ -19,7 +20,7 @@
   {
    "id": "mira",
    "name": "Mira",
-   "role": "Interviewer who asks one bounded question",
+   "role": "Interviewer who asks one bounded question at a time",
    "color": "#2F6F8F"
   },
   {
@@ -57,7 +58,7 @@
  "beats": [
   {
    "speaker": "narrator",
-   "text": "Whiteboard interview. Five Raft servers, each log entry tagged with the term that wrote it. Alpha leads term 2, and has copied its newest entry to beta.",
+   "text": "An interview question, drawn as five Raft servers, each with its own copy of the log.",
    "visuals": [
     {
      "do": "layout",
@@ -65,50 +66,168 @@
     },
     {
      "do": "db.table",
-     "id": "l1",
-     "name": "Raft logs",
+     "id": "h-alpha",
+     "name": "alpha",
      "columns": [
-      "server",
-      "log (term of each entry)"
+      "index",
+      "term"
      ],
      "rows": [
       [
-       "alpha",
-       "1 2"
-      ],
-      [
-       "beta",
-       "1 2"
-      ],
-      [
-       "gamma",
+       "1",
        "1"
       ],
       [
-       "delta",
+       "2",
+       "2"
+      ]
+     ],
+     "at": 0.0
+    },
+    {
+     "do": "db.table",
+     "id": "h-beta",
+     "name": "beta",
+     "columns": [
+      "index",
+      "term"
+     ],
+     "rows": [
+      [
+       "1",
        "1"
       ],
       [
-       "epsilon",
+       "2",
+       "2"
+      ]
+     ],
+     "at": 0.1
+    },
+    {
+     "do": "db.table",
+     "id": "h-gamma",
+     "name": "gamma",
+     "columns": [
+      "index",
+      "term"
+     ],
+     "rows": [
+      [
+       "1",
+       "1"
+      ],
+      [
+       "2",
+       "2"
+      ]
+     ],
+     "at": 0.21
+    },
+    {
+     "do": "db.table",
+     "id": "h-delta",
+     "name": "delta",
+     "columns": [
+      "index",
+      "term"
+     ],
+     "rows": [
+      [
+       "1",
        "1"
       ]
+     ],
+     "at": 0.31
+    },
+    {
+     "do": "db.table",
+     "id": "h-epsilon",
+     "name": "epsilon",
+     "columns": [
+      "index",
+      "term"
+     ],
+     "rows": [
+      [
+       "1",
+       "1"
+      ],
+      [
+       "2",
+       "3"
+      ]
+     ],
+     "at": 0.41
+    },
+    {
+     "do": "define",
+     "term": "Raft",
+     "at": 0.85
+    }
+   ]
+  },
+  {
+   "speaker": "narrator",
+   "text": "Rows are index and term. Index two, from term two, sits on three of five.",
+   "visuals": [
+    {
+     "do": "db.join",
+     "at": 0.45,
+     "step_ms": 450,
+     "steps": [
+      {
+       "table": "h-alpha",
+       "rows": [
+        1
+       ],
+       "label": "alpha holds it"
+      },
+      {
+       "table": "h-beta",
+       "rows": [
+        1
+       ],
+       "label": "beta holds it"
+      },
+      {
+       "table": "h-gamma",
+       "rows": [
+        1
+       ],
+       "label": "gamma: a majority"
+      }
      ]
     }
    ]
   },
   {
    "speaker": "mira",
-   "text": "Proposed rule: once a majority stores an entry, it's committed. Agree?",
-   "visuals": []
+   "text": "Proposed rule: a majority stores it, so it's committed. Agree?",
+   "visuals": [
+    {
+     "do": "db.join",
+     "at": 0.55,
+     "steps": [
+      {
+       "table": "h-gamma",
+       "rows": [
+        1
+       ],
+       "label": "stamp: COMMITTED?"
+      }
+     ]
+    }
+   ]
   },
   {
    "speaker": "theo",
-   "text": "A majority has it, so it's safe. Always.",
+   "text": "Always.",
    "visuals": []
   },
   {
    "speaker": "mira",
-   "text": "Alpha crashes. Epsilon wins term 3 with votes from gamma and delta, and writes its own entry in that slot.",
+   "text": "Then replay it from the start.",
    "visuals": [
     {
      "do": "clear"
@@ -119,40 +238,211 @@
     },
     {
      "do": "db.table",
-     "id": "l2",
-     "name": "Raft logs",
+     "id": "r-alpha",
+     "name": "alpha",
      "columns": [
-      "server",
-      "log (term of each entry)"
+      "index",
+      "term"
      ],
      "rows": [
       [
-       "alpha",
-       "1 2"
-      ],
-      [
-       "beta",
-       "1 2"
-      ],
-      [
-       "gamma",
+       "1",
        "1"
-      ],
-      [
-       "delta",
-       "1"
-      ],
-      [
-       "epsilon",
-       "1 3"
       ]
+     ],
+     "at": 0.0
+    },
+    {
+     "do": "db.table",
+     "id": "r-beta",
+     "name": "beta",
+     "columns": [
+      "index",
+      "term"
+     ],
+     "rows": [
+      [
+       "1",
+       "1"
+      ]
+     ],
+     "at": 0.19
+    },
+    {
+     "do": "db.table",
+     "id": "r-gamma",
+     "name": "gamma",
+     "columns": [
+      "index",
+      "term"
+     ],
+     "rows": [
+      [
+       "1",
+       "1"
+      ]
+     ],
+     "at": 0.39
+    },
+    {
+     "do": "db.table",
+     "id": "r-delta",
+     "name": "delta",
+     "columns": [
+      "index",
+      "term"
+     ],
+     "rows": [
+      [
+       "1",
+       "1"
+      ]
+     ],
+     "at": 0.58
+    },
+    {
+     "do": "db.table",
+     "id": "r-epsilon",
+     "name": "epsilon",
+     "columns": [
+      "index",
+      "term"
+     ],
+     "rows": [
+      [
+       "1",
+       "1"
+      ]
+     ],
+     "at": 0.77
+    }
+   ]
+  },
+  {
+   "speaker": "narrator",
+   "text": "Alpha leads term two, and writes index two.",
+   "visuals": [
+    {
+     "do": "define",
+     "term": "term",
+     "at": 0.3
+    },
+    {
+     "do": "db.insert",
+     "table": "r-alpha",
+     "row": [
+      "2",
+      "2"
+     ],
+     "tag": 0,
+     "at": 0.85
+    }
+   ]
+  },
+  {
+   "speaker": "narrator",
+   "text": "It copies the entry to beta, then crashes.",
+   "visuals": [
+    {
+     "do": "db.insert",
+     "table": "r-beta",
+     "row": [
+      "2",
+      "2"
+     ],
+     "tag": 0,
+     "at": 0.55
+    }
+   ]
+  },
+  {
+   "speaker": "mira",
+   "text": "Epsilon wins term three with votes from gamma and delta, and writes its own entry at index two.",
+   "visuals": [
+    {
+     "do": "db.insert",
+     "table": "r-epsilon",
+     "row": [
+      "2",
+      "3"
+     ],
+     "tag": 1,
+     "at": 0.8
+    }
+   ]
+  },
+  {
+   "speaker": "mira",
+   "text": "Epsilon crashes. Alpha restarts, wins term four, and copies its term two entry to gamma.",
+   "visuals": [
+    {
+     "do": "db.insert",
+     "table": "r-gamma",
+     "row": [
+      "2",
+      "2"
+     ],
+     "tag": 0,
+     "at": 0.8
+    }
+   ]
+  },
+  {
+   "speaker": "theo",
+   "text": "Three of five. Stamp it committed.",
+   "visuals": [
+    {
+     "do": "db.join",
+     "at": 0.0,
+     "step_ms": 400,
+     "steps": [
+      {
+       "table": "r-alpha",
+       "rows": [
+        1
+       ],
+       "label": "alpha"
+      },
+      {
+       "table": "r-beta",
+       "rows": [
+        1
+       ],
+       "label": "beta"
+      },
+      {
+       "table": "r-gamma",
+       "rows": [
+        1
+       ],
+       "label": "gamma: a majority"
+      }
      ]
     }
    ]
   },
   {
    "speaker": "mira",
-   "text": "Epsilon crashes. Alpha restarts, wins term 4, and copies its term 2 entry to gamma.",
+   "text": "Alpha crashes again. Epsilon's last entry is from term three, newer than two, so beta, gamma and delta vote for it.",
+   "visuals": [
+    {
+     "do": "db.join",
+     "at": 0.3,
+     "steps": [
+      {
+       "table": "r-epsilon",
+       "rows": [
+        1
+       ],
+       "label": "epsilon's last term is newer"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "narrator",
+   "text": "It wins, leads, and overwrites the followers that voted for it.",
    "visuals": [
     {
      "do": "clear"
@@ -163,56 +453,138 @@
     },
     {
      "do": "db.table",
-     "id": "l3",
-     "name": "Raft logs",
+     "id": "o-alpha",
+     "name": "alpha",
      "columns": [
-      "server",
-      "log (term of each entry)"
+      "index",
+      "term"
      ],
      "rows": [
       [
-       "alpha",
-       "1 2"
-      ],
-      [
-       "beta",
-       "1 2"
-      ],
-      [
-       "gamma",
-       "1 2"
-      ],
-      [
-       "delta",
+       "1",
        "1"
       ],
       [
-       "epsilon",
-       "1 3"
+       "2",
+       "2"
       ]
-     ]
+     ],
+     "at": 0.0
+    },
+    {
+     "do": "db.table",
+     "id": "o-beta",
+     "name": "beta",
+     "columns": [
+      "index",
+      "term"
+     ],
+     "rows": [
+      [
+       "1",
+       "1"
+      ]
+     ],
+     "at": 0.14
+    },
+    {
+     "do": "db.table",
+     "id": "o-gamma",
+     "name": "gamma",
+     "columns": [
+      "index",
+      "term"
+     ],
+     "rows": [
+      [
+       "1",
+       "1"
+      ]
+     ],
+     "at": 0.27
+    },
+    {
+     "do": "db.table",
+     "id": "o-delta",
+     "name": "delta",
+     "columns": [
+      "index",
+      "term"
+     ],
+     "rows": [
+      [
+       "1",
+       "1"
+      ]
+     ],
+     "at": 0.41
+    },
+    {
+     "do": "db.table",
+     "id": "o-epsilon",
+     "name": "epsilon",
+     "columns": [
+      "index",
+      "term"
+     ],
+     "rows": [
+      [
+       "1",
+       "1"
+      ],
+      [
+       "2",
+       "3"
+      ]
+     ],
+     "at": 0.55
+    },
+    {
+     "do": "db.insert",
+     "table": "o-beta",
+     "row": [
+      "2",
+      "3"
+     ],
+     "tag": 1,
+     "at": 0.7
+    },
+    {
+     "do": "db.insert",
+     "table": "o-gamma",
+     "row": [
+      "2",
+      "3"
+     ],
+     "tag": 1,
+     "at": 0.8
+    },
+    {
+     "do": "db.insert",
+     "table": "o-delta",
+     "row": [
+      "2",
+      "3"
+     ],
+     "tag": 1,
+     "at": 0.9
     }
    ]
   },
   {
    "speaker": "theo",
-   "text": "Three servers hold it. Majority. Committed.",
-   "visuals": []
-  },
-  {
-   "speaker": "mira",
-   "text": "Alpha crashes again. Epsilon returns. Its last entry is term 3, newer than term 2, so beta, gamma and delta vote for it.",
+   "text": "But a majority had it. It looked committed, and vanished.",
    "visuals": [
     {
      "do": "sketch.note",
-     "at": 0.6,
-     "text": "the newer last term wins the vote"
+     "at": 0.5,
+     "text": "stamp torn off: never committed"
     }
    ]
   },
   {
    "speaker": "mira",
-   "text": "Epsilon leads term 5, overwriting that slot everywhere.",
+   "text": "So what may a leader count replicas for? Rewind to alpha leading again.",
    "visuals": [
     {
      "do": "clear"
@@ -223,80 +595,221 @@
     },
     {
      "do": "db.table",
-     "id": "l4",
-     "name": "Raft logs",
+     "id": "f-alpha",
+     "name": "alpha",
      "columns": [
-      "server",
-      "log (term of each entry)"
+      "index",
+      "term"
      ],
      "rows": [
       [
-       "alpha",
-       "1 2"
+       "1",
+       "1"
       ],
       [
-       "beta",
-       "1 3"
-      ],
-      [
-       "gamma",
-       "1 3"
-      ],
-      [
-       "delta",
-       "1 3"
-      ],
-      [
-       "epsilon",
-       "1 3"
+       "2",
+       "2"
       ]
+     ],
+     "at": 0.0
+    },
+    {
+     "do": "db.table",
+     "id": "f-beta",
+     "name": "beta",
+     "columns": [
+      "index",
+      "term"
+     ],
+     "rows": [
+      [
+       "1",
+       "1"
+      ],
+      [
+       "2",
+       "2"
+      ]
+     ],
+     "at": 0.12
+    },
+    {
+     "do": "db.table",
+     "id": "f-gamma",
+     "name": "gamma",
+     "columns": [
+      "index",
+      "term"
+     ],
+     "rows": [
+      [
+       "1",
+       "1"
+      ],
+      [
+       "2",
+       "2"
+      ]
+     ],
+     "at": 0.24
+    },
+    {
+     "do": "db.table",
+     "id": "f-delta",
+     "name": "delta",
+     "columns": [
+      "index",
+      "term"
+     ],
+     "rows": [
+      [
+       "1",
+       "1"
+      ]
+     ],
+     "at": 0.36
+    },
+    {
+     "do": "db.table",
+     "id": "f-epsilon",
+     "name": "epsilon",
+     "columns": [
+      "index",
+      "term"
+     ],
+     "rows": [
+      [
+       "1",
+       "1"
+      ],
+      [
+       "2",
+       "3"
+      ]
+     ],
+     "at": 0.48
+    }
+   ]
+  },
+  {
+   "speaker": "theo",
+   "text": "Only entries from its own term. Older ones never commit by counting copies.",
+   "visuals": [
+    {
+     "do": "db.join",
+     "at": 0.45,
+     "steps": [
+      {
+       "table": "f-alpha",
+       "rows": [
+        1
+       ],
+       "label": "older term: never committed by count"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "speaker": "mira",
+   "text": "Right. Alpha first appends a no-op from its own term, and copies it to beta and gamma.",
+   "visuals": [
+    {
+     "do": "define",
+     "term": "no-op",
+     "at": 0.3
+    },
+    {
+     "do": "db.insert",
+     "table": "f-alpha",
+     "row": [
+      "3",
+      "4"
+     ],
+     "tag": 2,
+     "at": 0.45
+    },
+    {
+     "do": "db.insert",
+     "table": "f-beta",
+     "row": [
+      "3",
+      "4"
+     ],
+     "tag": 2,
+     "at": 0.7
+    },
+    {
+     "do": "db.insert",
+     "table": "f-gamma",
+     "row": [
+      "3",
+      "4"
+     ],
+     "tag": 2,
+     "at": 0.85
+    }
+   ]
+  },
+  {
+   "speaker": "mira",
+   "text": "A current-term entry on a majority commits, with everything before it.",
+   "visuals": [
+    {
+     "do": "db.join",
+     "at": 0.0,
+     "step_ms": 450,
+     "steps": [
+      {
+       "table": "f-alpha",
+       "rows": [
+        1,
+        2
+       ],
+       "label": "alpha"
+      },
+      {
+       "table": "f-beta",
+       "rows": [
+        1,
+        2
+       ],
+       "label": "beta"
+      },
+      {
+       "table": "f-gamma",
+       "rows": [
+        1,
+        2
+       ],
+       "label": "committed, with all before it"
+      }
      ]
     }
    ]
   },
   {
    "speaker": "theo",
-   "text": "But a majority had it! It looked committed, and vanished.",
-   "visuals": []
-  },
-  {
-   "speaker": "theo",
-   "text": "Redraw one edge: a leader never counts replicas to commit an old-term entry. Only entries from its own term.",
+   "text": "And epsilon can't win now. Its last term is three; theirs is four.",
    "visuals": [
     {
-     "do": "layout",
-     "template": "board-full"
-    },
-    {
-     "do": "sketch.box",
-     "id": "rule",
-     "text": "Count replicas only for entries from the leader's own term",
-     "sub": "the commit rule",
-     "tone": "accent"
+     "do": "db.join",
+     "at": 0.2,
+     "steps": [
+      {
+       "table": "f-epsilon",
+       "rows": [
+        1
+       ],
+       "label": "older last term: no majority"
+      }
+     ]
     }
    ]
   },
   {
-   "speaker": "mira",
-   "text": "Once one current-term entry sits on a majority, everything before it is committed too. Logs agreeing on one entry agree on all earlier ones.",
-   "visuals": [
-    {
-     "do": "sketch.box",
-     "id": "lm",
-     "text": "Log Matching",
-     "sub": "same entry, same past",
-     "icon": "db"
-    }
-   ]
-  },
-  {
-   "speaker": "theo",
-   "text": "So replicate something from its own term first.",
-   "visuals": []
-  },
-  {
-   "speaker": "mira",
-   "text": "Many implementations append a no-op on election for that.",
+   "speaker": "narrator",
+   "text": "So many implementations append a no-op the moment a leader is elected.",
    "visuals": []
   }
  ]

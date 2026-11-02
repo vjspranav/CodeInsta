@@ -1,10 +1,11 @@
 {
  "version": 3,
  "format": "story",
- "title": "What is a dominator tree, and why does every optimizer query it?",
+ "title": "Which block is D's closest dominator?",
  "topic": "compilers/ssa/dominator-trees",
  "genre": "predict-it",
  "style": "terminal",
+ "world": "term.session",
  "series": "compilers-ssa-and-ir",
  "series_index": 2,
  "level": "intermediate",
@@ -12,7 +13,8 @@
   "compilers",
   "ssa",
   "dominators",
-  "llvm"
+  "llvm",
+  "clang"
  ],
  "cast": [
   {
@@ -29,6 +31,11 @@
   }
  ],
  "glossary": [
+  {
+   "term": "CFG",
+   "full": "Control Flow Graph",
+   "note": "Basic blocks joined by the jumps between them."
+  },
   {
    "term": "dominance frontier",
    "full": "First blocks a block no longer dominates",
@@ -47,76 +54,150 @@
  ],
  "sources": [
   "https://www.cs.rice.edu/~keith/EMBED/dom.pdf",
-  "https://llvm.org/docs/LangRef.html"
+  "https://llvm.org/docs/LangRef.html",
+  "https://clang.llvm.org/docs/analyzer/developer-docs/DebugChecks.html"
  ],
  "beats": [
   {
    "speaker": "narrator",
-   "text": "Four blocks. Ravi hands Priya a pencil and one question.",
+   "text": "Seven lines of C. Ravi has a question for Priya, and the compiler holds the answer.",
+   "visuals": [
+    {
+     "do": "world.set",
+     "world": "term.session",
+     "cwd": "~/dom",
+     "prompt": "{cwd} %",
+     "title": "zsh: ~/dom"
+    },
+    {
+     "do": "term.run",
+     "cmd": "cat d.c",
+     "out": [
+      "int one(void), two(void);",
+      "int f(int c) {",
+      "  int x;",
+      "  if (c) x = one();",
+      "  else   x = two();",
+      "  return x;",
+      "}"
+     ],
+     "at": 0.0,
+     "line_ms": 120
+    }
+   ]
+  },
+  {
+   "speaker": "ravi",
+   "text": "First, the shape. Clang's analyzer prints its control flow graph.",
+   "visuals": [
+    {
+     "do": "term.run",
+     "cmd": "clang --analyze -Xclang -analyzer-checker=debug.DumpCFG d.c 2>&1 | grep -E '^ \\[B|Succs'",
+     "out": [
+      " [B5 (ENTRY)]",
+      "   Succs (1): B4",
+      " [B1]",
+      "   Succs (1): B0",
+      " [B2]",
+      "   Succs (1): B1",
+      " [B3]",
+      "   Succs (1): B1",
+      " [B4]",
+      "   Succs (2): B3 B2",
+      " [B0 (EXIT)]"
+     ],
+     "cps": 60,
+     "line_ms": 200,
+     "at": 0.0
+    },
+    {
+     "do": "define",
+     "term": "CFG",
+     "at": 0.75
+    }
+   ]
+  },
+  {
+   "speaker": "ravi",
+   "text": "Blocks count backwards. B4 tests c and branches to B3 and B2, the two calls. Both flow into B1.",
+   "visuals": [
+    {
+     "do": "term.highlight",
+     "match": "Succs (2): B3 B2",
+     "at": 0.15
+    }
+   ]
+  },
+  {
+   "speaker": "narrator",
+   "text": "On the board, call them A, B, C and D. A diamond.",
    "visuals": [
     {
      "do": "layout",
      "template": "board-full"
     },
     {
-     "do": "code.show",
-     "id": "cfg",
-     "lang": "text",
-     "title": "cfg.txt",
-     "code": [
-      "A: br c, B, C",
-      "B: br D",
-      "C: br D",
-      "D: ret"
-     ]
-    }
-   ]
-  },
-  {
-   "speaker": "ravi",
-   "text": "Rule: block X dominates block Y if every path from the entry A to Y goes through X.",
-   "visuals": [
-    {
-     "do": "sketch.note",
-     "at": 0.4,
-     "text": "X dominates Y: every path from A to Y passes through X"
-    }
-   ]
-  },
-  {
-   "speaker": "ravi",
-   "text": "Question: which block is the closest dominator of D? B, C or A?",
-   "visuals": [
-    {
-     "do": "layout",
-     "template": "board-full"
-    },
-    {
      "do": "sketch.box",
-     "id": "cb",
-     "text": "B",
-     "sub": "candidate",
-     "icon": "user"
-    },
-    {
-     "do": "sketch.box",
-     "id": "cc",
-     "text": "C",
-     "sub": "candidate",
-     "icon": "user"
-    },
-    {
-     "do": "sketch.box",
-     "id": "ca",
+     "id": "blkA",
      "text": "A",
-     "sub": "candidate",
-     "icon": "user"
+     "sub": "B4: if (c)",
+     "at": 0.05
+    },
+    {
+     "do": "sketch.box",
+     "id": "blkB",
+     "text": "B",
+     "sub": "B3: x = one()",
+     "at": 0.13
+    },
+    {
+     "do": "sketch.box",
+     "id": "blkC",
+     "text": "C",
+     "sub": "B2: x = two()",
+     "at": 0.21
+    },
+    {
+     "do": "sketch.box",
+     "id": "blkD",
+     "text": "D",
+     "sub": "B1: return x",
+     "at": 0.29
+    },
+    {
+     "do": "sketch.arrow",
+     "from": "blkA",
+     "to": "blkB",
+     "at": 0.4
+    },
+    {
+     "do": "sketch.arrow",
+     "from": "blkA",
+     "to": "blkC",
+     "at": 0.4
+    },
+    {
+     "do": "sketch.arrow",
+     "from": "blkB",
+     "to": "blkD",
+     "at": 0.4
+    },
+    {
+     "do": "sketch.arrow",
+     "from": "blkC",
+     "to": "blkD",
+     "at": 0.4
     }
    ]
   },
   {
    "speaker": "ravi",
-   "text": "Guess before I flip the card.",
+   "text": "X dominates Y if every path from the entry to Y passes through X.",
+   "visuals": []
+  },
+  {
+   "speaker": "ravi",
+   "text": "So which block is D's closest dominator? B, C, or A?",
    "visuals": []
   },
   {
@@ -126,46 +207,119 @@
   },
   {
    "speaker": "ravi",
-   "text": "Flip. It's A.",
+   "text": "Ask the analyzer for the dominator tree.",
    "visuals": [
     {
-     "do": "sketch.box",
-     "id": "ca",
-     "text": "A",
-     "sub": "closest dominator",
-     "tone": "accent"
+     "do": "world.set",
+     "world": "term.session",
+     "cwd": "~/dom",
+     "prompt": "{cwd} %",
+     "title": "zsh: ~/dom"
     },
     {
-     "do": "sketch.box",
-     "id": "cb",
-     "text": "B",
-     "sub": "skipped by the path A, C, D",
-     "icon": "user",
-     "tone": "grey"
+     "do": "term.highlight",
+     "off": true
     },
     {
-     "do": "sketch.box",
-     "id": "cc",
-     "text": "C",
-     "sub": "skipped by the path A, B, D",
-     "icon": "user",
-     "tone": "grey"
+     "do": "term.clear"
+    },
+    {
+     "do": "term.run",
+     "cmd": "clang --analyze -Xclang -analyzer-checker=debug.DumpDominators d.c",
+     "out": [
+      "Immediate dominance tree (Node#,IDom#):",
+      "(0,1)",
+      "(1,4)",
+      "(2,4)",
+      "(3,4)",
+      "(4,5)",
+      "(5,5)"
+     ],
+     "cps": 50,
+     "line_ms": 200,
+     "at": 0.25
     }
    ]
   },
   {
    "speaker": "ravi",
-   "text": "One path goes A, C, D and never touches B. Another goes A, B, D and never touches C. Only A is on every path.",
-   "visuals": []
-  },
-  {
-   "speaker": "priya",
-   "text": "So A is D's parent in the dominator tree?",
-   "visuals": []
+   "text": "Each pair is a block and its immediate dominator. One, four: B1's is B4. D's closest dominator is A.",
+   "visuals": [
+    {
+     "do": "term.highlight",
+     "match": "(1,4)",
+     "at": 0.4
+    }
+   ]
   },
   {
    "speaker": "ravi",
-   "text": "Yes. Link each block to its immediate dominator and you get a tree rooted at the entry.",
+   "text": "Path A, C, D skips B. Path A, B, D skips C. Only A is on every path.",
+   "visuals": [
+    {
+     "do": "layout",
+     "template": "board-full"
+    },
+    {
+     "do": "sketch.box",
+     "id": "blkA",
+     "text": "A",
+     "sub": "B4: if (c)",
+     "at": 0.05,
+     "tone": "accent"
+    },
+    {
+     "do": "sketch.box",
+     "id": "blkB",
+     "text": "B",
+     "sub": "B3: x = one()",
+     "at": 0.13,
+     "tone": "grey"
+    },
+    {
+     "do": "sketch.box",
+     "id": "blkC",
+     "text": "C",
+     "sub": "B2: x = two()",
+     "at": 0.21,
+     "tone": "grey"
+    },
+    {
+     "do": "sketch.box",
+     "id": "blkD",
+     "text": "D",
+     "sub": "B1: return x",
+     "at": 0.29
+    },
+    {
+     "do": "sketch.arrow",
+     "from": "blkA",
+     "to": "blkB",
+     "at": 0.4
+    },
+    {
+     "do": "sketch.arrow",
+     "from": "blkA",
+     "to": "blkC",
+     "at": 0.4
+    },
+    {
+     "do": "sketch.arrow",
+     "from": "blkB",
+     "to": "blkD",
+     "at": 0.4
+    },
+    {
+     "do": "sketch.arrow",
+     "from": "blkC",
+     "to": "blkD",
+     "at": 0.4
+    }
+   ]
+  },
+  {
+   "speaker": "ravi",
+   "text": "Link each block to its immediate dominator: a tree rooted at the entry. B, C and D hang off A.",
    "visuals": [
     {
      "do": "layout",
@@ -205,39 +359,64 @@
   },
   {
    "speaker": "priya",
-   "text": "What is a tree like that good for?",
+   "text": "What does an optimizer want with a tree?",
    "visuals": []
   },
   {
    "speaker": "ravi",
-   "text": "Passes ask it constantly. Is a definition above every use? Can this code hoist out of a loop? Is that edge a loop back to a dominator?",
-   "visuals": [
-    {
-     "do": "sketch.note",
-     "at": 0.4,
-     "text": "SSA validity · loop hoisting · value numbering · loop detection"
-    }
-   ]
+   "text": "Passes ask it constantly. Does a definition dominate every use? Can code hoist out of a loop? Is this edge a loop?",
+   "visuals": []
   },
   {
    "speaker": "ravi",
-   "text": "And D is where B and C stop dominating. That frontier is exactly where a phi node belongs.",
+   "text": "And D is where B and C stop dominating: their dominance frontier. A phi node belongs there. Here is LLVM's, at O1.",
    "visuals": [
     {
+     "do": "world.set",
+     "world": "term.session",
+     "cwd": "~/dom",
+     "prompt": "{cwd} %",
+     "title": "zsh: ~/dom"
+    },
+    {
+     "do": "term.highlight",
+     "off": true
+    },
+    {
      "do": "define",
-     "at": 0.3,
-     "term": "dominance frontier"
+     "term": "dominance frontier",
+     "at": 0.3
+    },
+    {
+     "do": "term.run",
+     "cmd": "clang -S -emit-llvm -O1 d.c -o - | grep phi",
+     "out": [
+      "  %8 = phi i32 [ %4, %3 ], [ %6, %5 ]"
+     ],
+     "cps": 40,
+     "at": 0.6
     }
    ]
   },
   {
    "speaker": "priya",
-   "text": "Cooper, Harvey and Kennedy build this tree fast?",
-   "visuals": []
+   "text": "It takes the value from one() or from two(), by the edge it arrived on.",
+   "visuals": [
+    {
+     "do": "define",
+     "term": "phi node",
+     "at": 0.1
+    },
+    {
+     "do": "term.highlight",
+     "match": "phi i32",
+     "at": 0.3
+    }
+   ]
   },
   {
-   "speaker": "ravi",
-   "text": "By visiting blocks in reverse postorder and intersecting each block's predecessors' answers, until nothing changes.",
+   "speaker": "narrator",
+   "text": "Cooper, Harvey and Kennedy build it fast: visit blocks in reverse postorder, intersect predecessors' answers, repeat until nothing changes.",
    "visuals": []
   }
  ]
